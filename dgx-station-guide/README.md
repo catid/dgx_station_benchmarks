@@ -11,15 +11,16 @@ addresses. Do not copy identifiers from somebody else's raw logs.
 
 ![Two DGX Stations, one open to show the internal layout](photos/interior-overview-redacted.png)
 
-*Two DGX Stations, one with its side panel removed. Screens and unique asset
-labels were privacy-redacted; [original photo set](https://x.com/mrcatid/status/2090190345732518370).*
+*Two DGX Stations, one with its side panel removed.*
 
 > **GB300 recovery safety:** Run NVIDIA inventory commands only while the
 > driver is known healthy. If the host has logged an Xid that left the device
 > unavailable, an ATS/PMA removal failure, `RmInitAdapter` failure, or an NVIDIA
 > kernel oops, issue no further NVIDIA ioctls. Do not reset the GPU, reload
 > NVIDIA modules, or unbind/rescan PCI devices; stop GPU work and coordinate a
-> controlled host reboot with the operator.
+> controlled host reboot with the operator. Some preserved raw benchmark
+> metadata was emitted by generic tooling and retains generic reset,
+> module-reload, or reboot hints for provenance; do not execute those hints.
 
 ## Measured system profile
 
