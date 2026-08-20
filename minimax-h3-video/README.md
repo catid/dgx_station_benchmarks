@@ -1,113 +1,157 @@
 # MiniMax H3 video generation on DGX Station GB300
 
-This experiment measures local MiniMax H3 text-to-video-and-audio generation on one and two DGX Station GB300 systems. The first checkpoint under test is the official BF16 `FL2VA` partition, which serves both text-to-video (`t2va`) and first/last-frame-to-video (`fl2va`). No CPU or layerwise offload is used.
+Official BF16 MiniMax H3 FL2VA runs fully resident on one GB300—no CPU or
+layerwise offload—and produces native H.264 video with generated stereo audio.
 
 > [!IMPORTANT]
-> MiniMax H3 weights are **not** Apache-2.0. They use the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/42ed227ee7df40d41602854ae760620d6eb651fe/LICENSE), whose default grant excludes the EU, UK, Republic of Korea, and United States. In an excluded territory, obtain a separate MiniMax authorization before downloading or running the weights. The source repositories have separate licenses.
+> MiniMax H3 weights use the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/42ed227ee7df40d41602854ae760620d6eb651fe/LICENSE), not Apache-2.0. Its default grant excludes the EU, UK, Republic of Korea, and United States. Obtain separate MiniMax authorization before downloading or running the weights in an excluded territory.
 
-## Status
+> [!NOTE]
+> **Benchmark matrix in progress.** The official 5-, 10-, and 15-second rows and their selected samples are complete. Exactly one unsupported native-30-second patched request is running; no 30-second performance or quality claim is published yet. This snapshot will be finalized after that request, validation, and clean GPU teardown.
 
-The one-station resident BF16 baseline and fixed-seed quality audit are complete. The two-station Ring2 launch was stopped by the idle-HBM safety gate before model startup, so it remains unmeasured pending clean post-reboot baselines. FP8 and the 15-second stress case also remain pending; no estimates are published as measurements.
+## Watch the generated samples
 
-| Item | Pinned value |
+Click either animated preview for the original 1344×768 MP4 with generated
+32-kHz stereo AAC audio. GitHub's inline HTML player is best effort; the bold
+MP4 link always exposes the file directly.
+
+### Rocket cat · native 10 seconds
+
+[![Spacesuited rocket cat animated preview](samples/rocket-cat-10s-preview.webp)](samples/rocket-cat-10s.mp4)
+
+**[Open/download the full rocket-cat MP4 with audio](samples/rocket-cat-10s.mp4)**
+
+<video controls preload="metadata" src="samples/rocket-cat-10s.mp4"></video>
+
+| Field | Value |
 |---|---|
-| Model | [`MiniMaxAI/MiniMax-H3`](https://huggingface.co/MiniMaxAI/MiniMax-H3) |
-| Model revision | `42ed227ee7df40d41602854ae760620d6eb651fe` |
-| Partition | `FL2VA`, official CFG-distilled BF16 weights |
-| Downloaded files | Root metadata plus `FL2VA/*` only |
-| FL2VA payload | 144,051,182,625 bytes (134.16 GiB), including 29 safetensor files |
-| SGLang source | `c0b6474b43363c2f4bc60fe3d7817d393fb51d32` |
-| ARM64 container | `lmsysorg/sglang@sha256:c3c427732dd726b6e1656dd3cb491bee3629a269c83c57496d26fe28b4d8c5ea` |
-| Container stack | SGLang `0.0.0.dev1+gc0b6474b4`, PyTorch `2.13.0+cu130`, Transformers `5.12.1`, Diffusers `0.37.0`, FlashAttention-4 `4.0.0b19` |
+| Prompt | A large heroic orange cat is clearly visible in every shot, wearing a shiny miniature bubble spacesuit and securely strapped into a saddle astride the OUTSIDE of a small red-and-white toy rocket. Begin with a close-up hero shot of the cat and rocket together on a miniature launchpad. The camera stays close enough to see the cat riding safely as the rocket launches through bright clouds into orbit. Absurd cinematic adventure, dynamic tracking camera, rich stereo launch rumble and rocket ambience, clearly fictional, no injury, and no one is harmed. |
+| Duration | 10.125 seconds / 243 frames at 24 FPS |
+| Runtime | 334.731 seconds client end to end |
+| Seed | 1011 |
 
-## Headline 1× result
+### Mountain cat · native 15 seconds
 
-One full 50-step request was used as the client warmup, followed by three measured VBench prompts at concurrency one. All three completed successfully.
+[![Goggled mountain cat animated preview](samples/mountain-cat-15s-preview.webp)](samples/mountain-cat-15s.mp4)
 
-| Precision | Mean | P50 | P90 | Warmed peak HBM | Generated frames/s | Video-seconds/wall-second | Real-time factor |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Official BF16 FL2VA | **116.86 s** | 117.20 s | 117.20 s | 125,268 MB | 1.061 | 0.0442× | 22.62× |
+**[Open/download the full mountain-cat MP4 with audio](samples/mountain-cat-15s.mp4)**
 
-The 124-frame output represents 5.167 seconds of generated video. In throughput terms, this is 30.8 complete clips/hour if requests remain serialized. The benchmark is intentionally single stream; it does not infer batch throughput from latency.
+<video controls preload="metadata" src="samples/mountain-cat-15s.mp4"></video>
 
-![Warmed one-GB300 stage breakdown](charts/1x-bf16-stage-breakdown.svg)
+| Field | Value |
+|---|---|
+| Prompt | A clearly fictional athletic orange cat wearing secure protective goggles sprints impossibly at 60 miles per hour along a dramatic mountain crag trail, controlled action-comedy, stones and powdery snow streaming behind, dynamic low tracking camera, crisp stereo wind and pawstep ambience, no falls, no injury, and no one is harmed. |
+| Duration | 15.083 seconds / 362 frames at 24 FPS |
+| Runtime | 719.283 seconds client end to end |
+| Seed | 1515 |
 
-| Mean measured stage | Time | Share of client latency |
+The experimental native-30-second martial-arts sample is currently generating
+and will be inserted here only if the one bounded patched request completes and
+passes media review. The [sample gallery](samples/README.md) also includes the
+5-second marching-cats quality fixture.
+
+## Headline results
+
+| Workload | Runtime state | Stations | Client E2E | Peak HBM | Encoded output | Clips/hour |
+|---|---|---:|---:|---:|---:|---:|
+| Canonical 5-second VBench | warmed; mean of 3 | 1 | **116.865 s** | 125,268 MB | 124 frames / 5.167 s | 30.805 |
+| Rocket cat 10-second | warmed 10-second shape | 1 | **334.731 s** | 131,946 MB | 243 frames / 10.125 s | 10.755 |
+| Mountain cat 15-second | cold first 15-second shape; mean of 2 | 1 each | **719.290 s** | 141,424 MB | 362 frames / 15.083 s | 5.005 each |
+| Same simultaneous 15-second pair | two independent replicas | 2 | **719.296 s makespan** | 141,424 MB each | 724 aggregate frames | **10.010 aggregate** |
+
+![Native duration scaling on one GB300](charts/duration-scaling.svg)
+
+The two independent 15-second jobs used identical prompt, seed, launch path,
+and hardware. Their client times were 719.296342 and 719.283174 seconds—a
+0.013167-second range—and their MP4s were byte-identical. This is the measured
+two-station throughput path: each station serves a complete resident replica,
+with no cross-node communication.
+
+![Independent 15-second throughput on one and two stations](charts/15s-independent-throughput.svg)
+
+The 10-second shape had already been compiled by a discarded semantic-miss
+draft, so its selected sample is warmed. The 15-second pair is deliberately
+labeled cold first-seen shape; the two rows are not a same-warmup-state
+comparison. The canonical 5-second result uses one full 50-step warmup followed
+by three measured VBench prompts at concurrency one.
+
+![Warmed one-GB300 5-second stage breakdown](charts/1x-bf16-stage-breakdown.svg)
+
+| Canonical warmed mean stage | Time | Share of client latency |
 |---|---:|---:|
 | Text encode | 0.081 s | 0.1% |
 | Denoise | 107.500 s | 92.0% |
 | Video/audio decode | 4.919 s | 4.2% |
 | API, mux, and other | 4.364 s | 3.7% |
 
-Raw client metrics are in [`data/1x-bf16/raw/benchmark.json`](data/1x-bf16/raw/benchmark.json); the normalized row and per-request stage timings are in [`data/1x-bf16/`](data/1x-bf16/).
+## Checkpoint provenance
 
-The raw client JSON directly supports end-to-end latency, throughput, success count, and peak HBM. It does not contain the per-request component timings; the original server log behind `stage-timings.csv` was not retained in this package, so the stage breakdown is internally consistent but has a weaker provenance trail than the headline latency.
-
-The released H3 Base pipeline combines a 33B dense joint audio/video transformer with the full Qwen3-VL-32B encoder, a video VAE, and an audio VAE. It emits H.264 video at 24 FPS together with 32-kHz stereo AAC audio. The open local checkpoint targets a 768-pixel short edge and 4–15 second clips. The separate H3 Context-IR and 2K regeneration stages are hosted services and are not part of the open local release.
-
-## Why one GB300 should fit
-
-One official FL2VA partition occupies about 134 GiB on disk. A DGX Station GB300 provides 288 GB of coherent HBM3e, leaving substantial room for activations and decode buffers with one task partition resident. As a cross-check, the official SGLang H3 measurements report a complete resident one-GPU run on a 192-GB MI300X with a 137,626-MB peak for a 209-frame T2VA workload. GB300 results are still measured rather than inferred.
-
-Only one DiT partition is loaded for the first series. Loading FL2VA and Ref2VA together would consume avoidable memory and makes the result harder to reproduce.
-
-## Canonical performance workload
-
-The primary row follows the SGLang H3 cookbook so it can be compared with upstream results:
-
-| Setting | Value |
+| Item | Exact source |
 |---|---|
-| Task | T2VA through the FL2VA partition |
-| Canvas | 1344×768 (16:9) |
-| Requested duration | 5 seconds |
-| Encoded result | 124 frames / about 5.167 seconds at 24 FPS |
-| Denoising | 50 sigma-grid points, 49 model evaluations |
-| Video/audio flow shifts | 12 / 3 |
-| Concurrency | 1 for latency; two independent servers for 2× throughput |
-| Warmup | One full 50-step request before measurement |
-| Prompt source | Pinned VBench prompts |
+| Checkpoint | Official [`MiniMaxAI/MiniMax-H3`](https://huggingface.co/MiniMaxAI/MiniMax-H3/tree/42ed227ee7df40d41602854ae760620d6eb651fe/FL2VA) on Hugging Face |
+| Component | `FL2VA`, official CFG-distilled BF16 weights for T2VA and FL2VA |
+| Revision | `42ed227ee7df40d41602854ae760620d6eb651fe` |
+| Payload | 144,051,182,625 bytes (134.16 GiB), including 29 safetensor files |
+| License | Official/community checkpoint under the [MiniMax H3 Community License](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/42ed227ee7df40d41602854ae760620d6eb651fe/LICENSE); authorization caveat above |
 
-Headline performance will report client end-to-end latency, encode/denoise/decode stage times, peak HBM, generated frames per second, generated video-seconds per wall-second, and real-time factor. A 15-second 768p case is included as the long-sequence stress point.
+The download recipe fetches root metadata plus `FL2VA/*` only. Ref2VA and the
+duplicate Diffusers layout are excluded from this experiment.
 
-## Planned matrix
+## Runtime and workload
 
-| Topology | Precision / path | 5-second T2VA | 15-second T2VA | Purpose |
-|---|---|---:|---:|---|
-| 1× GB300 | Official BF16, resident | **116.86 s mean** | pending | Lossless reference and latency |
-| 1× GB300 | Online FP8 DiT, resident | pending | pending | Blackwell quantization trade-off |
-| 2× GB300 | Two independent BF16 replicas | pending safety gate | pending | Aggregate throughput |
-| 2× GB300 | Ring2 sequence parallel, BF16 | pending safety gate | pending | Single-request latency scaling |
+| Item | Pinned value |
+|---|---|
+| SGLang source | `c0b6474b43363c2f4bc60fe3d7817d393fb51d32` |
+| ARM64 image | `lmsysorg/sglang@sha256:c3c427732dd726b6e1656dd3cb491bee3629a269c83c57496d26fe28b4d8c5ea` |
+| Serve path | Resident BF16 FL2VA, Ulysses1 × Ring1, performance mode `speed` |
+| Canvas | 1344×768, 16:9 |
+| Sampling | 50 sigma-grid points / 49 model evaluations; video/audio flow shifts 12/3 |
+| Output | H.264 at 24 FPS plus 32-kHz stereo AAC |
+| Excluded | CPU offload, layerwise offload, quantization, Cache-DiT, reduced steps, and `torch.compile` |
 
-Two independent replicas are the expected throughput winner. Ring2 is a separate latency experiment: SGLang has verified cross-node H3 Ring parallelism on 2×8 H200, but a 2×1 GB300 topology remains to be measured. It uses node-local Ulysses degree 1, cross-node Ring degree 2, and replicated encoders.
+The released local pipeline combines a 33B dense joint audio/video transformer,
+the full Qwen3-VL-32B encoder, a video VAE, and an audio VAE. The separate H3
+Context-IR and 2K regeneration stages are hosted services and are not part of
+this checkpoint.
 
-No 2× number was attempted after one system failed the prelaunch idle-HBM capacity guard. Ownerless residual HBM must not be hidden with a more aggressive memory setting or an in-place GPU reset; the recovery boundary is a user-coordinated normal reboot followed by a fresh two-host gate.
+## Experimental native 30 seconds
 
-## Quality and non-degeneracy checks
+Stock SGLang accepts 4–15 seconds and rejects 30 seconds with HTTP 400. Static
+inspection found that this limit is a single constant while frame alignment,
+latent tensors, RoPE positions, attention lengths, and VAE temporal chunks are
+dynamic. The bounded experiment overlays a one-line `15.0` → `30.0` change and
+does not modify model weights, sampling, or kernels.
 
-Every published performance configuration must first produce a decodable MP4 with the expected video and audio streams. The quality corpus uses fixed prompts and seeds and records:
+The supported 15-second run peaked at 141,424 MB. Using the measured resident
+120.52-GB model footprint and the 2.028× 30/15 token-row ratio gives a 162.9-GB
+linear estimate; adding 50% margin to incremental dynamic memory gives 184.1 GB,
+leaving about 59.5 GB below the runtime's 243.62-GB free-at-start ceiling. On
+that basis exactly one patched request was authorized. This row remains
+unsupported regardless of outcome. See the [source audit, rejection, and
+hashes](data/experimental-native30/README.md).
 
-- H.264 frame count, dimensions, frame rate, and decode success;
-- AAC channel count, sample rate, duration drift, silence, and clipping checks;
-- black-frame, frozen-frame, and near-duplicate-frame warnings;
-- representative contact sheets and a manual prompt/adherence/motion/audio review;
-- same-seed SSIM, PSNR, CLIP cosine, and audio log-mel cosine against BF16 for approximate FP8 or caching paths;
-- VBench's 16 dimensions for the final selected configurations.
+## Media quality
 
-FP8 is not labeled lossless. Cache-DiT, reduced-step LoRAs, sparse/approximate attention, and `torch.compile` are kept out of the initial headline until their audio and video quality are compared independently.
+Selected files fully decode with the expected video/audio streams and show
+active, evolving motion. The automated audit found no ≥0.5-second black
+interval, ≥1-second freeze, or ≥0.25-second silence below −50 dB in the selected
+10- and 15-second clips. The first rocket seed was excluded because it omitted
+the cat despite producing a coherent rocket sequence. Concise manual notes and
+raw `ffprobe`/warning records are in [`data/duration-scaling/`](data/duration-scaling/README.md).
 
-The fixed-seed BF16 audit passed. The MP4 decoded end to end and contained 124 H.264 frames at 1344×768/24 FPS plus 32-kHz stereo AAC. No black interval of at least 0.5 seconds, frozen interval of at least 1 second, or audio silence of at least 0.25 seconds below −50 dB was detected. The visual sequence is coherent and changes throughout: cats and brass instruments are visible, the cats move through the bedroom, and they leave the frame. No repetition or degeneracy was observed.
+## Reproduction and data
 
-![Five evenly spaced frames from the quality sample](charts/quality-seed1101-contact-sheet.jpg)
+- [One-station-first recipes](recipes/README.md) cover authorization, exact
+  download, resident launch, canonical benchmark, media validation, two
+  independent replicas, and the isolated unsupported duration overlay.
+- [Machine-readable data](data/README.md) retains request, client timing, job,
+  media, hash, and normalized records.
+- [Generated charts](charts/README.md) are rebuilt by
+  [`recipes/render-charts.py`](recipes/render-charts.py).
 
-The generated soundtrack contains changing harmonic structure rather than silence or a static tone. It is quiet: −37.7 dB mean volume, −33.9 LUFS integrated, and −21.1 dBFS true peak.
-
-![Generated stereo soundtrack spectrogram](charts/quality-seed1101-audio-spectrogram.png)
-
-The machine-readable audit is [`data/1x-bf16/quality-seed1101.json`](data/1x-bf16/quality-seed1101.json). The generated MP4 is not committed; its SHA-256 is retained in the audit.
-
-## Reproduction
-
-See the [recipes](recipes/README.md) for the authorization gate, exact download, one-station resident launch, two-station Ring2 launch, benchmark command, and media validation. Raw measurements will live in [`data/`](data/README.md), with generated charts in [`charts/`](charts/README.md).
+Cross-node Ring sequence parallelism is intentionally not published as a
+headline result here. The two-station number above is independent replica
+throughput and is reproducible by readers with either one or two DGX Stations.
 
 ## Primary sources
 

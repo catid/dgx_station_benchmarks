@@ -1,0 +1,1 @@
+topology,stations,checkpoint,speculative_mode,thinking_mode,context_tokens,output_token_cap,concurrency,duration_seconds,aggregate_output_tokens_per_second,per_stream_output_tokens_per_second,mean_accepted_length,acceptance_rate,completed_requests,errors,capacity_limited,source

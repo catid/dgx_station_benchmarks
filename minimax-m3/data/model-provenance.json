@@ -1,0 +1,61 @@
+{
+  "captured_utc": "2026-08-20",
+  "models": [
+    {
+      "repository": "MiniMaxAI/MiniMax-M3",
+      "revision": "f0e1c1e04d40177e4673a22097036854f536e9c0",
+      "repository_bytes": 854200504173,
+      "files": 82,
+      "gated": false,
+      "license": "MiniMax Community License",
+      "role": "BF16 reference; not staged"
+    },
+    {
+      "repository": "MiniMaxAI/MiniMax-M3-MXFP8",
+      "revision": "c5454eb03678d8710e54a4e0fc681b9f3b4a3dba",
+      "repository_bytes": 443776005285,
+      "files": 52,
+      "gated": false,
+      "license": "MiniMax Community License",
+      "role": "Native official MXFP8 reference; dormant two-station capacity recipe only"
+    },
+    {
+      "repository": "nvidia/MiniMax-M3-NVFP4",
+      "revision": "901464083161bf8612a29ff7ad29914cd4ab4a85",
+      "repository_bytes": 250137296832,
+      "safetensors_bytes": 250103762320,
+      "safetensor_shards": 88,
+      "files": 107,
+      "gated": false,
+      "license": "MiniMax Community License",
+      "license_sha256": "b53f2fdda3049b0e9013207be51efc2d372cda1fcfdd8bb4bb8b22658ca5db9c",
+      "config_sha256": "440d22038ffa0bcb93fa01e8d2d555e3840d939167c08eace81b9cce386fb117",
+      "index_sha256": "1401838cb37be2f2242754dd593f3df27cf062a948bac29f70f5e694eeb268fc",
+      "chat_template_sha256": "11421244f67553498e5c8112dae02802025bcc4305ec45ad380af95c96f9fe64",
+      "generation_config_sha256": "272d19efac5060ff8c9f76c7ed67909a5da1be466284ee4f1f1bd2a810c6fad2",
+      "role": "Primary benchmark checkpoint"
+    },
+    {
+      "repository": "Inferact/MiniMax-M3-EAGLE3-GQA",
+      "revision": "96692486b5fd38ebf8fd2a5f6bb53427d30819a8",
+      "repository_bytes": 6149993396,
+      "safetensors_bytes": 6149986032,
+      "files": 5,
+      "gated": false,
+      "model_card_license": "MIT",
+      "bundled_base_model_license": "MiniMax Community License",
+      "config_sha256": "d26ea8053832f6df4a399d8abfac5ccbbfb2959f4786c9f069f0a21175d7d6aa",
+      "weights_sha256": "0c6d6430519dd498342ccf7c94db8f7e90ba678c8ffbad3d198b35d4a0ffc33f",
+      "role": "Optional vLLM-endorsed GQA EAGLE3 speculative draft"
+    }
+  ],
+  "runtime": {
+    "engine": "vLLM",
+    "version": "0.27.1",
+    "commit": "6e448d0ea9bf3d88d898b65449ca6dc2aec170ac",
+    "container": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+    "contains_minimax_m3_nvfp4_correctness_fix": true,
+    "correctness_fix_pr": 48929,
+    "correctness_fix_merged_utc": "2026-08-05T14:25:46Z"
+  }
+}

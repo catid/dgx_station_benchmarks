@@ -67,7 +67,7 @@ export GPU_DEVICE='nvidia.com/gpu=GPU-REPLACE-WITH-GB300-UUID'
 ./serve-1x.sh
 ```
 
-The first launch loads only FL2VA and uses Ulysses1/Ring1. It does not enable CPU offload, FSDP, quantization, Cache-DiT, or `torch.compile`. Wait for the health endpoint before benchmarking:
+The first launch loads only FL2VA and uses Ulysses1/Ring1. It does not enable CPU offload, FSDP, quantization, Cache-DiT, or `torch.compile`. The launcher disables the server's synthetic warmup because the benchmark owns a complete 50-step warmup; this avoids warming twice. A standalone first-seen duration may therefore include shape compilation and must be labeled cold. Wait for the health endpoint before benchmarking:
 
 DGX Station also contains a smaller display GPU, so select the GB300 explicitly. Do not assume CUDA device 0 is the compute GPU. Resolve its CDI name during a healthy preflight with `nvidia-ctk cdi list`, correlate it with the GB300 UUID from the healthy driver inventory, and pass the full `nvidia.com/gpu=GPU-...` name.
 
@@ -161,7 +161,43 @@ Pure Ulysses2 is intentionally not used across the two systems. The pinned SGLan
 
 For RDMA, set `NCCL_IB_HCA` and `RDMA_DEVICE` to the verified data-plane HCA and matching uverbs character device on both nodes. If they are omitted, the recipe forces NCCL sockets on `FABRIC_IFACE`. Do not guess an HCA from the management interface. Capture NCCL logs for the first run and confirm the intended transport is selected.
 
-## 8. Follow-up optimizations
+## 8. Unsupported native-30-second experiment
+
+Upstream accepts only 4–15 seconds. The published 30-second row is explicitly
+unsupported and changes only the pinned runtime's maximum-duration guard. Do
+not use this overlay for the official rows above.
+
+Extract the exact source file from the pinned image without starting a GPU
+container, apply the one-line patch, and verify both hashes:
+
+```bash
+image='lmsysorg/sglang@sha256:c3c427732dd726b6e1656dd3cb491bee3629a269c83c57496d26fe28b4d8c5ea'
+source_path='/sgl-workspace/sglang/python/sglang/multimodal_gen/runtime/pipelines_core/stages/model_specific_stages/minimax_h3/constants.py'
+container_id="$(docker create "${image}")"
+docker cp "${container_id}:${source_path}" ./constants.py
+docker rm "${container_id}"
+sha256sum ./constants.py
+patch ./constants.py < ./experimental-native30.patch
+sha256sum ./constants.py
+```
+
+Expected stock and patched SHA-256 values are
+`583e94f42d36a4fb0dce06162ba8f62a9ab4045458989c15253cc341fe88cabf`
+and `e510e78c0355c2aec0a4b5640045e46e36dafffc20694a5c497b882bdd066cef`.
+Run the ordinary one-station safety gate, then pass the file read-only:
+
+```bash
+export DURATION_CONSTANTS_OVERLAY="$(realpath ./constants.py)"
+./serve-1x.sh
+```
+
+First measure the supported 15-second peak and make a conservative capacity
+projection for the 736-frame request. Attempt it at most once. On OOM or any
+runtime error, remove the named container, perform the kernel-first safety
+gate, and stop; do not reset the GPU or tune around the failure. The static
+audit and stock rejection are in [`../data/experimental-native30/`](../data/experimental-native30/).
+
+## 9. Follow-up optimizations
 
 Apply one change at a time after the BF16 resident baseline:
 

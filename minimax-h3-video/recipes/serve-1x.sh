@@ -23,13 +23,24 @@ readonly CONTAINER_NAME="minimax-h3-fl2va-1x"
   exit 2
 }
 
+docker_volumes=(--volume "${MODEL_DIR}:/models/MiniMax-H3:ro")
+if [[ -n "${DURATION_CONSTANTS_OVERLAY:-}" ]]; then
+  [[ "${DURATION_CONSTANTS_OVERLAY}" = /* && -f "${DURATION_CONSTANTS_OVERLAY}" ]] || {
+    echo "DURATION_CONSTANTS_OVERLAY must name an existing absolute file" >&2
+    exit 2
+  }
+  docker_volumes+=(
+    --volume "${DURATION_CONSTANTS_OVERLAY}:/sgl-workspace/sglang/python/sglang/multimodal_gen/runtime/pipelines_core/stages/model_specific_stages/minimax_h3/constants.py:ro"
+  )
+fi
+
 exec docker run --rm \
   --name "${CONTAINER_NAME}" \
   --device "${GPU_DEVICE}" \
   --ipc=host \
   --network=host \
   --ulimit memlock=-1:-1 \
-  --volume "${MODEL_DIR}:/models/MiniMax-H3:ro" \
+  "${docker_volumes[@]}" \
   "${IMAGE}" \
   sglang serve \
     --model-path /models/MiniMax-H3 \
@@ -40,6 +51,7 @@ exec docker run --rm \
     --ring-degree 1 \
     --encoder-parallel replicate \
     --performance-mode speed \
+    --warmup-mode off \
     --enable-torch-compile false \
     --host 0.0.0.0 \
     --port 30010

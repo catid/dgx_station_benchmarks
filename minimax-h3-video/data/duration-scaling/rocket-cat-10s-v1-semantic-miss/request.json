@@ -1,0 +1,17 @@
+{
+  "model": "MiniMaxAI/MiniMax-H3",
+  "prompt": "A clearly fictional absurd cinematic heroic orange cat in a perfectly secure miniature spacesuit rides safely atop a tiny rocket, launching from a miniature launchpad through bright clouds into orbit, exhilarating dynamic tracking camera and sweeping wide shots, rich stereo launch rumble and rocket ambience, whimsical adventure, no injury, and no one is harmed.",
+  "seconds": 10,
+  "task": "t2va",
+  "conditions": [],
+  "target": {
+    "short_edge": 768,
+    "aspect_ratio": "16:9",
+    "duration_seconds": 10.0
+  },
+  "num_outputs_per_prompt": 1,
+  "num_inference_steps": 50,
+  "flow_shift": 12.0,
+  "audio_flow_shift": 3.0,
+  "seed": 1010
+}
