@@ -2,11 +2,22 @@
 
 Qwen3.8-27B was benchmarked on a DGX Station with one server-class NVIDIA GB300. The target weights and headline decode cache/state are BF16.
 
-> **GB300 recovery safety:** Generic `suggested_reload` text retained in raw benchmark artifacts is provenance, not an instruction. Never use GPU reset, unload or reload NVIDIA modules, or unbind/rescan PCI devices. If the driver becomes unhealthy, stop GPU work and coordinate a controlled host reboot; never reboot automatically.
-
 To recreate the environment and every benchmark cell, follow the [agent-ready reproducibility recipe](recipes/). It includes pinned downloads, the SGLang build, exact launch flags, C1–C128 commands, and result validation.
 
 An [independent replay on an identically configured secondary DGX Station](verification/secondary-node-official-bf16/) reproduced the official BF16 WikiText-2 perplexity bit-for-bit and natural C1 decode within 0.265%, with byte-identical temperature-zero output.
+
+## Checkpoint provenance
+
+| Role | Hugging Face source | Exact revision | Status | Weight format / role | Retained size evidence |
+| --- | --- | --- | --- | --- | --- |
+| Target | [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B) | `1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0` | Official Qwen checkpoint | BF16 target weights | Exact tree total was not retained in this package |
+| DFlash2 draft | [`incoai/Qwen3.8-27B-DFlash2`](https://huggingface.co/incoai/Qwen3.8-27B-DFlash2) | `adde41d8fde3a75dc905a7df0bd5088d2a44b5a1` | Inco-published draft; not an official Qwen target | Speculative draft; every accepted token is verified by the BF16 target | Exact tree total was not retained |
+| DFlash1 draft | [`kstoyanov99/Qwen3.8-27B-Dflash`](https://huggingface.co/kstoyanov99/Qwen3.8-27B-Dflash) | `0e6412afb974d65455703026ff4cfa9118ad13cd` | Community draft | Speculative draft; every accepted token is verified by the BF16 target | Exact tree total was not retained |
+| DSpark draft | [`RadixArk/Qwen3.8-27B-DSpark`](https://huggingface.co/RadixArk/Qwen3.8-27B-DSpark) | `85ef153be924f17ce4bf62726954eeaa4a73e854` | Third-party draft; not an official Qwen target | Draft trained against an FP8 target, but benchmark proposals are verified by the BF16 target | Exact tree total was not retained |
+| Quantized target | [`huginnfork/Qwen3.8-27B-FP8`](https://huggingface.co/huginnfork/Qwen3.8-27B-FP8) | `ee0358b3e33d7bedcd6db022c5039385b1ac72f2` | Unofficial/community quantization | MLP W8A8 FP8 with dynamic per-token activations; attention and state-space paths remain BF16 | Verified tree: 93 files, 38,485,660,981 bytes |
+| Quantized target | [`huginnfork/Qwen3.8-27B-NVFP4A16`](https://huggingface.co/huginnfork/Qwen3.8-27B-NVFP4A16) | `6916a5bb185e57c6e32bcffdc13a92fdea3b4095` | Unofficial/community quantization | MLP weight-only W4A16, group size 16; not native W4A4 FP4 | Verified tree: 84 files, 30,993,761,606 bytes |
+
+The Huginn tree counts, byte totals, and content hashes are retained in [`data/huginn-quant-provenance.json`](data/huginn-quant-provenance.json). The main speculative-decoding matrix always uses the official BF16 target; the unofficial quantized targets appear only in explicitly labeled vLLM rows.
 
 ## Headline results
 

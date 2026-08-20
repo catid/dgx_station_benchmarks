@@ -15,6 +15,14 @@ are not missing measurements or estimates.
 The [reproduction recipe](recipes/) covers the checkpoint, capacity guard,
 safe two-node launch, exact workload, quality audit, and strict extraction.
 
+## Checkpoint provenance
+
+| Role | Hugging Face source | Exact revision | Status | Weight format | Retained size evidence |
+| --- | --- | --- | --- | --- | --- |
+| Target | [`tencent/Hy3-FP8`](https://huggingface.co/tencent/Hy3-FP8) | `ecc1d8e194e093f33177f2f0ef7ce8f397b2d68b` | Official Tencent checkpoint | Native FP8 checkpoint | 101 indexed safetensor shards, 299,889,838,946 bytes |
+
+Both benchmark nodes independently verified the complete pinned checkpoint. The exact capacity evidence is retained in [`data/capacity.csv`](data/capacity.csv); no third-party quantization was used.
+
 ## Headline results
 
 - Fastest eligible single stream: **141.9 output tok/s** with TP2+EP/MTP2.
@@ -192,15 +200,8 @@ prefill contexts but no C128 or natural-output audit. Its rows remain labeled
 `provisional_tuning` in the CSV and appear as a dashed line in charts. They are
 not used for any headline; the accepted 0.956 PP2/MTP0 run supersedes them.
 
-## Safety and publication policy
+## Publication policy
 
-- Never use GPU reset, PCI unbind/rescan, or NVIDIA module reload for cleanup.
-- Run the two-host idle-HBM preflight before every memory-tight launch. If HBM
-  is materially above the recorded healthy baseline and has no userspace owner,
-  stop; do not raise utilization or retry. Recovery is a user-coordinated normal
-  reboot, never an automatic one.
-- Remove the named containers on both nodes and verify clean idle HBM after
-  every distributed configuration.
 - Publish only structurally complete, zero-error rows with runtime provenance
   and manually reviewed natural output. Keep anomalous accepted measurements
   visible but out of headline selection.
