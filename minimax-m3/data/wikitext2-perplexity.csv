@@ -1,2 +1,3 @@
 topology,stations,checkpoint,kv_cache_dtype,effective_max_length,batch_size,documents,word_perplexity,byte_perplexity,bits_per_byte,decode_tokens_per_second,source
 1x-gb300,1,nvidia/MiniMax-M3-NVFP4@901464083161bf8612a29ff7ad29914cd4ab4a85,bfloat16,2047,4,62,5.712039010,1.385235876,0.470131657,154.810834,evidence/nvfp4-wikitext2.json; evidence/nvfp4-bf16-kv-decode.json
+2x-gb300-pp2,2,MiniMaxAI/MiniMax-M3-MXFP8@c5454eb03678d8710e54a4e0fc681b9f3b4a3dba,bfloat16,2047,4,62,5.432277092,1.372288083,0.456583377,100.510865,evidence/mxfp8-wikitext2.json; evidence/mxfp8-bf16-kv-decode.json

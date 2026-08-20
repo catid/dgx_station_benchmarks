@@ -25,7 +25,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 | [GLM-5.2](glm-5.2/) | Official NVIDIA NVFP4 checkpoint; 2× TP2+EP (1× does not fit) | C1: 68.0 output tok/s; shared-prefix C128: 2,012.4 aggregate tok/s |
 | [Hy3-FP8](hy3/) | Official FP8 checkpoint; 2× PP2 and TP2+EP (1× does not fit) | MTP2 C1: 141.9 output tok/s; MTP1 C64: 2,563.7; no-spec C128: 3,078.5 aggregate tok/s |
 | [MiniMax H3 video](minimax-h3-video/) | Official BF16 FL2VA checkpoint; resident 1× GB300, no offload | Official 5 s: 116.86 s mean; official 15 s: 719.29 s; experimental patched 30 s: 2,454.44 s |
-| [MiniMax M3](minimax-m3/) | Official NVIDIA NVFP4 (1×) plus official MiniMax MXFP8 (2× PP2) | NVFP4: 152.6 C1, 1,595.8 C16; provisional MXFP8 PP2: 683.5 C16; 128K prefill: 35,707 prompt tok/s |
+| [MiniMax M3](minimax-m3/) | Official NVIDIA NVFP4 (1×) plus official MiniMax MXFP8 (2× PP2) | NVFP4: 152.6 C1, 1,595.8 C16; MXFP8 PP2: 998.3 C32; 128K prefill: 35,683 tok/s; WikiText-2 PPL: 5.7120 / 5.4323 |
 | [Dual-station networking](gb300-networking/) | ConnectX-8 400GbE RoCE with GB300 Data Direct | 392.1 Gb/s one-way raw GPUDirect; 389.8 Gb/s tuned NCCL all-reduce bus bandwidth |
 
 Each experiment folder contains:

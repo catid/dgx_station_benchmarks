@@ -21,7 +21,8 @@ MODES = {
     "adaptive": ("Adaptive thinking", "#facc15"),
     "enabled": ("Thinking enabled", "#e879f9"),
 }
-CONCURRENCIES = [1, 2, 4, 8, 16]
+NVFP4_CONCURRENCIES = [1, 2, 4, 8, 16]
+MXFP8_CONCURRENCIES = [1, 2, 4, 8, 16, 32, 64]
 
 
 def read_rows(filename: str) -> list[dict[str, str]]:
@@ -60,7 +61,7 @@ def validate() -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[st
             and row["thinking_mode"] == mode
             and row["aggregate_output_tokens_per_second"]
         ]
-        if sorted(int(row["concurrency"]) for row in selected) != CONCURRENCIES:
+        if sorted(int(row["concurrency"]) for row in selected) != NVFP4_CONCURRENCIES:
             raise ValueError(f"{mode}: expected measured C1-C16 rows")
         for row in selected:
             if int(row["errors"]) or row["capacity_limited"] != "false":
@@ -69,21 +70,31 @@ def validate() -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[st
         selected = [row for row in prefill if row["topology"] == topology]
         if sorted(int(row["context_tokens"]) for row in selected) != [8192, 65536, 131072]:
             raise ValueError(f"{topology}: prefill must contain exact 8K, 64K, and 128K rows")
-    mxfp8 = [
-        row
-        for row in throughput
-        if row["topology"] == "2x-gb300-pp2" and row["aggregate_output_tokens_per_second"]
-    ]
-    if sorted(int(row["concurrency"]) for row in mxfp8) != [1, 2, 4, 8, 16, 32]:
-        raise ValueError("MXFP8: expected measured C1-C32 rows")
-    if len(perplexity) != 1:
-        raise ValueError("Expected one validated WikiText-2 row")
     for mode in MODES:
-        selected = [row for row in quality if row["thinking_mode"] == mode]
-        if sorted(int(row["concurrency"]) for row in selected) != [1, 64, 128]:
-            raise ValueError(f"{mode}: natural audit must contain C1/C64/C128")
-        if any(row["manual_pass"] != "true" or int(row["manual_degenerate_outputs"]) for row in selected):
-            raise ValueError(f"{mode}: natural audit did not pass")
+        mxfp8 = [
+            row
+            for row in throughput
+            if row["topology"] == "2x-gb300-pp2"
+            and row["thinking_mode"] == mode
+            and row["aggregate_output_tokens_per_second"]
+        ]
+        if sorted(int(row["concurrency"]) for row in mxfp8) != MXFP8_CONCURRENCIES:
+            raise ValueError(f"MXFP8 {mode}: expected measured C1-C64 rows")
+        if any(int(row["errors"]) or row["capacity_limited"] != "false" for row in mxfp8):
+            raise ValueError(f"MXFP8 {mode}: selected decode row did not pass")
+    if len(perplexity) != 2:
+        raise ValueError("Expected validated NVFP4 and MXFP8 WikiText-2 rows")
+    for topology in ("1x-gb300", "2x-gb300-pp2"):
+        for mode in MODES:
+            selected = [
+                row
+                for row in quality
+                if row["topology"] == topology and row["thinking_mode"] == mode
+            ]
+            if sorted(int(row["concurrency"]) for row in selected) != [1, 64, 128]:
+                raise ValueError(f"{topology} {mode}: natural audit must contain C1/C64/C128")
+            if any(row["manual_pass"] != "true" or int(row["manual_degenerate_outputs"]) for row in selected):
+                raise ValueError(f"{topology} {mode}: natural audit did not pass")
     return throughput, prefill, quality, perplexity
 
 
@@ -95,7 +106,9 @@ def render_decode(rows: list[dict[str, str]]) -> None:
             (
                 row
                 for row in rows
-                if row["thinking_mode"] == mode and row["aggregate_output_tokens_per_second"]
+                if row["topology"] == "1x-gb300"
+                and row["thinking_mode"] == mode
+                and row["aggregate_output_tokens_per_second"]
             ),
             key=lambda row: int(row["concurrency"]),
         )
@@ -114,8 +127,8 @@ def render_decode(rows: list[dict[str, str]]) -> None:
         )
     for axis in (aggregate, per_stream):
         axis.set_xscale("log", base=2)
-        axis.set_xticks(CONCURRENCIES)
-        axis.set_xticklabels([str(value) for value in CONCURRENCIES])
+        axis.set_xticks(NVFP4_CONCURRENCIES)
+        axis.set_xticklabels([str(value) for value in NVFP4_CONCURRENCIES])
         axis.grid(True, alpha=0.42)
         axis.set_xlabel("Concurrent requests")
     aggregate.set_ylabel("Aggregate output tok/s")
@@ -181,44 +194,56 @@ def render_prefill(rows: list[dict[str, str]]) -> None:
 
 
 def render_mxfp8_decode(rows: list[dict[str, str]]) -> None:
-    selected = sorted(
-        (
-            row
-            for row in rows
-            if row["topology"] == "2x-gb300-pp2" and row["aggregate_output_tokens_per_second"]
-        ),
-        key=lambda row: int(row["concurrency"]),
-    )
-    xs = [int(row["concurrency"]) for row in selected]
-    aggregate_values = [float(row["aggregate_output_tokens_per_second"]) for row in selected]
-    per_stream_values = [float(row["per_stream_output_tokens_per_second"]) for row in selected]
     fig, (aggregate, per_stream) = plt.subplots(1, 2, figsize=(15, 7))
-    aggregate.plot(xs, aggregate_values, color="#22d3ee", marker="o", linewidth=3, markersize=8)
-    per_stream.plot(xs, per_stream_values, color="#facc15", marker="o", linewidth=3, markersize=8)
-    for x, rate in zip(xs, aggregate_values, strict=True):
-        aggregate.annotate(f"{rate:,.0f}", (x, rate), xytext=(0, 10), textcoords="offset points", ha="center", weight="bold")
+    peak_offsets = {"disabled": (5, -18), "adaptive": (5, 12), "enabled": (5, -3)}
+    for mode, (label, color) in MODES.items():
+        selected = sorted(
+            (
+                row
+                for row in rows
+                if row["topology"] == "2x-gb300-pp2"
+                and row["thinking_mode"] == mode
+                and row["aggregate_output_tokens_per_second"]
+            ),
+            key=lambda row: int(row["concurrency"]),
+        )
+        xs = [int(row["concurrency"]) for row in selected]
+        aggregate_values = [float(row["aggregate_output_tokens_per_second"]) for row in selected]
+        per_stream_values = [float(row["per_stream_output_tokens_per_second"]) for row in selected]
+        aggregate.plot(xs, aggregate_values, color=color, marker="o", linewidth=3, markersize=7, label=label)
+        per_stream.plot(xs, per_stream_values, color=color, marker="o", linewidth=3, markersize=7, label=label)
+        peak_index = max(range(len(aggregate_values)), key=aggregate_values.__getitem__)
+        aggregate.annotate(
+            f"{aggregate_values[peak_index]:,.0f}",
+            (xs[peak_index], aggregate_values[peak_index]),
+            xytext=peak_offsets[mode],
+            textcoords="offset points",
+            color=color,
+            weight="bold",
+        )
     for axis in (aggregate, per_stream):
         axis.set_xscale("log", base=2)
-        axis.set_xticks(xs)
-        axis.set_xticklabels([str(value) for value in xs])
+        axis.set_xticks(MXFP8_CONCURRENCIES)
+        axis.set_xticklabels([str(value) for value in MXFP8_CONCURRENCIES])
         axis.grid(True, alpha=0.42)
         axis.set_xlabel("Concurrent requests")
     aggregate.set_ylabel("Aggregate output tok/s")
     aggregate.set_title("Aggregate throughput")
     per_stream.set_ylabel("Output tok/s per stream")
     per_stream.set_title("Per-stream throughput")
+    per_stream.legend(frameon=False, loc="lower left")
     fig.suptitle("MiniMax M3 MXFP8 decode on two GB300 stations", x=0.055, ha="left", fontsize=24, weight="bold")
     fig.text(
         0.056,
         0.91,
-        "Official MiniMax checkpoint · PP2 capacity topology · exact 8K input + 1K output · FP8 KV · thinking disabled",
+        "Official MiniMax checkpoint · PP2 capacity topology · exact 8K input + 1K output · FP8 KV · no speculation",
         color="#aab8cc",
         fontsize=11.5,
     )
     fig.text(
         0.055,
         0.02,
-        "Provisional stable no-async profile. C32 falls outside the C1-C16 CUDA-graph set; a graph-C32 rerun is pending a clean reboot. C64/C128 exceed KV capacity.",
+        "CUDA graphs through C32 fix the earlier eager-path cliff. C64 fits but runs eagerly and drops sharply; C128 exceeds the 743,168-token KV budget.",
         color="#8391a7",
         fontsize=9.5,
     )
@@ -268,36 +293,39 @@ def render_prefill_comparison(rows: list[dict[str, str]]) -> None:
 
 
 def render_wikitext(rows: list[dict[str, str]]) -> None:
-    row = rows[0]
     fig, (quality_axis, decode_axis) = plt.subplots(1, 2, figsize=(15, 7))
-    labels = ["Word PPL", "Byte PPL", "Bits/byte"]
-    values = [float(row["word_perplexity"]), float(row["byte_perplexity"]), float(row["bits_per_byte"])]
-    bars = quality_axis.bar(labels, values, color=["#22d3ee", "#facc15", "#e879f9"], width=0.62)
-    quality_axis.bar_label(bars, labels=[f"{value:.3f}" for value in values], padding=6, weight="bold")
-    quality_axis.set_title("WikiText-2 document-level quality")
-    quality_axis.set_ylabel("Lower is better")
+    ordered = sorted(rows, key=lambda row: int(row["stations"]))
+    labels = ["NVIDIA NVFP4\n1× GB300", "MiniMax MXFP8\n2× GB300 PP2"]
+    colors = ["#22d3ee", "#facc15"]
+    word_ppl = [float(row["word_perplexity"]) for row in ordered]
+    bars = quality_axis.bar(labels, word_ppl, color=colors, width=0.58)
+    quality_axis.bar_label(bars, labels=[f"{value:.4f}" for value in word_ppl], padding=6, weight="bold")
+    quality_axis.set_title("WikiText-2 word perplexity")
+    quality_axis.set_ylabel("Word PPL · lower is better")
+    quality_axis.set_ylim(0, max(word_ppl) * 1.22)
     quality_axis.grid(axis="y", alpha=0.42)
-    decode = float(row["decode_tokens_per_second"])
-    decode_bar = decode_axis.bar(["C1 · exact 8K/1K"], [decode], color="#22d3ee", width=0.5)
-    decode_axis.bar_label(decode_bar, labels=[f"{decode:.1f} tok/s"], padding=6, weight="bold")
-    decode_axis.set_title("Same BF16-KV server profile")
+    decode = [float(row["decode_tokens_per_second"]) for row in ordered]
+    decode_bars = decode_axis.bar(labels, decode, color=colors, width=0.58)
+    decode_axis.bar_label(decode_bars, labels=[f"{value:.1f} tok/s" for value in decode], padding=6, weight="bold")
+    decode_axis.set_title("Matched BF16-KV C1 decode")
     decode_axis.set_ylabel("Output tok/s")
-    decode_axis.set_ylim(0, decode * 1.22)
+    decode_axis.set_ylim(0, max(decode) * 1.22)
     decode_axis.grid(axis="y", alpha=0.42)
-    fig.suptitle("MiniMax M3 NVFP4 WikiText-2 and BF16-KV decode", x=0.055, ha="left", fontsize=24, weight="bold")
+    fig.suptitle("MiniMax M3 quantization quality and BF16-KV decode", x=0.5, ha="center", fontsize=23, weight="bold")
     fig.text(
         0.056,
         0.91,
-        "One GB300 · 62 WikiText-2 raw documents · batch 4 · 2,047 effective tokens · lm-eval",
+        "62 WikiText-2 raw documents · batch 4 · 2,047 effective tokens · lm-eval · exact 8K/1K decode shape",
         color="#aab8cc",
         fontsize=11.5,
     )
     fig.tight_layout(rect=(0.035, 0.055, 0.985, 0.87))
-    fig.savefig(CHARTS / "nvfp4-wikitext2.png", dpi=150)
+    fig.savefig(CHARTS / "wikitext2-comparison.png", dpi=150)
     plt.close(fig)
 
 
-def render_quality(rows: list[dict[str, str]]) -> None:
+def render_quality(rows: list[dict[str, str]], topology: str, label: str, filename: str) -> None:
+    rows = [row for row in rows if row["topology"] == topology]
     fig, (repetition, outcomes) = plt.subplots(1, 2, figsize=(15, 7))
     positions = list(range(len(MODES)))
     width = 0.23
@@ -332,7 +360,7 @@ def render_quality(rows: list[dict[str, str]]) -> None:
     outcomes.grid(axis="y", alpha=0.42)
     outcomes.text(0.5, 0.08, f"Empty: {sum(empty)}   Manual degeneration: {sum(degenerate)}", transform=outcomes.transAxes, ha="center", color="#aab8cc", fontsize=12)
 
-    fig.suptitle("MiniMax M3 NVFP4 retained-output quality audit", x=0.055, ha="left", fontsize=24, weight="bold")
+    fig.suptitle(f"MiniMax M3 {label} retained-output quality audit", x=0.055, ha="left", fontsize=24, weight="bold")
     fig.text(
         0.056,
         0.91,
@@ -343,12 +371,15 @@ def render_quality(rows: list[dict[str, str]]) -> None:
     fig.text(
         0.055,
         0.02,
-        "Automatic character-run flags were manually identified as Markdown separators. This checks degeneration/repetition, not factual accuracy.",
+        (
+            "Automatic flags were manually reviewed as formatting or reasoning recap, not language loops. "
+            f"Answerless length-capped outputs: {sum(int(row['answer_empty_outputs']) for row in rows)}. This is not a factual-accuracy test."
+        ),
         color="#8391a7",
         fontsize=9.5,
     )
     fig.tight_layout(rect=(0.035, 0.065, 0.985, 0.87))
-    fig.savefig(CHARTS / "nvfp4-natural-quality.png", dpi=150)
+    fig.savefig(CHARTS / filename, dpi=150)
     plt.close(fig)
 
 
@@ -358,7 +389,8 @@ def main() -> None:
     throughput, prefill, quality, perplexity = validate()
     render_decode(throughput)
     render_prefill(prefill)
-    render_quality(quality)
+    render_quality(quality, "1x-gb300", "NVFP4", "nvfp4-natural-quality.png")
+    render_quality(quality, "2x-gb300-pp2", "MXFP8 PP2", "mxfp8-natural-quality.png")
     render_mxfp8_decode(throughput)
     render_prefill_comparison(prefill)
     render_wikitext(perplexity)
