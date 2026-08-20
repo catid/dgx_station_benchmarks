@@ -1,7 +1,5 @@
 # Secondary-node reproduction: official Qwen3.8-27B BF16
 
-> **GB300 recovery safety:** Generic `suggested_reload` text in the retained raw JSON and log is provenance, not an instruction. Never use GPU reset, unload or reload NVIDIA modules, or unbind/rescan PCI devices. If the driver becomes unhealthy, stop GPU work and coordinate a controlled host reboot; never reboot automatically.
-
 An identically configured secondary DGX Station (`node1`) independently
 reproduced the official-weight, autoregressive WikiText-2 quality and natural
 single-stream decode results from the primary DGX Station (`node0`).

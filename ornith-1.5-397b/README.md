@@ -4,12 +4,13 @@ This experiment measures the official [`ornith-ai/Ornith-1.5-397B-NVFP4`](https:
 
 The retained one-station run was measured on a secondary DGX Station. The two-station runs used `node0` and `node1` over one active 400GbE RoCE rail, comparing pipeline parallelism (PP2) against tensor plus expert parallelism (TP2+EP). See the [one-station recipe](recipes/) and [two-station RDMA recipe](recipes/README-2x.md).
 
-> **GB300 recovery safety:** Do not execute generic `suggested_reload` text
-> retained inside the raw JSON; it is historical tool output, not an instruction.
-> Never use GPU reset, unload or reload NVIDIA modules, or perform PCI
-> unbind/rescan. Remove only the named containers. If GPU accounting or the
-> driver remains unhealthy, stop GPU work and coordinate a controlled host
-> reboot with the operator; never reboot automatically.
+## Checkpoint provenance
+
+| Role | Hugging Face source | Exact revision | Status | Weight format | Retained size evidence |
+| --- | --- | --- | --- | --- | --- |
+| Target | [`ornith-ai/Ornith-1.5-397B-NVFP4`](https://huggingface.co/ornith-ai/Ornith-1.5-397B-NVFP4) | `745c3c8236ca1dc6f3aced3a0c3e7508fd9d98b6` | Official Ornith checkpoint | ModelOpt NVFP4 W4A4, group size 16 | 221.65 GiB local checkpoint; config and index hashes retained |
+
+The exact revision is the checked-in reproduction pin; the original one-station runtime capture recorded `model_revision not-captured`. The retained [checkpoint manifest](data/1x/raw/checkpoint-manifest-sha256.txt) hashes the config and safetensor index, but does not establish an exact shard count or byte total.
 
 ## Headline results
 
