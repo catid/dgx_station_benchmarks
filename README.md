@@ -24,7 +24,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 | [Ornith-1.5-397B](ornith-1.5-397b/) | Official ModelOpt NVFP4 W4A4 checkpoint; 1× TP1 and 2× PP2/TP2+EP | 1× C1: 129.8 output tok/s; 2× PP2 stable, capacity-limited C128: 3,799.6 aggregate tok/s |
 | [GLM-5.2](glm-5.2/) | Official NVIDIA NVFP4 checkpoint; 2× TP2+EP (1× does not fit) | C1: 68.0 output tok/s; shared-prefix C128: 2,012.4 aggregate tok/s |
 | [Hy3-FP8](hy3/) | Official FP8 checkpoint; 2× PP2 and TP2+EP (1× does not fit) | MTP2 C1: 141.9 output tok/s; MTP1 C64: 2,563.7; no-spec C128: 3,078.5 aggregate tok/s |
-| [MiniMax H3 video](minimax-h3-video/) | Official BF16 FL2VA checkpoint; resident 1× GB300, no offload | 1344×768×124 frames with stereo audio: 116.86 s mean, 125,268 MB peak HBM |
+| [MiniMax H3 video](minimax-h3-video/) | Official BF16 FL2VA checkpoint; resident 1× GB300, no offload | Official 5 s: 116.86 s mean; official 15 s: 719.29 s; experimental patched 30 s: 2,454.44 s |
 | [MiniMax M3](minimax-m3/) | Official NVIDIA NVFP4 checkpoint; one-station benchmark in progress | Provenance and reproducible recipes published; measured performance and quality pending |
 | [Dual-station networking](gb300-networking/) | ConnectX-8 400GbE RoCE with GB300 Data Direct | 392.1 Gb/s one-way raw GPUDirect; 389.8 Gb/s tuned NCCL all-reduce bus bandwidth |
 
@@ -62,8 +62,10 @@ Quality was tested separately with EOS respected, experiment-specific natural or
 
 MiniMax H3 uses a separate fixed-seed video-and-audio methodology: one full
 50-step warmup followed by three measured 1344×768, 124-frame requests. Its
-folder reports end-to-end latency, stage timing, peak HBM, media integrity, and
-manual non-degeneracy review; its results are not comparable to LLM token rates.
+folder also measures native 10- and 15-second samples plus one explicitly
+unsupported patched 30-second attempt. It reports end-to-end latency, stage
+timing, peak HBM, media integrity, and manual non-degeneracy review; its results
+are not comparable to LLM token rates.
 
 Ornith, GLM-5.2, and Hy3 instead use the benchmark's fixed-duration
 sustained-decode layer: offered concurrency is maintained during a 30-second

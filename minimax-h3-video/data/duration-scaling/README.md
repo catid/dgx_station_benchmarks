@@ -11,6 +11,7 @@ download.
 | Rocket cat 10-second sample | warmed 10-second shape | 1 | 334.731 s | 131,946 MB | 243 frames / 10.125 s | 10.755 |
 | Mountain cat 15-second sample | cold first 15-second shape | 2 independent | 719.290 s mean | 141,424 MB | 362 frames / 15.083 s | 5.005 each |
 | Same simultaneous 15-second pair | cold first 15-second shape | 2 independent | 719.296 s pair makespan | 141,424 MB each | 724 aggregate frames | 10.010 aggregate |
+| Martial-arts cat 30-second sample | unsupported patched first 30-second shape | 1 | 2,454.442 s | 156,852 MB | 736 frames / 30.667 s | 1.467 |
 
 The two 15-second station results were submitted at the same time with the
 same prompt and seed. Client end-to-end times were 719.296342 and 719.283174
@@ -32,7 +33,12 @@ seconds (0.013167-second range); the MP4s were byte-identical at SHA-256
 - Selected outputs fully decoded with H.264 video and 32-kHz stereo AAC. The
   validator reported no black interval ≥0.5 seconds, freeze ≥1 second, or
   silence ≥0.25 seconds below −50 dB.
+- The unsupported 30-second clip evolves from dojo acrobatics and a board break
+  to rooftop and courtyard action without a frozen loop or collapse. Manual
+  review found minor stylized body elongation in some upright and flip poses.
+  Its source audit and full run records live in `../experimental-native30/`.
 
 The per-run subdirectories retain request, timing, job, `ffprobe`, warning,
-hash, and normalized summary records. The compact cross-row CSV and generated
-charts are added after the single experimental 30-second attempt completes.
+hash, and normalized summary records. `performance.csv` is the compact
+cross-row table used to render the duration-scaling chart; the 30-second row is
+explicitly marked `unsupported_patched`.

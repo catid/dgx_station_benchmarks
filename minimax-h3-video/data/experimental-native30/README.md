@@ -24,5 +24,36 @@ Source provenance:
 
 This is an unsupported experiment, not a claim that upstream supports native
 30-second generation. The request was limited to one attempt after a measured
-15-second peak-HBM gate. Its request, timing, job record, media audit, and
-normalized metrics are retained here if the attempt completed.
+15-second peak-HBM gate. It completed successfully without a retry.
+
+## Measured result
+
+| Metric | Exact value |
+|---|---:|
+| Client end to end | 2,454.441510 s |
+| Server inference | 2,446.301930 s |
+| Text encode | 0.0609 s |
+| Latent preparation | 0.1554 s |
+| Denoise | 2,365.0206 s |
+| Decode | 28.9604 s |
+| Peak HBM | 156,852 MB |
+| Encoded video | 736 frames / 30.666667 s / 24 FPS |
+| Encoded audio | AAC stereo / 32 kHz / 30.675 s |
+| Frames per wall-second | 0.299864550 |
+| Video-seconds per wall-second | 0.012494356 |
+| Real-time factor | 80.036135× |
+| Complete clips/hour | 1.466728779 |
+| MP4 size | 6,608,480 bytes |
+| MP4 SHA-256 | `cb6017328d9881699a1f3b1ad650bd825fd35235c202bc0966d3d9eeb21475d6` |
+
+The entire MP4 decoded successfully. It contains H.264 video and 32-kHz
+stereo AAC, with no detected black interval ≥0.5 seconds, freeze ≥1 second, or
+silence ≥0.25 seconds below −50 dB. A 24-frame manual review found an evolving
+dojo board-break/acrobatics sequence followed by rooftop and courtyard action,
+with no loop or collapse. Some upright and flip poses show minor stylized body
+elongation.
+
+[`run/`](run/) retains the submitted request, asynchronous job record, client
+clock, normalized summary, raw `ffprobe` output, detector logs, and SHA-256.
+The original MP4, animated preview, and contact sheet are in
+[`../../samples/`](../../samples/README.md).
