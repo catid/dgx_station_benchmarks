@@ -19,6 +19,12 @@ Artifacts:
 - [`wikitext2-perplexity.csv`](wikitext2-perplexity.csv): measured NVFP4 and
   MXFP8 document-level WikiText-2 word/byte perplexity plus matched BF16-KV
   single-stream decode.
+- [`external-rtx-pro-6000-prefill.csv`](external-rtx-pro-6000-prefill.csv):
+  operator-supplied cold-prefill comparison between 4× RTX PRO 6000 Max-Q and
+  the measured one-GB300 NVFP4 baseline.
+- [`external-rtx-pro-6000-decode.csv`](external-rtx-pro-6000-decode.csv):
+  operator-supplied fixed 8K/1K sustained-decode comparison for C1–C16. Raw
+  RTX run artifacts are not included in this repository.
 - [`evidence/`](evidence/): sanitized authoritative `llm-inference-bench` JSON,
   the disclosed selected reruns, retained natural samples, both WikiText-2
   results, all MXFP8 thinking modes, the superseded eager-C32 result, and

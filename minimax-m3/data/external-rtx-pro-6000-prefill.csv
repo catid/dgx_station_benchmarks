@@ -1,0 +1,4 @@
+context_tokens,prompt_tokens,rtx_pro_6000_maxq_prompt_tokens_per_second,rtx_pro_6000_maxq_ttft_seconds,gb300_prompt_tokens_per_second,gb300_ttft_seconds,rtx_relative_percent
+8192,8194,7524,1.089,29927,0.274,25.1
+65536,65538,6899,9.500,27227,2.407,25.3
+131072,131074,6349,20.646,25285,5.184,25.1
