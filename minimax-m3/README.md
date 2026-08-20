@@ -15,10 +15,13 @@ text. It is separate from the MiniMax H3 audio/video generation experiment.
 ## Status
 
 > [!NOTE]
-> **Benchmark in progress.** Checkpoint staging, provenance, runtime selection,
-> and reproduction recipes are ready. Measured performance and quality cells
-> are still pending and the CSVs intentionally contain headers only. No
-> estimated number is presented as a result.
+> **Measured milestone; benchmark expansion continues.** The one-station
+> NVIDIA NVFP4 decode, 8K/64K/128K prefill, and retained-natural-output results
+> are complete and publication-ready. WikiText-2 perplexity is also complete.
+> The two-station official MXFP8 track now has a provisional disabled-thinking
+> decode/prefill result; graph-C32 tuning, its remaining thinking modes, and
+> MXFP8 quality runs require a clean restart after retained-HBM gating stopped
+> further launches. Optional EAGLE3 remains pending.
 
 | Item | Pinned value |
 |---|---|
@@ -28,8 +31,143 @@ text. It is separate from the MiniMax H3 audio/video generation experiment.
 | Quantization | ModelOpt mixed precision: NVFP4 experts with MXFP8/non-quantized exceptions |
 | Runtime | vLLM 0.27.1, commit `6e448d0ea9bf3d88d898b65449ca6dc2aec170ac` |
 | Container | `vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967` |
-| Tasks in this track | Text decode, cold prefill, retained natural output, WikiText-2 PPL |
+| Tasks in this track | Text decode, cold prefill, retained natural output, WikiText-2 PPL, two-station PP2 capacity |
 | CPU offload | Disabled |
+
+## Headline one-station results
+
+The most useful result is a 152.6 output tok/s single stream with an exact 8K
+prompt and 1K forced output. Aggregate output reaches 1,575.4 tok/s at C16 with
+thinking disabled. The three thinking policies are effectively tied on this
+fixed-token workload; their meaningful behavioral difference appears in the
+retained natural responses, where adaptive and enabled modes emit separate
+reasoning.
+
+| Concurrency | Thinking disabled | Adaptive thinking | Thinking enabled |
+|---:|---:|---:|---:|
+| 1 | **152.6** | 152.4 | 152.6 |
+| 2 | **257.3** | 245.3 | 246.0 |
+| 4 | 505.4 | 503.1 | **508.4** |
+| 8 | **959.7** | 937.1 | 931.6 |
+| 16 | 1,575.4 | **1,595.8** | 1,556.8 |
+| 32 | capacity limit | capacity limit | capacity limit |
+| 64 | capacity limit | capacity limit | capacity limit |
+| 128 | capacity limit | capacity limit | capacity limit |
+
+Values are aggregate output tokens/s. The canonical matrix uses a 30-second
+sustained window. The disabled C2 result is a clean selected 30-second rerun;
+adaptive and enabled C8 are clean selected 60-second reruns. Those cells replace
+canonical rows where the benchmark's time-averaged scheduler sample fell just
+below its concurrency-validity threshold despite zero request errors. Exact
+durations, effective concurrency, selection notes, and both canonical and
+selected raw JSON are in [`data/`](data/README.md).
+
+![MiniMax M3 NVFP4 aggregate and per-stream decode](charts/nvfp4-decode.png)
+
+## Official MXFP8 on two stations: provisional PP2 result
+
+The 443.78-GB official MiniMax MXFP8 checkpoint needs two GB300s for capacity.
+It was split evenly across the stations' disks, hash-verified against all 31
+pinned Hugging Face LFS objects, exposed to both ranks as one read-only logical
+directory, and loaded fully into HBM with PP2. This is a capacity topology, not
+a claim that two-station PP is faster than the one-station NVFP4 build.
+
+| Concurrency | Aggregate output tok/s | Per-stream tok/s | Status |
+|---:|---:|---:|---|
+| 1 | **99.8** | 99.8 | measured |
+| 2 | **160.9** | 80.4 | measured |
+| 4 | **296.7** | 74.2 | measured |
+| 8 | **509.0** | 63.6 | measured |
+| 16 | **683.5** | 42.7 | measured peak |
+| 32 | **195.5** | 6.1 | provisional eager-path result |
+| 64 | — | — | capacity limit |
+| 128 | — | — | capacity limit |
+
+These are client-counted 30-second sustained rows from
+`llm-inference-bench` with the same exact 8K input and 1K output shape as the
+NVFP4 table. The stable vLLM 0.27.1 PP2 profile uses synchronous scheduling and
+disables the unused auto-tool parser. That avoids the upstream PP request-ID
+race exposed by the initial asynchronous duration run. Because synchronous PP
+does not expose usable live scheduler gauges, the benchmark used its documented
+OpenAI continuous-usage fallback through a loopback proxy that intentionally
+hid `/metrics`; exact client tokens and durations remain authoritative.
+
+C32 is deliberately shown rather than smoothed away. The safe-start server
+captured CUDA graphs only through C16, so C32 ran on the eager path and the
+cliff reproduced in a separate confirmation. A graph-C32 relaunch was prepared,
+but the idle-HBM gate found a no-owner residual allocation after teardown and
+stopped further GPU work. No reset, higher utilization, or CPU offload was used.
+
+![MiniMax M3 MXFP8 PP2 aggregate and per-stream decode](charts/mxfp8-decode.png)
+
+## Prefill through 128K
+
+| Exact requested prompt | Client prompt tokens | Client prompt tok/s | TTFT | Samples |
+|---:|---:|---:|---:|---:|
+| 8K | 8,194 | **29,927** | 0.274 s | 4 |
+| 64K | 65,538 | **27,227** | 2.407 s | 3 |
+| 128K | 131,074 | **25,285** | 5.184 s | 2 |
+
+The requested lengths are exactly 8,192, 65,536, and 131,072 prompt tokens
+before the API's two chat-template tokens. Prefix caching was enabled, but each
+standalone sample was cold; server validation reports 128 cached framing tokens
+and independently measured 32.4K, 29.2K, and 27.1K computed-token/s.
+
+![MiniMax M3 NVFP4 cold prefill throughput and TTFT](charts/nvfp4-prefill.png)
+
+The two-station MXFP8 PP2 profile measured 23,794, 36,471, and 35,707 prompt
+tok/s at 8K, 64K, and 128K, with TTFT of 0.344, 1.797, and 3.671 seconds.
+Those are client-timed cold samples with 20, 5, and 3 retained measurements.
+
+![MiniMax M3 NVFP4 versus MXFP8 prefill](charts/prefill-comparison.png)
+
+## Retained natural-output audit
+
+We retained 591 natural responses across disabled, adaptive, and enabled
+thinking at C1, C64, and C128. All 591 contain text; manual review found no
+degenerate output. Five responses reached the 4,096-token audit cap, while the
+other 586 stopped normally.
+
+| Thinking policy | Retained outputs | Empty | Manual degeneration | Worst repeated 8-gram fraction |
+|---|---:|---:|---:|---:|
+| Disabled | 197 / 197 | 0 | 0 | 0.87% |
+| Adaptive | 197 / 197 | 0 | 0 | 7.20% |
+| Enabled | 197 / 197 | 0 | 0 | 11.71% |
+
+The automatic detector also flags identical-character runs. Its reported flags
+were Markdown separators, not language loops; identical-word runs never
+exceeded three. The largest repeated-phrase score came from a correct interval
+merging answer revisiting its code and remains below the 20% threshold. This is
+a degeneration/repetition audit, not a factual-accuracy benchmark. Sanitized
+retained samples plus all output hashes are published in
+[`data/evidence/nvfp4-natural-output-audit.json`](data/evidence/nvfp4-natural-output-audit.json).
+
+![MiniMax M3 NVFP4 natural-output quality audit](charts/nvfp4-natural-quality.png)
+
+## Memory envelope and maximum measured context
+
+The tuned one-GPU server loads 231.51 GiB of language-model weights and exposes
+a 156,160-token FP8 KV budget (1,220 blocks × 128) with a 132,096-token server
+context limit. That permits one exact 128K prompt plus 1K output, or C16 at the
+fixed 8K+1K workload. C32-C128 exceed this one-GPU KV budget and are recorded as
+capacity limits instead of being forced with CPU offload.
+
+The working profile uses `--gpu-memory-utilization 0.98`, CUDA graph sizes
+1/2/4/8/16, and a maximum 132,096-token context. A clean 0.95 launch left only
+2.05 GiB for KV (about 32K maximum context), so the longer profile was selected
+only after a clean idle-HBM gate; it was not used to hide retained allocations.
+After the large C128 natural audit, a subsequent sparse-attention workspace
+allocation could OOM from allocator fragmentation. Reproduction runs should
+restart the container and repeat the kernel-first idle-HBM gate between that
+stress audit and another benchmark phase.
+
+The stable MXFP8 PP2 profile loads 195.80 GiB on pipeline stage 0 and 216.19
+GiB on stage 1. Its limiting stage exposes 16.29 GiB for KV, producing a global
+505,984-token FP8 KV budget and a 132,096-token server limit. C32's fixed
+8K+1K set fits; C64 would require 589,824 tokens and is therefore an explicit
+capacity skip. The post-teardown graph-C32 relaunch gate stopped at 7,789 MiB
+of no-owner residual HBM on one rank versus a 2,059-MiB limit. That is a reboot
+boundary in this test plan, not a reason to raise utilization or reset a GB300.
 
 vLLM 0.27.1 is a correctness requirement, not just a convenience. The MiniMax
 M3 NVFP4 SwiGLU/indexer correctness fix landed on 2026-08-05 and is present in
@@ -55,7 +193,7 @@ The official checkpoint family has three useful reference points:
 | Checkpoint | Revision | Download payload | GB300 plan |
 |---|---|---:|---|
 | MiniMax BF16 | `f0e1c1e04d40177e4673a22097036854f536e9c0` | 854,200,504,173 bytes | Does not fit one or two 288-GB GPUs without another strategy; not staged |
-| MiniMax MXFP8 | `c5454eb03678d8710e54a4e0fc681b9f3b4a3dba` | 443,776,005,285 bytes | Fits two GPUs in aggregate, but needs the full checkpoint accessible on both ranks; capacity recipe only |
+| MiniMax MXFP8 | `c5454eb03678d8710e54a4e0fc681b9f3b4a3dba` | 443,776,005,285 bytes | Measured across two GPUs with PP2; each rank sees one verified read-only logical checkpoint |
 | NVIDIA NVFP4 | `901464083161bf8612a29ff7ad29914cd4ab4a85` | 250,137,296,832 bytes | Practical one-station baseline; no multi-node run planned |
 
 NVIDIA's model card reports only small evaluation deltas from the native MXFP8
@@ -90,19 +228,20 @@ MSA is part of the model architecture, not an optional approximation. It scores
 M3 advertises a one-million-token window; this experiment measures 8K, 64K,
 and 128K prefill rather than inferring one-million-token performance.
 
-## Planned measurement matrix
+## Measurement matrix and remaining work
 
-| Topology | Checkpoint | Thinking | Decode | Prefill | Quality |
-|---|---|---|---|---|---|
-| 1× GB300 | NVIDIA NVFP4 | disabled, adaptive, enabled | C1–C128, fixed 8K/1K | cold 8K/64K/128K | retained natural text + WikiText-2 |
-| 1× GB300 optimization | NVIDIA NVFP4 + EAGLE3-GQA | disabled first | C1–C128 where capacity permits | base-only prefill | acceptance + retained text |
-| 2× GB300 PP2 capacity path | MiniMax MXFP8 | pending storage | pending | pending | pending |
+| Topology | Checkpoint | Thinking | Decode | Prefill | Quality | Status |
+|---|---|---|---|---|---|---|
+| 1× GB300 | NVIDIA NVFP4 | disabled, adaptive, enabled | C1–C16 measured; C32–C128 capacity-limited | cold 8K/64K/128K measured | 591 retained natural outputs pass; WikiText-2 measured | **Measured milestone** |
+| 1× GB300 optimization | NVIDIA NVFP4 + EAGLE3-GQA | disabled first | C1–C128 where capacity permits | base-only prefill | acceptance + retained text | Pending capacity check |
+| 2× GB300 PP2 capacity path | MiniMax MXFP8 | disabled | C1–C32 provisional; C64/C128 capacity-limited | cold 8K/64K/128K measured | natural output and WikiText-2 pending | **Measured provisional milestone** |
 
-The canonical decode sweep uses `llm-inference-bench` with exact token
+The decode sweep uses `llm-inference-bench` with exact token
 targeting, a 30-second sustained window per cell, an 8,192-token prompt, up to
 1,024 generated tokens, and C1, C2, C4, C8, C16, C32, C64, and C128. The raw
 JSON remains authoritative for errors, completed requests, actual concurrency,
-and capacity limits.
+and capacity limits. Three scheduler-boundary cells use explicitly disclosed
+clean selected reruns, as described above and in the normalized CSV.
 
 EAGLE3 gets a separate series rather than being combined with the base run. It
 uses three speculative tokens, acceptance statistics, and the same
@@ -111,8 +250,9 @@ failure at the benchmark memory profile will be recorded as a capacity result.
 
 The two-station PP2 row is reserved for the larger official MXFP8 checkpoint,
 which needs aggregate HBM capacity. It is not a speed path for a checkpoint
-that already fits one GB300. This row remains explicitly unmeasured while the
-checkpoint is staged for both ranks.
+that already fits one GB300. Its immutable checkpoint is split across the two
+stations' disks and presented to both ranks as one logical read-only model
+directory; every shard and metadata object was verified at the pinned revision.
 
 Thinking mode changes the generated token distribution and therefore gets its
 own decode rows. Cold prefill is reported once with thinking disabled because
@@ -130,20 +270,27 @@ smoke test may be run by relaunching without that flag and recording encoder
 latency, visual-token count, peak HBM, and answer quality. The unquantized
 vision tower will reduce KV headroom, so those rows stay separate from text.
 
-## WikiText-2 methodology
+## WikiText-2 quality and BF16-KV decode
 
-WikiText-2 is run separately with BF16 KV, the pinned tokenizer, 2,047-token
-effective documents, and the same 62-document task used elsewhere in this
-repository. The report will include word perplexity, byte perplexity,
-bits/byte, batch size, KV dtype, and decode throughput from the same server
-profile.
+| Checkpoint | KV dtype | Effective length | Batch | Documents | Word PPL | Byte PPL | Bits/byte | C1 decode |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NVIDIA NVFP4 | BF16 | 2,047 | 4 | 62 | **5.7120** | **1.3852** | **0.4701** | **154.8 tok/s** |
+
+WikiText-2 uses `EleutherAI/wikitext_document_level`, configuration
+`wikitext-2-raw-v1`, the pinned model tokenizer, and lm-eval across all 62 raw
+documents. The C1 number is a separate exact 8K/1K 30-second decode row from
+the same BF16-KV server profile. These quality values are not directly
+comparable with token-level WikiText recipes that concatenate or rechunk the
+corpus.
+
+![MiniMax M3 NVFP4 WikiText-2 and BF16-KV decode](charts/nvfp4-wikitext2.png)
 
 ## Reproduction
 
 See the [recipes](recipes/README.md) for the license gate, exact checkpoint
 download, one- and two-station launches, benchmark matrix, natural-output
-audit, and WikiText-2 run. Raw and normalized results will be placed under
-[`data/`](data/README.md); publication charts will be generated under
+audit, and WikiText-2 run. Sanitized normalized results and evidence are under
+[`data/`](data/README.md); publication charts are under
 [`charts/`](charts/README.md).
 
 ## Primary sources
@@ -153,5 +300,6 @@ audit, and WikiText-2 run. Raw and normalized results will be placed under
 - [NVIDIA official NVFP4 checkpoint](https://huggingface.co/nvidia/MiniMax-M3-NVFP4)
 - [vLLM MiniMax M3 recipe](https://github.com/vllm-project/recipes/blob/main/models/MiniMaxAI/MiniMax-M3.yaml)
 - [vLLM MiniMax M3 implementation](https://docs.vllm.ai/en/latest/api/vllm/models/minimax_m3/)
+- [vLLM PP2 request-ID scheduler issue](https://github.com/vllm-project/vllm/issues/46263)
 - [SGLang MiniMax M3 cookbook](https://github.com/sgl-project/sglang/blob/main/docs/cookbook/autoregressive/MiniMax/MiniMax-M3.mdx)
 - [MiniMax Sparse Attention kernels](https://github.com/MiniMax-AI/MSA)

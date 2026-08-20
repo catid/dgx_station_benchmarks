@@ -1,2 +1,7 @@
-topology,stations,checkpoint,thinking_mode,context_tokens,cached_tokens,client_prompt_tokens_per_second,time_to_first_token_seconds,samples,errors,source
-
+topology,stations,checkpoint,thinking_mode,context_tokens,cached_tokens,client_prompt_tokens,client_prompt_tokens_per_second,time_to_first_token_seconds,samples,errors,source
+1x-gb300,1,nvidia/MiniMax-M3-NVFP4@901464083161bf8612a29ff7ad29914cd4ab4a85,disabled,8192,128,8194,29927,0.274,4,0,evidence/nvfp4-disabled-llm-inference-bench.json
+1x-gb300,1,nvidia/MiniMax-M3-NVFP4@901464083161bf8612a29ff7ad29914cd4ab4a85,disabled,65536,128,65538,27227,2.407,3,0,evidence/nvfp4-disabled-llm-inference-bench.json
+1x-gb300,1,nvidia/MiniMax-M3-NVFP4@901464083161bf8612a29ff7ad29914cd4ab4a85,disabled,131072,128,131074,25285,5.184,2,0,evidence/nvfp4-disabled-llm-inference-bench.json
+2x-gb300-pp2,2,MiniMaxAI/MiniMax-M3-MXFP8@c5454eb03678d8710e54a4e0fc681b9f3b4a3dba,disabled,8192,0,8194,23794,0.344,20,0,evidence/mxfp8-disabled-llm-inference-bench.json
+2x-gb300-pp2,2,MiniMaxAI/MiniMax-M3-MXFP8@c5454eb03678d8710e54a4e0fc681b9f3b4a3dba,disabled,65536,0,65538,36471,1.797,5,0,evidence/mxfp8-disabled-llm-inference-bench.json
+2x-gb300-pp2,2,MiniMaxAI/MiniMax-M3-MXFP8@c5454eb03678d8710e54a4e0fc681b9f3b4a3dba,disabled,131072,0,131074,35707,3.671,3,0,evidence/mxfp8-disabled-llm-inference-bench.json

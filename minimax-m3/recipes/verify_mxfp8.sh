@@ -8,8 +8,8 @@ readonly expected_shards=31
 for file in config.json model.safetensors.index.json LICENSE tokenizer.json; do
   [[ -s "$model_dir/$file" ]] || { echo "Missing $model_dir/$file" >&2; exit 1; }
 done
-actual_shards="$(find "$model_dir" -maxdepth 1 -type f -name 'model-*-of-00031.safetensors' | wc -l)"
-actual_bytes="$(find "$model_dir" -type f ! -path '*/.cache/*' -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')"
+actual_shards="$(find -L "$model_dir" -maxdepth 1 -type f -name 'model-*-of-00031.safetensors' | wc -l)"
+actual_bytes="$(find -L "$model_dir" -type f ! -path '*/.cache/*' -printf '%s\n' | awk '{sum += $1} END {print sum + 0}')"
 [[ "$actual_shards" == "$expected_shards" ]] || { echo "Expected $expected_shards shards; found $actual_shards" >&2; exit 1; }
 [[ "$actual_bytes" == "$expected_bytes" ]] || { echo "Expected $expected_bytes bytes; found $actual_bytes" >&2; exit 1; }
 
@@ -27,4 +27,3 @@ done
   echo "Checkpoint index shard count mismatch" >&2; exit 1;
 }
 echo "PASS: MXFP8 checkpoint verified ($actual_shards shards, $actual_bytes bytes)"
-

@@ -8,9 +8,13 @@ readonly fabric_iface="${FABRIC_IFACE:?Set FABRIC_IFACE to the verified data int
 readonly fabric_hca="${FABRIC_HCA:?Set FABRIC_HCA to the matching RDMA HCA}"
 readonly rdma_device="${RDMA_DEVICE:?Set RDMA_DEVICE to the matching uverbs device}"
 readonly model_dir="${MXFP8_MODEL_DIR:?Set MXFP8_MODEL_DIR to the verified MiniMax-M3-MXFP8 checkpoint directory}"
+readonly staging_root="${MXFP8_STAGING_ROOT:-}"
 readonly gpu_device="${GPU_DEVICE:?Set GPU_DEVICE to the GB300 CDI selector}"
 readonly thinking_mode="${THINKING_MODE:-disabled}"
-readonly container_name="${CONTAINER_NAME:-minimax-m3-vllm}"
+readonly enable_tool_parser="${ENABLE_TOOL_PARSER:-0}"
+readonly disable_async_scheduling="${DISABLE_ASYNC_SCHEDULING:-1}"
+readonly max_graph="${MAX_CUDAGRAPH_CAPTURE_SIZE:-16}"
+readonly container_name="${CONTAINER_NAME:-minimax-m3-mxfp8-vllm}"
 readonly image="${VLLM_IMAGE:-vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967}"
 readonly cache_dir="${CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/dgx-station-benchmarks/minimax-m3-vllm}"
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,6 +22,13 @@ readonly script_dir
 
 case "$node_rank" in 0) readonly node_ip="$node0_ip" ;; 1) readonly node_ip="$node1_ip" ;; *) echo "NODE_RANK must be 0 or 1" >&2; exit 2 ;; esac
 case "$thinking_mode" in disabled|adaptive|enabled) ;; *) echo "Invalid THINKING_MODE" >&2; exit 2 ;; esac
+case "$enable_tool_parser" in 0|1) ;; *) echo "ENABLE_TOOL_PARSER must be 0 or 1" >&2; exit 2 ;; esac
+case "$disable_async_scheduling" in 0|1) ;; *) echo "DISABLE_ASYNC_SCHEDULING must be 0 or 1" >&2; exit 2 ;; esac
+case "$max_graph" in
+  16) graph_sizes=(1 2 4 8 16) ;;
+  32) graph_sizes=(1 2 4 8 16 32) ;;
+  *) echo "MAX_CUDAGRAPH_CAPTURE_SIZE must be 16 or 32" >&2; exit 2 ;;
+esac
 [[ "$gpu_device" == nvidia.com/gpu=GPU-* ]] || { echo "GPU_DEVICE must select one GPU by CDI UUID" >&2; exit 2; }
 [[ -c "$rdma_device" ]] || { echo "Missing RDMA device $rdma_device" >&2; exit 1; }
 ip -o -4 address show dev "$fabric_iface" | grep -Fq "$node_ip/" || { echo "$fabric_iface does not own $node_ip" >&2; exit 1; }
@@ -28,8 +39,21 @@ if docker container inspect "$container_name" >/dev/null 2>&1; then
 fi
 mkdir -p "$cache_dir"
 
+if [[ -n "$staging_root" ]]; then
+  [[ "$model_dir" == "$staging_root"/* ]] || {
+    echo "MXFP8_MODEL_DIR must be below MXFP8_STAGING_ROOT" >&2
+    exit 2
+  }
+  readonly model_in_container="$model_dir"
+  docker_model_mount=(--mount "type=bind,src=$staging_root,dst=$staging_root,readonly,bind-propagation=rslave")
+else
+  readonly model_in_container=/model
+  docker_model_mount=(--volume "$model_dir:/model:ro")
+fi
+
 vllm_args=(
-  serve /model
+  serve "$model_in_container"
+  --safetensors-load-strategy "${SAFETENSORS_LOAD_STRATEGY:-prefetch}"
   --served-model-name MiniMax-M3-MXFP8
   --trust-remote-code
   --language-model-only
@@ -43,20 +67,24 @@ vllm_args=(
   --block-size 128
   --kv-cache-dtype "${KV_CACHE_DTYPE:-fp8}"
   --attention_config.indexer_kv_dtype fp8
-  --tool-call-parser minimax_m3
-  --enable-auto-tool-choice
   --reasoning-parser minimax_m3
   --default-chat-template-kwargs "{\"thinking_mode\":\"$thinking_mode\"}"
-  --max-model-len "${MAX_MODEL_LEN:-262144}"
+  --max-model-len "${MAX_MODEL_LEN:-132096}"
   --max-num-seqs "${MAX_NUM_SEQS:-128}"
-  --max-num-batched-tokens "${MAX_NUM_BATCHED_TOKENS:-32768}"
-  --gpu-memory-utilization "${GPU_MEMORY_UTILIZATION:-0.92}"
+  --max-num-batched-tokens "${MAX_NUM_BATCHED_TOKENS:-8192}"
+  --gpu-memory-utilization "${GPU_MEMORY_UTILIZATION:-0.97}"
   --enable-prefix-caching
-  --cudagraph-capture-sizes 1 2 4 8 16 32 64 128
-  --max-cudagraph-capture-size 128
+  --cudagraph-capture-sizes "${graph_sizes[@]}"
+  --max-cudagraph-capture-size "$max_graph"
   --compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE","custom_ops":["all"]}'
   --no-enable-flashinfer-autotune
 )
+if (( enable_tool_parser == 1 )); then
+  vllm_args+=(--tool-call-parser minimax_m3 --enable-auto-tool-choice)
+fi
+if (( disable_async_scheduling == 1 )); then
+  vllm_args+=(--no-async-scheduling)
+fi
 if (( node_rank == 0 )); then
   vllm_args+=(--host 127.0.0.1 --port "${API_PORT:-30000}")
 else
@@ -83,7 +111,7 @@ docker run --detach \
   --env "NCCL_DEBUG=${NCCL_DEBUG:-INFO}" \
   --env "NCCL_DEBUG_SUBSYS=${NCCL_DEBUG_SUBSYS:-INIT,NET}" \
   --env VLLM_FLOAT32_MATMUL_PRECISION=high \
-  --volume "$model_dir:/model:ro" \
+  "${docker_model_mount[@]}" \
   --volume "$cache_dir:/root/.cache" \
   --entrypoint vllm \
   "$image" "${vllm_args[@]}"
