@@ -128,10 +128,10 @@ through 128 sequences, and `max_num_batched_tokens=32768`.
 | TP2+EP, MTP2 | 0.958 | 1,187,056 | 1,179,904 | +7,152 |
 
 Utilization 0.956 is the baseline profile. MTP2 could not meet the fixed KV
-guard at 0.956 and used one clean-idle 0.958 launch. The separately launched
-MTP1 C128 stability check also used 0.958 because activation-profile variance
-made its 0.956 relaunch miss the guard by 688 tokens. A higher utilization must
-never be used to compensate for residual HBM.
+guard at 0.956; its accepted 0.958 run exceeded the guard by 7,152 tokens. The
+separately launched MTP1 C128 stability check also used 0.958 after
+activation-profile variance made its 0.956 relaunch miss the guard by 688
+tokens.
 
 ## 1× DGX Station: does not fit
 
@@ -174,24 +174,17 @@ pipeline parallelism because it lacks the `SupportsPP` interface. Therefore
 PP2/MTP1 and PP2/MTP2 are explicitly unsupported. The recipe refuses those
 combinations instead of patching model semantics or fabricating comparisons.
 
-### Preserved capacity failures and residual-HBM safety
+### Preserved capacity failures
 
 Two clean-idle speculative launches were rejected before benchmarking: MTP1 at
 0.956 exposed 1,179,216 KV tokens (688 below guard), and MTP2 at 0.956 exposed
 1,175,760 (4,144 below guard). These attempts justify the narrowly scoped
 0.958 speculative profile.
 
-A separate operator observation motivated the ownerless-residual-HBM safety
-gate below. Its raw terminal capture was not retained, so no exact allocation is
-published and it is not presented as checksummed evidence. The generic lesson
-is retained: if idle HBM remains materially above a known healthy baseline
-after the named containers exit and no userspace owner is found, stop rather
-than increasing utilization or retrying.
-
 Checksummed, retained capacity-failure evidence is in
 [`data/failure-evidence.json`](data/failure-evidence.json) and
-[`data/kv-capacity.csv`](data/kv-capacity.csv). The executable generic preflight
-is [`recipes/preflight-idle-hbm.sh`](recipes/preflight-idle-hbm.sh).
+[`data/kv-capacity.csv`](data/kv-capacity.csv). Operational launch and cleanup
+checks are documented in the [reproduction recipes](recipes/).
 
 ## Superseded 0.92 tuning run
 
@@ -199,12 +192,6 @@ The preserved PP2/MTP0 run at utilization 0.92 produced C1–C64 and all three
 prefill contexts but no C128 or natural-output audit. Its rows remain labeled
 `provisional_tuning` in the CSV and appear as a dashed line in charts. They are
 not used for any headline; the accepted 0.956 PP2/MTP0 run supersedes them.
-
-## Publication policy
-
-- Publish only structurally complete, zero-error rows with runtime provenance
-  and manually reviewed natural output. Keep anomalous accepted measurements
-  visible but out of headline selection.
 
 ## Data and tooling
 

@@ -14,6 +14,14 @@ See the [agent-ready recipes](recipes/) for pinned download and verification,
 the one-node capacity check, the accepted TP2 launch, failed-profile evidence,
 `llm-inference-bench`, output-quality checks, and WikiText-2 setup.
 
+## Checkpoint provenance
+
+| Role | Hugging Face source | Exact revision | Status | Weight format | Retained size evidence |
+| --- | --- | --- | --- | --- | --- |
+| Target | [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) | `aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa` | NVIDIA-produced quantization of GLM-5.2; not the upstream BF16 checkpoint | NVFP4 expert linear layers; shared expert and several tensors remain at higher precision | 47 indexed weight files, 464,823,042,096 bytes |
+
+The shard count and byte total come from the pinned checkpoint's `model.safetensors.index.json` and are retained in [`data/capacity.csv`](data/capacity.csv).
+
 ## Status
 
 <!-- BEGIN GENERATED:STATUS -->
@@ -71,8 +79,8 @@ explicit flag rather than being silently promoted to a full-concurrency result.
 C128 is a shared-prefix result. The harness's unshared-KV admission estimate
 was overridden, while the actual server had prefix caching enabled: all 128
 requests became resident with zero queued, the log reached an 86.9% prefix hit
-rate and 31.9% KV usage, and vLLM reported a 256,320-token KV cache. Do not read
-this as capacity for 128 unrelated 8K prompts.
+rate and 31.9% KV usage, and vLLM reported a 256,320-token KV cache. This is
+shared-prefix capacity, not capacity for 128 unrelated 8K prompts.
 
 ## Two DGX Stations: cold prefill
 
@@ -111,12 +119,12 @@ mechanical checks.
 
 The first WikiText-2 evaluator attempt failed before inference because
 Transformers 4 could not load the checkpoint's `TokenizersBackend` metadata.
-After operator-coordinated clean-baseline recovery, a tokenizer-only
-`PreTrainedTokenizerFast` compatibility directory was validated token-for-token
-and the retry completed all 62 document-level samples. The published result
-uses BF16 KV, batch size 4, and lm-eval's effective 2,047-token window (2,048
-requested with one token reserved by the API adapter). The failed attempt is
-retained separately; no result from it was used.
+A subsequent evaluator retry used a tokenizer-only `PreTrainedTokenizerFast`
+compatibility directory validated token-for-token and completed all 62
+document-level samples. The published result uses BF16 KV, batch size 4, and
+lm-eval's effective 2,047-token window (2,048 requested with one token reserved
+by the API adapter). The failed attempt is retained separately; no result from
+it was used.
 
 <!-- BEGIN GENERATED:CHARTS -->
 ![GLM-5.2 decode topology comparison](charts/decode-throughput.png)
@@ -154,6 +162,3 @@ retained separately; no result from it was used.
   profiles, the failed tokenizer attempt, and the measured retry disposition
 - [`data/publication-manifest.json`](data/publication-manifest.json) — accepted,
   rejected, and absent topology state from the latest extraction
-
-Raw benchmark JSON, startup logs, and the complete natural-output audit should
-be retained alongside these normalized tables when measurements are published.

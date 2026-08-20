@@ -40,8 +40,6 @@ The ordinary NET-PF is `SYS` from the GPU, while the CX-8 Data Direct DMA functi
 - nccl-tests 2.19.7, commit `1a65d7f`, installed under `/opt/nccl-tests-2.19.7`
 - OpenMPI 4.1.6
 
-The distribution-owned perftest remains in `/usr/bin`; the CUDA-enabled build is installed in `/usr/local/bin`.
-
 ## Quality and link health
 
 - 9,000-byte IP packets passed with zero loss.
