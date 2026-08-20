@@ -1,0 +1,17 @@
+{
+  "model": "MiniMaxAI/MiniMax-H3",
+  "prompt": "A clearly fictional athletic orange cat wearing secure protective goggles sprints impossibly at 60 miles per hour along a dramatic mountain crag trail, controlled action-comedy, stones and powdery snow streaming behind, dynamic low tracking camera, crisp stereo wind and pawstep ambience, no falls, no injury, and no one is harmed.",
+  "seconds": 15,
+  "task": "t2va",
+  "conditions": [],
+  "target": {
+    "short_edge": 768,
+    "aspect_ratio": "16:9",
+    "duration_seconds": 15.0
+  },
+  "num_outputs_per_prompt": 1,
+  "num_inference_steps": 50,
+  "flow_shift": 12.0,
+  "audio_flow_shift": 3.0,
+  "seed": 1515
+}

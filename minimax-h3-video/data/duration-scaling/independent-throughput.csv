@@ -1,0 +1,3 @@
+topology,stations,concurrent_outputs,pair_makespan_s,outputs_per_hour,aggregate_frames_per_wall_s,aggregate_video_seconds_per_wall_s,prompt_seed,output_sha256
+one_resident_replica,1,1,719.289758080,5.004937106,0.503274231,0.020969759,1515,bb14ce9710f03fcbf2464a28431afabab61b901a2134fbee8e1fd0c538929efd
+two_independent_replicas,2,2,719.296341760,10.009782592,1.006539249,0.041939134,1515,bb14ce9710f03fcbf2464a28431afabab61b901a2134fbee8e1fd0c538929efd

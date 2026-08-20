@@ -3,13 +3,11 @@
 Current figures:
 
 - [`1x-bf16-stage-breakdown.svg`](1x-bf16-stage-breakdown.svg), generated from the accepted CSVs by `../recipes/render-charts.py`;
+- [`duration-scaling.svg`](duration-scaling.svg), one-station client latency for the measured native durations, with unsupported rows colored separately;
+- [`15s-independent-throughput.svg`](15s-independent-throughput.svg), measured complete clips/hour for one versus two independent resident replicas;
 - [`quality-seed1101-contact-sheet.jpg`](quality-seed1101-contact-sheet.jpg), five evenly spaced frames used for manual motion and repetition review;
 - [`quality-seed1101-audio-spectrogram.png`](quality-seed1101-audio-spectrogram.png), the stereo soundtrack over the full 5.175-second file.
 
-Additional figures will be generated after the remaining matrix is complete:
-
-- end-to-end latency by topology and precision;
-- generated video-seconds per wall-second;
-- 1× versus 2× latency and aggregate-throughput scaling;
-- peak HBM by configuration;
-- BF16 versus FP8 quality deltas.
+All SVGs are deterministically rebuilt from the checked-in CSVs by
+`../recipes/render-charts.py`. Animated sample previews and contact sheets live
+under [`../samples/`](../samples/README.md).

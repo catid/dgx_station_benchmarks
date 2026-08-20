@@ -1,0 +1,11 @@
+--- a/python/sglang/multimodal_gen/runtime/pipelines_core/stages/model_specific_stages/minimax_h3/constants.py
++++ b/python/sglang/multimodal_gen/runtime/pipelines_core/stages/model_specific_stages/minimax_h3/constants.py
+@@ -22,7 +22,7 @@
+ 
+ MINIMAX_H3_SUPPORTED_FPS = 24
+ MINIMAX_H3_MIN_DURATION_SECONDS = 4.0
+-MINIMAX_H3_MAX_DURATION_SECONDS = 15.0
++MINIMAX_H3_MAX_DURATION_SECONDS = 30.0
+ 
+ # The distilled checkpoint has exactly one positive denoise branch.
+ MINIMAX_H3_DEFAULT_BRANCHES: tuple = ({"name": "cond_1"},)

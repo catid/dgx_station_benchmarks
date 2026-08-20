@@ -1,0 +1,46 @@
+{
+  "request": {
+    "prompt": "A clearly fictional athletic orange cat wearing secure protective goggles sprints impossibly at 60 miles per hour along a dramatic mountain crag trail, controlled action-comedy, stones and powdery snow streaming behind, dynamic low tracking camera, crisp stereo wind and pawstep ambience, no falls, no injury, and no one is harmed.",
+    "seed": 1515,
+    "requested_seconds": 15.0,
+    "short_edge": 768,
+    "aspect_ratio": "16:9",
+    "num_inference_steps": 50,
+    "flow_shift": 12.0,
+    "audio_flow_shift": 3.0
+  },
+  "job": {
+    "status": "completed",
+    "server_inference_seconds": 715.1430607050002,
+    "client_e2e_seconds": 719.29634176,
+    "peak_hbm_mb": 141424.0
+  },
+  "stages_seconds": {
+    "text_encode": 23.532,
+    "latent_prepare": 0.0823,
+    "denoise": 644.6056,
+    "decode": 32.1733
+  },
+  "media": {
+    "container": "mp4",
+    "format_duration_seconds": 15.083333,
+    "size_bytes": 5589603,
+    "sha256": "bb14ce9710f03fcbf2464a28431afabab61b901a2134fbee8e1fd0c538929efd",
+    "video_codec": "h264",
+    "width": 1344,
+    "height": 768,
+    "frames": 362,
+    "fps": 24.0,
+    "video_duration_seconds": 15.083333,
+    "audio_codec": "aac",
+    "audio_sample_rate_hz": 32000,
+    "audio_channels": 2,
+    "audio_duration_seconds": 15.075
+  },
+  "derived": {
+    "frames_per_wall_second": 0.5032696247477715,
+    "video_seconds_per_wall_second": 0.02096956723440795,
+    "real_time_factor": 47.68815630868854,
+    "clips_per_hour": 5.004891295834192
+  }
+}

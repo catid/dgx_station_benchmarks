@@ -32,6 +32,16 @@ docker_env=(
   --env NCCL_DEBUG=INFO
 )
 docker_devices=(--device "${GPU_DEVICE}")
+docker_volumes=(--volume "${MODEL_DIR}:/models/MiniMax-H3:ro")
+if [[ -n "${DURATION_CONSTANTS_OVERLAY:-}" ]]; then
+  [[ "${DURATION_CONSTANTS_OVERLAY}" = /* && -f "${DURATION_CONSTANTS_OVERLAY}" ]] || {
+    echo "DURATION_CONSTANTS_OVERLAY must name an existing absolute file" >&2
+    exit 2
+  }
+  docker_volumes+=(
+    --volume "${DURATION_CONSTANTS_OVERLAY}:/sgl-workspace/sglang/python/sglang/multimodal_gen/runtime/pipelines_core/stages/model_specific_stages/minimax_h3/constants.py:ro"
+  )
+fi
 if [[ -n "${NCCL_IB_HCA:-}" ]]; then
   : "${RDMA_DEVICE:?Set RDMA_DEVICE to the matching uverbs character device}"
   [[ -c "${RDMA_DEVICE}" ]] || {
@@ -56,7 +66,7 @@ exec docker run --rm \
   --network=host \
   --ulimit memlock=-1:-1 \
   "${docker_env[@]}" \
-  --volume "${MODEL_DIR}:/models/MiniMax-H3:ro" \
+  "${docker_volumes[@]}" \
   "${IMAGE}" \
   sglang serve \
     --model-path /models/MiniMax-H3 \

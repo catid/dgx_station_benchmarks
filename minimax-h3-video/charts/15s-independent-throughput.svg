@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="520" viewBox="0 0 1080 520">
+<rect width="1080" height="520" fill="#111214"/>
+<style>
+  text { font-family: Inter, system-ui, sans-serif; fill: #f5f5f7; }
+  .title { font-size: 28px; font-weight: 700; }
+  .subtitle { font-size: 16px; fill: #b9bbc1; }
+  .big { font-size: 23px; font-weight: 700; }
+  .label { font-size: 19px; font-weight: 650; }
+  .foot { font-size: 14px; fill: #9b9da3; }
+</style>
+<text x="80" y="48" class="title">MiniMax H3 · independent 15-second throughput</text>
+<text x="80" y="77" class="subtitle">Same prompt and seed · one resident BF16 replica per station · 362 frames/output</text>
+<line x1="150" y1="390" x2="930" y2="390" stroke="#515257"/>
+<rect x="245.00" y="255.00" width="210" height="135.00" rx="5" fill="#30d158"/><text x="350.00" y="241.00" text-anchor="middle" class="big">5.005</text><text x="350.00" y="425" text-anchor="middle" class="label">1 station</text><rect x="635.00" y="120.00" width="210" height="270.00" rx="5" fill="#30d158"/><text x="740.00" y="106.00" text-anchor="middle" class="big">10.010</text><text x="740.00" y="425" text-anchor="middle" class="label">2 stations</text>
+<text x="540" y="472" text-anchor="middle" class="foot">Complete clips/hour · simultaneous pair makespan 719.296s · outputs byte-identical</text>
+</svg>
