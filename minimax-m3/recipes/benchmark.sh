@@ -9,6 +9,7 @@ readonly bench_dir="${BENCH_DIR:?Set BENCH_DIR to the pinned llm-inference-bench
 readonly bench_python="${BENCH_PYTHON:-python3}"
 readonly host="${BENCH_HOST:-127.0.0.1}"
 readonly port="${BENCH_PORT:-30000}"
+readonly model_name="${MODEL_NAME:-MiniMax-M3-NVFP4}"
 readonly topology="${TOPOLOGY:-1x-nvfp4}"
 readonly result_root="${RESULT_ROOT:-$PWD/results/minimax-m3}"
 readonly run_dir="$result_root/$topology/$speculative_mode/$thinking_mode"
@@ -55,23 +56,29 @@ case "$run_prefill" in
   1) prefill_args=(--standalone-prefill) ;;
   *) echo "RUN_PREFILL must be 0 or 1" >&2; exit 2 ;;
 esac
+extra_args=()
+if [[ -n "${MAX_TOTAL_TOKENS_OVERRIDE:-}" ]]; then
+  extra_args+=(--max-total-tokens "$MAX_TOTAL_TOKENS_OVERRIDE")
+fi
 
 "$bench_python" "$bench_dir/llm_decode_bench.py" \
   --host "$host" \
   --port "$port" \
-  --model MiniMax-M3-NVFP4 \
+  --model "$model_name" \
   --concurrency "${CONCURRENCIES:-1,2,4,8,16,32,64,128}" \
   --contexts "${CONTEXTS:-8k}" \
   --duration "${DURATION:-30}" \
   --max-tokens "${MAX_TOKENS:-1024}" \
   --temperature "${TEMPERATURE:-0}" \
   --token-targeting exact \
+  --decode-warmup-seconds "${DECODE_WARMUP_SECONDS:-3}" \
   --prefill-contexts "${PREFILL_CONTEXTS:-8k,64k,128k}" \
   --prefill-metric auto \
   "${prefill_args[@]}" \
   --display-mode plain \
   --no-hw-monitor \
   --no-resume \
+  "${extra_args[@]}" \
   --output "$run_dir/llm-inference-bench.json" \
   2>&1 | tee "$run_dir/llm-inference-bench.log"
 

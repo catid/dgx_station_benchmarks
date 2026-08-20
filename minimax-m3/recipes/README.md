@@ -1,8 +1,8 @@
 # Reproducing MiniMax M3 NVFP4 on DGX Station GB300
 
 The primary recipes target one DGX Station GB300 running Linux on ARM64 and
-use NVIDIA's official ModelOpt NVFP4 checkpoint. A separate, dormant PP2
-capacity recipe covers MiniMax's larger official MXFP8 checkpoint on two
+use NVIDIA's official ModelOpt NVFP4 checkpoint. A separate PP2 capacity track
+covers MiniMax's larger official MXFP8 checkpoint on two
 stations. Both paths keep weights resident on GPU and do not use CPU offload.
 
 ## 0. License
@@ -107,8 +107,7 @@ export GPU_DEVICE='nvidia.com/gpu=GPU-REPLACE-WITH-GB300-UUID'
 
 ## 4. One-station launch
 
-Start with the conservative 95% memory profile and the official recipe's 262K
-server window:
+The published throughput/prefill profile is:
 
 ```bash
 export MODEL_DIR=/absolute/path/to/MiniMax-M3-NVFP4
@@ -116,32 +115,28 @@ export GPU_DEVICE='nvidia.com/gpu=GPU-REPLACE-WITH-GB300-UUID'
 export THINKING_MODE=disabled  # disabled, adaptive, or enabled
 export SERVER_PROFILE=throughput
 export SPECULATIVE_MODE=none
+export MAX_MODEL_LEN=132096
+export GPU_MEMORY_UTILIZATION=0.98
+export CUDA_GRAPH_CAPTURE_SIZES=1,2,4,8,16
+export MAX_CUDAGRAPH_CAPTURE_SIZE=16
+export MAX_NUM_SEQS=128
+export MAX_NUM_BATCHED_TOKENS=8192
 ./serve-1x.sh
 curl --fail http://127.0.0.1:30000/health
 ```
 
 The text benchmark deliberately passes `--language-model-only`; this omits the
-vision tower from HBM and is not CPU offload. The throughput profile uses FP8
-KV, a 262K model-length ceiling, prefix caching, and C1–C128 CUDA-graph sizes.
-The larger ceiling leaves output-token headroom after the exact 128K prefill
-prompt; the benchmark itself stops at 128K. If the initial load does not fit,
-preserve the complete log and stop. Do not raise the memory fraction or modify
-the driver to force a result.
+vision tower from HBM and is not CPU offload. This measured profile uses FP8
+KV, prefix caching, and graph tiers C1–C16. It exposed 156,160 KV tokens on the
+reported clean launch: enough for 128K+1K at C1 or fixed 8K+1K at C16.
 
-If profiling proves the default model-length ceiling is larger than the
-available one-GPU KV budget, preserve that failed startup as capacity evidence.
-A separately labeled long-prefill profile may reduce the ceiling to exactly
-128K input plus output headroom and capture only graph tiers that fit the
-measured KV budget, for example:
-
-```bash
-export MAX_MODEL_LEN=132096
-export CUDA_GRAPH_CAPTURE_SIZES=1,2,4,8,16
-export MAX_CUDAGRAPH_CAPTURE_SIZE=16
-```
-
-Record any non-default memory fraction with the result. Change it only after a
-clean teardown and idle-HBM preflight; never use it to mask retained HBM.
+The original conservative probe used the script defaults (95% memory, 262K
+ceiling, graph tiers through C128). It correctly failed startup because only
+2.05 GiB of KV was available, corresponding to about 32K maximum context. Keep
+that probe as capacity evidence if repeated. The published 98% profile was
+selected only after a clean teardown and idle-HBM preflight. Never use the
+higher fraction to mask retained HBM, and never modify or reset the driver to
+force a result.
 
 After the base matrix is complete, the optional EAGLE3-GQA row uses three
 speculative tokens:
@@ -203,6 +198,12 @@ text, and flags empty output, repeated 8-grams, identical word runs, and
 identical-character runs. Review all flags manually. Parser-separated reasoning
 is included in the audit rather than silently discarded.
 
+Restart the named container and repeat the kernel-first idle-HBM gate after the
+C128 audit before launching another benchmark phase. The audit's large dynamic
+request shapes can leave PyTorch memory fragmented even though the server has
+otherwise completed correctly; a later sparse-attention workspace allocation
+can then OOM.
+
 ## 7. WikiText-2
 
 With the `ppl` server profile and BF16 KV:
@@ -221,25 +222,30 @@ metadata, and server log.
 
 ## 8. MXFP8 two-station capacity path
 
-Do not distribute NVFP4 merely to use another GPU: it fits one GB300, and the
-current single data link would add communication to a model that does not need
-capacity scaling.
+Do not distribute NVFP4 merely to use another GPU: it fits one GB300, and PP
+would add communication to a model that does not need capacity scaling.
 
 The documented two-station path is PP2 for the larger official
-`MiniMaxAI/MiniMax-M3-MXFP8` checkpoint. It is currently unmeasured. Each rank
-needs a local copy of the pinned 443,776,005,285-byte repository, plus working
-space. Do not delete other checkpoints or mount the model over the benchmark
-rail merely to force this row. Once storage is explicitly available:
+`MiniMaxAI/MiniMax-M3-MXFP8` checkpoint at revision
+`c5454eb03678d8710e54a4e0fc681b9f3b4a3dba`. The measured repository is
+443,776,005,285 bytes across 31 safetensor shards. If each station has enough
+disk, the simplest reproducible setup is to download and verify the complete
+pinned repository on both systems:
 
 ```bash
-export MINIMAX_M3_LICENSE_ACCEPTED=YES
 export MXFP8_MODEL_DIR=/absolute/path/to/MiniMax-M3-MXFP8
 ./download_mxfp8.sh
 ./verify_mxfp8.sh "$MXFP8_MODEL_DIR"
-rsync -a --whole-file --partial --info=progress2 \
-  --exclude='.cache/' "$MXFP8_MODEL_DIR/" node1:"$MXFP8_MODEL_DIR/"
-ssh node1 "$PWD/verify_mxfp8.sh '$MXFP8_MODEL_DIR'"
 ```
+
+Our capacity-constrained run instead split immutable shards across the two
+stations' disks and presented the same logical read-only directory to both
+ranks over the dedicated data link. Each logical view contained all 52 files,
+all 31 LFS hashes matched the pinned revision, and all metadata hashes matched.
+For a split view, set `MXFP8_STAGING_ROOT` to the common staging root so the
+container bind-mount includes both read-only peer mounts. This is storage
+sharing during load, not CPU offload: the model weights and KV cache remain in
+HBM while serving. The runtime uses PP2 for capacity and TP1 on each rank.
 
 Use a verified dedicated data interface and matching RDMA HCA/device. Run the
 safety gate on both systems, then start rank 1 and rank 0 with the same absolute
@@ -251,16 +257,60 @@ export NODE_RANK=1 NODE0_IP=192.0.2.1 NODE1_IP=192.0.2.2
 export FABRIC_IFACE=high_speed0 FABRIC_HCA=mlx5_0
 export RDMA_DEVICE=/dev/infiniband/uverbs0
 export MXFP8_MODEL_DIR=/absolute/path/to/MiniMax-M3-MXFP8
+# Only for a split, mount-backed logical view:
+# export MXFP8_STAGING_ROOT=/absolute/path/to/staging-root
 export GPU_DEVICE='nvidia.com/gpu=GPU-REPLACE-WITH-GB300-UUID'
+export THINKING_MODE=disabled
+export ENABLE_TOOL_PARSER=0
+export DISABLE_ASYNC_SCHEDULING=1
+export MAX_MODEL_LEN=132096
+export MAX_NUM_SEQS=128
+export MAX_NUM_BATCHED_TOKENS=8192
+export GPU_MEMORY_UTILIZATION=0.97
+export MAX_CUDAGRAPH_CAPTURE_SIZE=16
 ./serve-node-2x.sh
 
 # rank 0: same settings, but NODE_RANK=0 and rank-0 GPU_DEVICE
 ```
 
-The PP2 recipe disables distributed FlashInfer autotuning because pipeline
-stages can enter different tuning sequences. FlashInfer remains enabled and
-uses its fixed kernel selection. Preserve NCCL logs and verify the intended
-RDMA transport before accepting a result.
+Start rank 1 first, then rank 0. The PP2 recipe disables distributed FlashInfer
+autotuning because pipeline stages can enter different tuning sequences.
+FlashInfer remains enabled and uses its fixed Blackwell kernel selection.
+Preserve NCCL logs and verify the intended RDMA transport before accepting a
+result.
+
+The stable measured profile deliberately disables vLLM asynchronous scheduling
+and automatic tool parsing. vLLM issue
+[`#46263`](https://github.com/vllm-project/vllm/issues/46263) documents a PP2
+request-lifecycle race triggered by the async/tool-calling combination; our
+initial smoke output was coherent, but the first sustained run hit that exact
+`req_id_to_index` failure and is excluded. Keep this workaround until the
+upstream issue is resolved in the pinned runtime.
+
+With synchronous scheduling, vLLM's live Prometheus counters do not advance in
+the way `llm-inference-bench` expects. Use the included loopback-only proxy to
+hide `/metrics`; this makes the unmodified benchmark use its documented
+client-stream/OpenAI continuous-usage token accounting fallback:
+
+```bash
+python3 ./metrics-blind-proxy.py --listen-port 30001 --upstream-port 30000
+
+export MODEL_NAME=MiniMax-M3-MXFP8
+export CONTAINER_NAME=minimax-m3-mxfp8-vllm
+export BENCH_PORT=30001
+export TOPOLOGY=2x-mxfp8-pp2
+export MAX_TOTAL_TOKENS_OVERRIDE=505984
+export DECODE_WARMUP_SECONDS=0
+export RUN_PREFILL=1
+./benchmark.sh disabled
+```
+
+The measured server exposed 505,984 FP8-KV tokens. Fixed 8K+1K therefore fits
+through C32; C64 and C128 are explicit capacity limits. Graphs were captured
+through C16. C32 completed without request errors but ran eagerly and showed a
+large throughput cliff. Treat that row as provisional until a graph-C32
+restart is completed after a clean idle-HBM gate. Do not increase memory
+utilization to force the relaunch.
 
 ## 9. Optional multimodal smoke test
 
@@ -280,7 +330,30 @@ HBM, and the full answer. Do not merge this smoke test with text-only decode or
 prefill rows. If the resident vision path does not fit at the conservative
 memory setting, record that outcome and stop; do not use CPU offload.
 
-## 10. Cleanup
+## 10. Package and render publication data
+
+Keep private raw results outside the repository. Normalize and sanitize the
+validated cells, then render charts entirely from the package-local CSV files:
+
+```bash
+python3 ./package_results.py \
+  --raw-root /absolute/path/to/private/minimax-m3-raw \
+  --ppl-root /absolute/path/to/private/minimax-m3-ppl \
+  --mxfp8-json /absolute/path/to/private/mxfp8/llm-inference-bench.json \
+  --package-root ..
+
+python3 -m venv .chart-venv
+.chart-venv/bin/pip install -r ./render-requirements.txt
+.chart-venv/bin/python ./render_charts.py
+```
+
+The packaging step rejects selected cells with request errors or a capacity
+flag. It sanitizes the source host identity, preserves canonical and selected
+rerun JSON, publishes five retained natural samples per audit cell, and keeps
+SHA-256 hashes for every audited output. MXFP8 quality fields stay blank until
+they have their own retained natural-output and WikiText-2 runs.
+
+## 11. Cleanup
 
 For the one-station NVFP4 run, remove only the named local container:
 

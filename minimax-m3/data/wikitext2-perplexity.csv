@@ -1,2 +1,2 @@
 topology,stations,checkpoint,kv_cache_dtype,effective_max_length,batch_size,documents,word_perplexity,byte_perplexity,bits_per_byte,decode_tokens_per_second,source
-
+1x-gb300,1,nvidia/MiniMax-M3-NVFP4@901464083161bf8612a29ff7ad29914cd4ab4a85,bfloat16,2047,4,62,5.712039010,1.385235876,0.470131657,154.810834,evidence/nvfp4-wikitext2.json; evidence/nvfp4-bf16-kv-decode.json

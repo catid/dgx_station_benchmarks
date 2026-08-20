@@ -1,13 +1,29 @@
 # MiniMax M3 charts
 
-Charts will be rendered only after the corresponding raw evidence and
-normalized CSV rows are present. Planned figures are:
+Published figures:
 
-- aggregate decode tokens/s versus concurrency, faceted by thinking mode;
-- per-stream decode tokens/s versus concurrency;
-- cold prefill tokens/s and TTFT at 8K, 64K, and 128K;
-- NVFP4 one-station results and a separately labeled MXFP8 PP2 capacity row, if collected;
-- WikiText-2 perplexity and BF16-KV decode throughput.
+- `nvfp4-decode.png`: aggregate and per-stream 8K/1K decode across thinking
+  policies and C1–C16;
+- `nvfp4-prefill.png`: client-observed cold-prefill throughput and TTFT at 8K,
+  64K, and 128K;
+- `nvfp4-natural-quality.png`: maximum repeated 8-gram fraction plus retained
+  output completeness/manual review;
+- `mxfp8-decode.png`: provisional PP2 aggregate and per-stream 8K/1K decode;
+- `prefill-comparison.png`: one-station NVFP4 versus two-station PP2 MXFP8
+  cold prefill through 128K;
+- `nvfp4-wikitext2.png`: document-level WikiText-2 perplexity and the matched
+  BF16-KV single-stream decode result.
 
-The rendering recipe will read only package-local CSV files so every committed
-figure can be regenerated without access to the benchmark hosts.
+Regenerate them from package-local CSV files:
+
+```bash
+python3 -m venv .chart-venv
+.chart-venv/bin/pip install -r minimax-m3/recipes/render-requirements.txt
+.chart-venv/bin/python minimax-m3/recipes/render_charts.py
+```
+
+The renderer rejects incomplete measured NVFP4 C1–C16 series, request errors,
+capacity-limited selected rows, missing C1/C64/C128 quality cells, and a failed
+manual degeneration review. It also requires the measured MXFP8 C1–C32 and
+8K/64K/128K prefill rows plus the NVFP4 WikiText-2 row. The graph notes preserve
+the provisional MXFP8 C32 interpretation rather than presenting it as tuned.
