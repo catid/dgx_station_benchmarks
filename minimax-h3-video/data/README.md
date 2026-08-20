@@ -29,9 +29,10 @@ throughput.
 
 [`experimental-native30/`](experimental-native30/) contains the stock HTTP 400
 rejection, static dynamic-shape audit, one-line duration-ceiling patch with
-source hashes, and—if successful—the single bounded patched request. This row
-is always labeled unsupported and is never mixed into the official 4–15-second
-claims.
+source hashes, and the single bounded patched request that completed in
+2,454.441510 seconds client end to end. Its full media and timing audit is
+retained under `run/`. This row is always labeled unsupported and is never
+mixed into the official 4–15-second claims.
 
 The exact launch commands and model/runtime pins are retained in the experiment
 and recipe READMEs. The original canonical package retains the unmodified

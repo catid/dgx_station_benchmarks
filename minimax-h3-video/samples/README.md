@@ -33,6 +33,24 @@ The HTML player is included as a best-effort fallback; GitHub rendering varies.
 | Runtime | 719.283 seconds client end to end |
 | Seed | 1515 |
 
+## Martial-arts cat · experimental native 30 seconds
+
+[![Martial-arts cat animated preview](martial-arts-cat-30s-preview.webp)](martial-arts-cat-30s.mp4)
+
+**[Open/download the full MP4 with audio](martial-arts-cat-30s.mp4)**
+
+<video controls preload="metadata" src="martial-arts-cat-30s.mp4"></video>
+
+| Field | Value |
+|---|---|
+| Prompt | A clearly fictional, cinematic orange cat performs extreme but controlled martial-arts wire-fu without injury: acrobatic forms, spinning kicks and a clean board break in a lantern-lit dojo, then a dramatic temple-rooftop finale at night, dynamic tracking camera, stylized action, stereo impacts and wind ambience, no gore and no one is harmed. |
+| Duration | 30.667 seconds / 736 frames at 24 FPS |
+| Runtime | 2,454.442 seconds client end to end |
+| Seed | 3030 |
+
+This output required the documented unsupported one-line duration-cap overlay;
+stock SGLang accepts at most 15 seconds for MiniMax H3.
+
 ## Bonus quality fixture · native 5 seconds
 
 [![Marching cats animated preview](marching-cats-5s-preview.webp)](marching-cats-5s.mp4)

@@ -1,0 +1,46 @@
+{
+  "request": {
+    "prompt": "A clearly fictional, cinematic orange cat performs extreme but controlled martial-arts wire-fu without injury: acrobatic forms, spinning kicks and a clean board break in a lantern-lit dojo, then a dramatic temple-rooftop finale at night, dynamic tracking camera, stylized action, stereo impacts and wind ambience, no gore and no one is harmed.",
+    "seed": 3030,
+    "requested_seconds": 30.0,
+    "short_edge": 768,
+    "aspect_ratio": "16:9",
+    "num_inference_steps": 50,
+    "flow_shift": 12.0,
+    "audio_flow_shift": 3.0
+  },
+  "job": {
+    "status": "completed",
+    "server_inference_seconds": 2446.3019303470005,
+    "client_e2e_seconds": 2454.441509888,
+    "peak_hbm_mb": 156852.0
+  },
+  "stages_seconds": {
+    "text_encode": 0.0609,
+    "latent_prepare": 0.1554,
+    "denoise": 2365.0206,
+    "decode": 28.9604
+  },
+  "media": {
+    "container": "mp4",
+    "format_duration_seconds": 30.675,
+    "size_bytes": 6608480,
+    "sha256": "cb6017328d9881699a1f3b1ad650bd825fd35235c202bc0966d3d9eeb21475d6",
+    "video_codec": "h264",
+    "width": 1344,
+    "height": 768,
+    "frames": 736,
+    "fps": 24.0,
+    "video_duration_seconds": 30.666667,
+    "audio_codec": "aac",
+    "audio_sample_rate_hz": 32000,
+    "audio_channels": 2,
+    "audio_duration_seconds": 30.675
+  },
+  "derived": {
+    "frames_per_wall_second": 0.299864550462881,
+    "video_seconds_per_wall_second": 0.01249435640509493,
+    "real_time_factor": 80.036135322042,
+    "clips_per_hour": 1.4667287794380048
+  }
+}

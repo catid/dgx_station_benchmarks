@@ -197,6 +197,28 @@ runtime error, remove the named container, perform the kernel-first safety
 gate, and stop; do not reset the GPU or tune around the failure. The static
 audit and stock rejection are in [`../data/experimental-native30/`](../data/experimental-native30/).
 
+The completed experiment used this exact request body and seed. Submit it only
+after the capacity gate; poll and download it as in section 6:
+
+```bash
+curl --fail-with-body -sS \
+  -X POST http://127.0.0.1:30010/v1/videos \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model":"MiniMaxAI/MiniMax-H3",
+    "prompt":"A clearly fictional, cinematic orange cat performs extreme but controlled martial-arts wire-fu without injury: acrobatic forms, spinning kicks and a clean board break in a lantern-lit dojo, then a dramatic temple-rooftop finale at night, dynamic tracking camera, stylized action, stereo impacts and wind ambience, no gore and no one is harmed.",
+    "seconds":30,
+    "task":"t2va",
+    "conditions":[],
+    "target":{"short_edge":768,"aspect_ratio":"16:9","duration_seconds":30.0},
+    "num_outputs_per_prompt":1,
+    "num_inference_steps":50,
+    "flow_shift":12.0,
+    "audio_flow_shift":3.0,
+    "seed":3030
+  }'
+```
+
 ## 9. Follow-up optimizations
 
 Apply one change at a time after the BF16 resident baseline:
