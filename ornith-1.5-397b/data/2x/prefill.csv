@@ -1,0 +1,7 @@
+stations,topology,model,kv_cache_dtype,server_max_model_len,target_label,tokenized_target,actual_prompt_tokens,ttft_seconds,prompt_tps,samples,method,notes
+2,PP2,Ornith-1.5-397B-NVFP4,fp8_e4m3,135168,8K,8192,8194,0.231,35422.0,16,client,Canonical /tokenize target; retain API-observed token count.
+2,PP2,Ornith-1.5-397B-NVFP4,fp8_e4m3,135168,64K,65536,65538,1.641,39938.0,5,client,Canonical /tokenize target; retain API-observed token count.
+2,PP2,Ornith-1.5-397B-NVFP4,fp8_e4m3,135168,128K canonical CLI,131072,131074,3.316,39524.0,3,client,Canonical /tokenize target; retain API-observed token count.
+2,TP2,Ornith-1.5-397B-NVFP4,fp8_e4m3,135168,8K,8192,8194,0.64,12795.0,9,client,Canonical /tokenize target; retain API-observed token count.
+2,TP2,Ornith-1.5-397B-NVFP4,fp8_e4m3,135168,64K,65536,65538,4.043,16210.0,3,client,Canonical /tokenize target; retain API-observed token count.
+2,TP2,Ornith-1.5-397B-NVFP4,fp8_e4m3,135168,128K canonical CLI,131072,131074,8.258,15873.0,2,client,Canonical /tokenize target; retain API-observed token count.

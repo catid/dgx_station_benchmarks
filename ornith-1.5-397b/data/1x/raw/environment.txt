@@ -1,0 +1,11 @@
+node1
+Linux node1 6.17.0-1029-nvidia-64k #29-Ubuntu SMP PREEMPT_DYNAMIC Wed Jul  1 01:53:52 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+GPU-REDACTED-DISPLAY, NVIDIA RTX PRO 2000 Blackwell, 595.84, 16311 MiB
+GPU-REDACTED-GB300, NVIDIA GB300, 595.84, 256703 MiB
+Docker client 29.1.3 server 29.1.3
+vLLM image sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967
+model_revision not-captured
+reproduction_pinned_revision 745c3c8236ca1dc6f3aced3a0c3e7508fd9d98b6 (from checked-in recipe; not recovered from this runtime capture)
+llm_inference_bench 0b4185b5b435e948b199c9077a00b084864aa963
+lm_eval 8a07e1110d060de48cfc7a9a7987b7659060b60b

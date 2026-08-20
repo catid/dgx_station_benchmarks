@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "measurement_node": "node1",
+  "runtime": {
+    "engine": "vLLM 0.27.1",
+    "image": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+    "dtype": "bfloat16",
+    "kv_cache_dtype": "bfloat16",
+    "prefix_caching": true,
+    "max_model_len": 262144,
+    "max_num_seqs": 128,
+    "max_num_batched_tokens": 16384,
+    "gpu_memory_utilization": 0.95
+  },
+  "nvfp4a16_prefill": {
+    "method": "standalone cold prefill; client prompt tokens divided by TTFT",
+    "cached_prompt_tokens": 0,
+    "rows": [
+      {"context_tokens": 8192, "prompt_tokens": 8194, "tok_per_sec": 8897.0, "ttft_seconds": 0.921, "samples": 5, "server_validation_tok_per_sec": 9100.0},
+      {"context_tokens": 32768, "prompt_tokens": 32770, "tok_per_sec": 8891.0, "ttft_seconds": 3.686, "samples": 3, "server_validation_tok_per_sec": 9058.0},
+      {"context_tokens": 65536, "prompt_tokens": 65538, "tok_per_sec": 8608.0, "ttft_seconds": 7.614, "samples": 2, "server_validation_tok_per_sec": 8762.0},
+      {"context_tokens": 131072, "prompt_tokens": 131074, "tok_per_sec": 7939.0, "ttft_seconds": 16.509, "samples": 1, "server_validation_tok_per_sec": 8072.0}
+    ],
+    "source_sha256": "d87b9d3d43773bdd79c0a52f342224891196f1c77779260b02929e9653e59636"
+  },
+  "nvfp4a16_wikitext2": {
+    "method": "EleutherAI lm-evaluation-harness wikitext_document_level; wikitext-2-raw-v1; 2,048-token rolling windows; API batch 8",
+    "documents": 62,
+    "word_perplexity": 9.443404775325016,
+    "byte_perplexity": 1.5217871886256154,
+    "bits_per_byte": 0.6057666220603083,
+    "source_sha256": "39fc0c7005090f550c5df6b579158fb4ea2011d4a546f9c6d0107f721e0252ad"
+  },
+  "natural_xhigh_audit": {
+    "method": {
+      "prompt_tokens": 8051,
+      "prompt_sha256": "3aa36d4bacfa9ef48e1b1ff265d79f740a29e1c1bc0c50a300e3135f6653d918",
+      "max_output_tokens": 1024,
+      "temperature": 0,
+      "reasoning_effort": "xhigh",
+      "respect_eos": true,
+      "measured_requests": "5 * concurrency",
+      "concurrencies": [1, 64, 128],
+      "output_text_retained": true,
+      "flag_rule": "repeated 8-gram fraction >= 0.20 or at least 4 consecutive phrase repeats"
+    },
+    "huginn_fp8": {
+      "totals": {"runs": 965, "outputs_scored": 965, "missing_output_text": 0, "flagged_outputs": 20, "audit_exit_code": 2},
+      "source_sha256": {
+        "c1.json": "ef8174640fd1e8f4292a0788715fff4cc655828dbdf532a38c4cc41a0b6c3b4f",
+        "c64.json": "ccd3e84a72da26b460136be8c076604104dccdb316609606dcc67f9edb25bdcd",
+        "c128.json": "814f50382ce1689a6ff035e4afc38b833b5dcf6e0715afa0049c6d1a792853df",
+        "quality-audit.json": "21c926f2e0e34518c86254c315aa3ec435caaed4e53529f8f2fea35aea3b91b4"
+      }
+    },
+    "huginn_nvfp4a16": {
+      "totals": {"runs": 965, "outputs_scored": 965, "missing_output_text": 0, "flagged_outputs": 12, "audit_exit_code": 2},
+      "source_sha256": {
+        "c1.json": "0bd2705633a0b15f9e93c24f7aa3341117c2b023db83468e2f678c5059d3c93a",
+        "c64.json": "26dae8c6eb55d6663bfe61810c48fd1ca7ac8cb910d4c33dacd2bc7ac03fa892",
+        "c128.json": "d17923dc2ca0807eea3f514654d0c1a096303d2106e30f1219f6fffc96016c97",
+        "quality-audit.json": "46d354a99664b630e89f0c66bfd22e32f1073a2938d8209fcb9b7d0434698710"
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+benchmark,memory_path,direction,message_bytes,bandwidth_gbps,bandwidth_GBps,notes
+ib_write_bw,host,one_way,8388608,228.78,28.5975,4 QPs
+iperf3,host_tcp,one_way,unknown,223.00,27.8750,16 streams zerocopy zero retransmits
+ib_write_bw,host,full_duplex_aggregate,8388608,448.15,56.0188,approximately 224 Gb/s each direction
+ib_write_bw,gpudirect_data_direct,one_way,65536,392.07,49.0088,4 QPs CUDA DMA-BUF Data Direct
+ib_write_bw,gpudirect_data_direct,full_duplex_aggregate,65536,783.06,97.8825,391.53 Gb/s each direction
+nccl_all_reduce,gpudirect_data_direct,bus_bandwidth,2147483648,338.24,42.2800,default NCCL tuning zero errors
+nccl_all_reduce,gpudirect_data_direct,bus_bandwidth,2147483648,389.76,48.7200,8 channels 4 QPs striped Ring Simple zero errors

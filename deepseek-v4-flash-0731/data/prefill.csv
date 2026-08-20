@@ -1,0 +1,5 @@
+configuration,context_tokens,prompt_tokens,tok_per_sec,ttft_seconds,samples
+DeepSeek 8K/FP8,8192,8194,20453.0,0.401,30
+DeepSeek 8K/FP8,32768,32770,32917.0,0.996,15
+DeepSeek 8K/FP8,65536,65538,35213.0,1.861,8
+DeepSeek 8K/FP8,131072,131074,34446.0,3.805,4

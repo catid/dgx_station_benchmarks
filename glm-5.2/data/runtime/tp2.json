@@ -1,0 +1,195 @@
+{
+  "source_directory": "/results/glm52-nvfp4-tp2/runtime",
+  "topology": "tp2",
+  "model_revision": "aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa",
+  "runtime_image": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+  "benchmark_commit": "0b4185b5b435e948b199c9077a00b084864aa963",
+  "lm_eval_commit": "8a07e1110d060de48cfc7a9a7987b7659060b60b",
+  "kv_cache_tokens": 256320,
+  "c128_kv_capacity_basis": "shared-prefix",
+  "c128_shared_prefix_required_tokens": 139522,
+  "c128_unshared_required_tokens": 1179904,
+  "container_evidence": {
+    "node0": {
+      "config_image": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+      "image_id": "sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+      "command": [
+        "serve",
+        "/model",
+        "--safetensors-load-strategy",
+        "prefetch",
+        "--served-model-name",
+        "GLM-5.2-NVFP4",
+        "--trust-remote-code",
+        "--tensor-parallel-size",
+        "2",
+        "--pipeline-parallel-size",
+        "1",
+        "--distributed-executor-backend",
+        "mp",
+        "--nnodes",
+        "2",
+        "--node-rank",
+        "0",
+        "--master-addr",
+        "192.0.2.1",
+        "--master-port",
+        "29502",
+        "--reasoning-parser",
+        "glm45",
+        "--tool-call-parser",
+        "glm47",
+        "--enable-auto-tool-choice",
+        "--kv-cache-dtype",
+        "fp8_e4m3",
+        "--max-model-len",
+        "135168",
+        "--max-num-seqs",
+        "128",
+        "--max-num-batched-tokens",
+        "32768",
+        "--gpu-memory-utilization",
+        "0.93",
+        "--enable-prefix-caching",
+        "--cudagraph-capture-sizes",
+        "1",
+        "2",
+        "4",
+        "8",
+        "16",
+        "32",
+        "64",
+        "128",
+        "--max-cudagraph-capture-size",
+        "128",
+        "--compilation-config",
+        "{\"cudagraph_mode\":\"FULL_AND_PIECEWISE\",\"custom_ops\":[\"all\"]}",
+        "--moe-backend",
+        "flashinfer_cutedsl",
+        "--enable-expert-parallel",
+        "--no-enable-flashinfer-autotune",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "30000"
+      ],
+      "inspect_sha256": "d05053e897f2a8eed366a231c11a132737bbacceafc9a0f53d5b30555e682029"
+    },
+    "node1": {
+      "config_image": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+      "image_id": "sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+      "command": [
+        "serve",
+        "/model",
+        "--safetensors-load-strategy",
+        "prefetch",
+        "--served-model-name",
+        "GLM-5.2-NVFP4",
+        "--trust-remote-code",
+        "--tensor-parallel-size",
+        "2",
+        "--pipeline-parallel-size",
+        "1",
+        "--distributed-executor-backend",
+        "mp",
+        "--nnodes",
+        "2",
+        "--node-rank",
+        "1",
+        "--master-addr",
+        "192.0.2.1",
+        "--master-port",
+        "29502",
+        "--reasoning-parser",
+        "glm45",
+        "--tool-call-parser",
+        "glm47",
+        "--enable-auto-tool-choice",
+        "--kv-cache-dtype",
+        "fp8_e4m3",
+        "--max-model-len",
+        "135168",
+        "--max-num-seqs",
+        "128",
+        "--max-num-batched-tokens",
+        "32768",
+        "--gpu-memory-utilization",
+        "0.93",
+        "--enable-prefix-caching",
+        "--cudagraph-capture-sizes",
+        "1",
+        "2",
+        "4",
+        "8",
+        "16",
+        "32",
+        "64",
+        "128",
+        "--max-cudagraph-capture-size",
+        "128",
+        "--compilation-config",
+        "{\"cudagraph_mode\":\"FULL_AND_PIECEWISE\",\"custom_ops\":[\"all\"]}",
+        "--moe-backend",
+        "flashinfer_cutedsl",
+        "--enable-expert-parallel",
+        "--no-enable-flashinfer-autotune",
+        "--headless"
+      ],
+      "inspect_sha256": "245116a9a45349a1e0fd83c2e575f24a99619ecd8bb7f1b98e9b4a75a55aab0e"
+    }
+  },
+  "source_files": {
+    "kv-cache-tokens.txt": {
+      "bytes": 7,
+      "sha256": "171725466a7bf3aae066f22de36bb902c4bffb1c147a907257aba7cfa76397a6"
+    },
+    "llm-inference-bench-commit.txt": {
+      "bytes": 41,
+      "sha256": "705a7238a7099b1f795f553da2f4f921b1529447953bd9bd46e4922e5cd456f9"
+    },
+    "lm-eval-commit.txt": {
+      "bytes": 41,
+      "sha256": "e24c05c5fccbf5ae512be7f7528a5cc4fdcaaad35602ee01497c1766afd42b86"
+    },
+    "metrics-after.txt": {
+      "bytes": 60224,
+      "sha256": "95584c7035daf431cb26fa651298b5bae4391e1d0902f550cc6c18fbf1a31be9"
+    },
+    "metrics-before.txt": {
+      "bytes": 54147,
+      "sha256": "5417b4988ce12660014f9b20e4ac553682d243643ad49e57dc633dce5cff478a"
+    },
+    "model-revision.txt": {
+      "bytes": 41,
+      "sha256": "a7cd2b0a2527fb309b6670849b4358de3f15b2056a580c2e4e6e5462279ab530"
+    },
+    "models.json": {
+      "bytes": 455,
+      "sha256": "57596819adea9f2ff7344d5fcb0d0fa9c99f64fcb935b6cb7a10f7f3a5757b8f"
+    },
+    "node0-inspect.json": {
+      "bytes": 16650,
+      "sha256": "d05053e897f2a8eed366a231c11a132737bbacceafc9a0f53d5b30555e682029"
+    },
+    "node0-nvidia-smi.csv": {
+      "bytes": 28732,
+      "sha256": "62ffd2c7194a71f244a80b1adcd452d37bd807153c736cbe214a8aa07fcc05ff"
+    },
+    "node0-server.log": {
+      "bytes": 118830,
+      "sha256": "1e8f6ff670f2284a507280894f7f74ecd050db5ea1b443badf257209046f5491"
+    },
+    "node1-inspect.json": {
+      "bytes": 16508,
+      "sha256": "245116a9a45349a1e0fd83c2e575f24a99619ecd8bb7f1b98e9b4a75a55aab0e"
+    },
+    "node1-nvidia-smi.csv": {
+      "bytes": 28733,
+      "sha256": "4ef60d9260162e8b0c70d30809e6238322090b208c78474ff193efb7fac21860"
+    },
+    "node1-server.log": {
+      "bytes": 24651,
+      "sha256": "88c86692f12abf11464df2f4fb284f265f00f759e1c8593999b4d3713370d99d"
+    }
+  }
+}

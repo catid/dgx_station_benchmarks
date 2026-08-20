@@ -1,0 +1,69 @@
+{
+  "flag_rule": "max_consecutive_phrase_repeats >= 4 or repeated_8gram_fraction >= 0.20",
+  "outputs": 5,
+  "flagged_degenerate": 0,
+  "unique_outputs": 1,
+  "all_match_node0_reference_sha256": true,
+  "runs": [
+    {
+      "run_index": 1,
+      "sha256": "09bfd7b6b9a1a33c0e7685ebcabe22b887fd4f3f3bf154446d3a8f738d0cf2db",
+      "characters": 3967,
+      "words": 688,
+      "unique_word_ratio": 0.49709302325581395,
+      "max_identical_word_run": 1,
+      "max_identical_character_run": 3,
+      "repeated_8gram_fraction": 0.027900146842878122,
+      "max_consecutive_phrase_repeats": 1,
+      "flagged_degenerate": false
+    },
+    {
+      "run_index": 2,
+      "sha256": "09bfd7b6b9a1a33c0e7685ebcabe22b887fd4f3f3bf154446d3a8f738d0cf2db",
+      "characters": 3967,
+      "words": 688,
+      "unique_word_ratio": 0.49709302325581395,
+      "max_identical_word_run": 1,
+      "max_identical_character_run": 3,
+      "repeated_8gram_fraction": 0.027900146842878122,
+      "max_consecutive_phrase_repeats": 1,
+      "flagged_degenerate": false
+    },
+    {
+      "run_index": 3,
+      "sha256": "09bfd7b6b9a1a33c0e7685ebcabe22b887fd4f3f3bf154446d3a8f738d0cf2db",
+      "characters": 3967,
+      "words": 688,
+      "unique_word_ratio": 0.49709302325581395,
+      "max_identical_word_run": 1,
+      "max_identical_character_run": 3,
+      "repeated_8gram_fraction": 0.027900146842878122,
+      "max_consecutive_phrase_repeats": 1,
+      "flagged_degenerate": false
+    },
+    {
+      "run_index": 4,
+      "sha256": "09bfd7b6b9a1a33c0e7685ebcabe22b887fd4f3f3bf154446d3a8f738d0cf2db",
+      "characters": 3967,
+      "words": 688,
+      "unique_word_ratio": 0.49709302325581395,
+      "max_identical_word_run": 1,
+      "max_identical_character_run": 3,
+      "repeated_8gram_fraction": 0.027900146842878122,
+      "max_consecutive_phrase_repeats": 1,
+      "flagged_degenerate": false
+    },
+    {
+      "run_index": 5,
+      "sha256": "09bfd7b6b9a1a33c0e7685ebcabe22b887fd4f3f3bf154446d3a8f738d0cf2db",
+      "characters": 3967,
+      "words": 688,
+      "unique_word_ratio": 0.49709302325581395,
+      "max_identical_word_run": 1,
+      "max_identical_character_run": 3,
+      "repeated_8gram_fraction": 0.027900146842878122,
+      "max_consecutive_phrase_repeats": 1,
+      "flagged_degenerate": false
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "result_directory": "hy3-fp8-pp2-mtp0-attempt3-kv602176",
+  "status": "rejected_before_benchmark_insufficient_kv_capacity",
+  "benchmark_started": false,
+  "server_reached_health": true,
+  "topology": "TP1/PP2",
+  "mtp_tokens": 0,
+  "gpu_memory_utilization": 0.956,
+  "kv_cache_dtype": "fp8_e4m3",
+  "max_model_len": 262144,
+  "observed_global_kv_tokens": 602176,
+  "required_global_kv_tokens": 1179904,
+  "kv_token_shortfall": 577728,
+  "fraction_of_required_kv": 0.5103601648947711,
+  "rank_runtime_memory": {
+    "node0_pp0": {
+      "model_loading_gib": 137.34,
+      "available_kv_gib": 79.43,
+      "consumed_weights_plus_non_torch_gib": 153.47,
+      "peak_activation_gib": 5.62,
+      "cuda_graph_gib": 0.24
+    },
+    "node1_pp1": {
+      "model_loading_gib": 140.57,
+      "available_kv_gib": 45.94,
+      "consumed_weights_plus_non_torch_gib": 187.03,
+      "peak_activation_gib": 5.55,
+      "cuda_graph_gib": 0.24
+    }
+  },
+  "source_files": {
+    "node0-server-failed.log": {
+      "sha256": "2414da9b4f23d05a83cfb0742b554472eb4ee2428daf7320c29d589f78540565",
+      "bytes": 39171
+    },
+    "node1-server-failed.log": {
+      "sha256": "ecf646ae0e027519e04d28bed4ad9a1cbb37615fed564fa51c0be53145e2cc6d",
+      "bytes": 16377
+    },
+    "kv-cache-tokens.txt": {
+      "sha256": "bddc77d33123fcdbdba55a705c866112dffa5aab5a711b5c952bf9e4400f79fe",
+      "bytes": 7
+    },
+    "metrics-before.txt": {
+      "sha256": "023a2df88f3a4f1c2544d5a30957a2a3a81f60a5f4a9aef568c9e9162bb9905a",
+      "bytes": 52234
+    },
+    "model-revision.txt": {
+      "sha256": "973186cd40adc2ccac95843b1237db2664c454eee8efbed3f8423334bdc2d329",
+      "bytes": 41
+    },
+    "run-settings.txt": {
+      "sha256": "aff7c5b5a2aeb332213b3ad5f1713fd6b6d7ae4b5f4d6c67dfa096bbafe72b99",
+      "bytes": 172
+    },
+    "runtime-image.txt": {
+      "sha256": "2cae77c027fd1b820ee6787979dac83c564e24e8a5d388763340bcd0111bc7eb",
+      "bytes": 89
+    }
+  },
+  "disposition": "rejected_capacity_profile",
+  "notes": "The API became healthy, but the capacity guard rejected the run before any decode, prefill, quality, or perplexity request. The retained server logs and KV-capacity record support this rejection; no unretained teardown summary is included as evidence."
+}

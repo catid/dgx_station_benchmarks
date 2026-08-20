@@ -1,0 +1,5 @@
+stations,topology,model,kv_cache_dtype,input_tokens,output_tokens,concurrency,target_duration_seconds,measurement_seconds,aggregate_tps,per_request_tps,ttft_seconds,itl_seconds,avg_running,max_running,capacity_limited,num_errors,role,notes
+2,PP2,Ornith-1.5-397B-NVFP4,fp8_e4m3,8192,1024,128,30,29.78993,3837.941150298699,29.983915236708587,3.935369923000053,0.035897910774193326,123.4,128,true,0,diagnostic_short,Retained for transparency; transient short-window value.
+2,PP2,Ornith-1.5-397B-NVFP4,fp8_e4m3,8192,1024,128,60,59.998194,3799.581052737645,29.684226974512853,3.2997812535004414,0.0358690852575755,123.5,128,true,0,headline_stable,Stable 60-second C128 topology comparison and headline.
+2,TP2,Ornith-1.5-397B-NVFP4,fp8_e4m3,8192,1024,128,30,28.276381,3966.4552741504704,30.98793182930055,13.164577737999934,0.0450958632742412,124,128,true,0,diagnostic_short,Retained for transparency; transient short-window value.
+2,TP2,Ornith-1.5-397B-NVFP4,fp8_e4m3,8192,1024,128,60,59.994783,2447.146124027249,19.11832909396288,7.125676641000609,0.04859952358699918,118.1,128,true,0,headline_stable,Stable 60-second C128 topology comparison and headline.

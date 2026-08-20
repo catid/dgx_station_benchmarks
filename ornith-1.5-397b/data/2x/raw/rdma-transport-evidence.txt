@@ -1,0 +1,30 @@
+Selected startup-log evidence retained from the full PP2/TP2 server logs.
+The large server logs are not included in the public compact bundle.
+
+PP2 node0:
+NCCL INFO NET/IB: [0] mlx5_0:uverbs0:1/RoCE provider=Mlx5 speed=400000
+NCCL INFO NET/IB : Using [0]mlx5_0:1/RoCE [RO]; OOB enP1p3s0f0np0:192.168.200.1<0>
+NCCL INFO NET/IB : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+NCCL INFO Channel 00/0 : 0[0] -> 1[0] [send] via NET/IB/0/GDRDMA
+NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+
+PP2 node1:
+NCCL INFO NET/IB: [0] mlx5_0:uverbs0:1/RoCE provider=Mlx5 speed=400000
+NCCL INFO NET/IB : Using [0]mlx5_0:1/RoCE [RO]; OOB enP1p3s0f0np0:192.168.200.2<0>
+NCCL INFO NET/IB : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+NCCL INFO Channel 00/0 : 1[0] -> 0[0] [send] via NET/IB/0/GDRDMA
+NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+
+TP2 node0:
+NCCL INFO NET/IB: [0] mlx5_0:uverbs0:1/RoCE provider=Mlx5 speed=400000
+NCCL INFO NET/IB : Using [0]mlx5_0:1/RoCE [RO]; OOB enP1p3s0f0np0:192.168.200.1<0>
+NCCL INFO NET/IB : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+NCCL INFO Channel 00/0 : 0[0] -> 1[0] [send] via NET/IB/0/GDRDMA
+NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+
+TP2 node1:
+NCCL INFO NET/IB: [0] mlx5_0:uverbs0:1/RoCE provider=Mlx5 speed=400000
+NCCL INFO NET/IB : Using [0]mlx5_0:1/RoCE [RO]; OOB enP1p3s0f0np0:192.168.200.2<0>
+NCCL INFO NET/IB : GPU Direct RDMA Enabled for HCA 0 'mlx5_0'
+NCCL INFO Channel 00/0 : 1[0] -> 0[0] [send] via NET/IB/0/GDRDMA
+NCCL INFO Connected all rings, use ring PXN 0 GDR 1

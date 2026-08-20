@@ -1,0 +1,10 @@
+.cache/
+.bench-venv/
+.download-venv/
+models/
+tools/
+results/
+raw/
+__pycache__/
+*.py[cod]
+*.log

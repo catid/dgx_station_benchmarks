@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "quality-audit.schema.json",
+  "title": "Hy3 natural-output audit",
+  "type": "object",
+  "required": ["model", "server", "configuration", "settings", "outputs"],
+  "properties": {
+    "model": {"type": "string"},
+    "server": {"type": "string"},
+    "configuration": {
+      "type": "object",
+      "required": ["topology", "mtp_tokens"],
+      "properties": {
+        "topology": {"enum": ["pp2", "tp2"]},
+        "mtp_tokens": {"enum": [0, 1, 2]}
+      },
+      "additionalProperties": true
+    },
+    "settings": {
+      "type": "object",
+      "required": ["reasoning_efforts", "temperature", "top_p", "max_tokens"],
+      "properties": {
+        "reasoning_efforts": {"type": "array", "items": {"type": "string"}},
+        "temperature": {"type": "number"},
+        "top_p": {"type": "number"},
+        "max_tokens": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": true
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "reasoning_effort",
+          "prompt_index",
+          "prompt",
+          "finish_reason",
+          "reasoning_content",
+          "content",
+          "sha256",
+          "analysis"
+        ],
+        "properties": {
+          "reasoning_effort": {"enum": ["no_think", "low", "high"]},
+          "prompt_index": {"type": "integer", "minimum": 0},
+          "prompt": {"type": "string"},
+          "finish_reason": {"type": ["string", "null"]},
+          "usage": {"type": ["object", "null"]},
+          "reasoning_content": {"type": "string"},
+          "content": {"type": "string"},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "analysis": {
+            "type": "object",
+            "required": [
+              "characters",
+              "words",
+              "unique_word_ratio",
+              "max_identical_character_run",
+              "max_identical_word_run",
+              "repeated_8gram_fraction"
+            ],
+            "properties": {
+              "characters": {"type": "integer", "minimum": 0},
+              "words": {"type": "integer", "minimum": 0},
+              "unique_word_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+              "max_identical_character_run": {"type": "integer", "minimum": 0},
+              "max_identical_word_run": {"type": "integer", "minimum": 0},
+              "repeated_8gram_fraction": {"type": "number", "minimum": 0, "maximum": 1}
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

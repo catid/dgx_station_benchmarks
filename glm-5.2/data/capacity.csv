@@ -1,0 +1,2 @@
+nodes,gpu,reported_hbm_mib,reported_hbm_bytes,indexed_shards,missing_shards,index_metadata_tensor_bytes,weight_file_bytes,weight_file_gib,headroom_bytes,result,cpu_offload
+1,NVIDIA GB300,256703,269172604928,47,0,464795267072,464823042096,432.900192,-195650437168,no_fit,false

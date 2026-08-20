@@ -1,0 +1,3 @@
+lm_eval=0.4.13.dev0
+datasets=5.0.1
+transformers=4.57.6

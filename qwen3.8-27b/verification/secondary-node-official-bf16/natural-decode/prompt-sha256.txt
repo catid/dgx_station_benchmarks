@@ -1,0 +1,2 @@
+3aa36d4bacfa9ef48e1b1ff265d79f740a29e1c1bc0c50a300e3135f6653d918  qwen3.8-8k-prompt.txt (dataset-derived text not redistributed)
+7064e9a79a7ef0723b2e16890d7e12401e28fd7d9a8c8fa065dee10f773586db  qwen3.8-8k-prompt.json

@@ -1,0 +1,18 @@
+{
+  "pp2-mtp0": {
+    "status": "clean",
+    "notes": "Read all 12 outputs. Answers were coherent and nondegenerate; four thinking responses ended at the 1024-token cap. The automatic flag was Markdown punctuation, not repeated filler."
+  },
+  "tp2-mtp0": {
+    "status": "clean",
+    "notes": "Read all 12 outputs. Answers were coherent and nondegenerate; five thinking responses ended at the 1024-token cap. The automatic flag was Markdown punctuation, not repeated filler."
+  },
+  "tp2-mtp1": {
+    "status": "clean",
+    "notes": "Read all 12 outputs. Answers were coherent and nondegenerate; five thinking responses ended at the 1024-token cap. Automatic flags came from formatting or repeated code fragments, not semantic loops."
+  },
+  "tp2-mtp2": {
+    "status": "clean",
+    "notes": "Read all 12 outputs. Answers were coherent and nondegenerate; six thinking responses ended at the 1024-token cap. The automatic flag was Markdown punctuation, not repeated filler."
+  }
+}

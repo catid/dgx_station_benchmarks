@@ -1,0 +1,35 @@
+{
+  "files": {
+    "node0-inspect.json": {
+      "sha256": "4dae635ca61356e320621315f9c116a60a0a7a37614600f97ae4b9fba21a692a",
+      "bytes": 16349
+    },
+    "node0-server.log": {
+      "sha256": "e28d6d60c958073ee5e2697e9ecd84c2761c55eb97181aae23df0d3d008a367f",
+      "bytes": 116689
+    },
+    "node1-server.log": {
+      "sha256": "c39ad1bb919d5639b620ad06759782702befec6e0075aad0addc952573f09ada",
+      "bytes": 24724
+    }
+  },
+  "gpu_memory_utilization": 0.92,
+  "flashinfer_autotune": false,
+  "observed_global_kv_tokens": 1071488,
+  "required_global_kv_tokens": 0,
+  "kv_margin_tokens": null,
+  "model_revision": "ecc1d8e194e093f33177f2f0ef7ce8f397b2d68b",
+  "runtime_image": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+  "benchmark_commit": "0b4185b5b435e948b199c9077a00b084864aa963",
+  "provenance_limitations": [
+    "The legacy tuning capture proves image/topology/settings in Docker inspection and logs but predates per-run revision and benchmark-commit text files."
+  ],
+  "observations": [
+    "Both ranks logged that FlashInfer autotune was disabled.",
+    "Node 0 reached Application startup complete."
+  ],
+  "source_directory": "hy3-fp8-pp2-mtp0-092-provisional/runtime-092",
+  "publication_status": "provisional_tuning",
+  "topology": "pp2",
+  "mtp_tokens": 0
+}

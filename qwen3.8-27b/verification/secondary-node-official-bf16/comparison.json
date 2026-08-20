@@ -1,0 +1,31 @@
+{
+  "model": "Qwen/Qwen3.8-27B",
+  "revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+  "runtime": "SGLang image sha256:c7c5da7c89b8aa73b6f6db5dd6b4587595e82b42759332227b55732549fb2545",
+  "node0_reference": {
+    "word_perplexity": 9.294200611359534,
+    "byte_perplexity": 1.5172616881615728,
+    "bits_per_byte": 0.6014699344007025,
+    "natural_c1_gen_tok_s": 94.64776885552709,
+    "natural_c1_avg_ttft_seconds": 0.23152881160203834,
+    "prefill_scout_tok_s": 22194.223928293188,
+    "natural_output_sha256": "09bfd7b6b9a1a33c0e7685ebcabe22b887fd4f3f3bf154446d3a8f738d0cf2db"
+  },
+  "node1_verification": {
+    "word_perplexity": 9.294200611359534,
+    "byte_perplexity": 1.5172616881615728,
+    "bits_per_byte": 0.6014699344007025,
+    "natural_c1_gen_tok_s": 94.89858197589345,
+    "natural_c1_avg_ttft_seconds": 0.22910493539993695,
+    "prefill_scout_tok_s": 22197.484583598703,
+    "natural_output_sha256": "09bfd7b6b9a1a33c0e7685ebcabe22b887fd4f3f3bf154446d3a8f738d0cf2db"
+  },
+  "delta_percent_node1_vs_node0": {
+    "word_perplexity": 0.0,
+    "byte_perplexity": 0.0,
+    "bits_per_byte": 0.0,
+    "natural_c1_gen_tok_s": 0.26499633683834123,
+    "natural_c1_avg_ttft_seconds": -1.0469004636311285,
+    "prefill_scout_tok_s": 0.014691458985227612
+  }
+}

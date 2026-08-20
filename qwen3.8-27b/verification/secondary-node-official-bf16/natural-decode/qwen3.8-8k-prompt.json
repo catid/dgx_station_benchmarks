@@ -1,0 +1,14 @@
+{
+  "dataset": "EleutherAI/wikitext_document_level",
+  "dataset_config": "wikitext-2-raw-v1",
+  "split": "test",
+  "tokenizer": "/models/Qwen3.8-27B",
+  "target_tokens": 8000,
+  "actual_raw_prompt_tokens": 7999,
+  "selected_row_indices": [
+    0,
+    1,
+    2
+  ],
+  "instruction": "The following is reference text from WikiText-2. Continue it naturally in the same encyclopedic style. Do not discuss this instruction and do not repeat the existing text verbatim.\n\n"
+}

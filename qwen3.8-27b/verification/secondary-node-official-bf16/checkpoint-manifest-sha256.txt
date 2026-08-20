@@ -1,0 +1,2 @@
+191e0af232104ed8b65258cf3fb2b842e288008baca7633c11b82a1ac7203aab  /models/Qwen3.8-27B/config.json
+77042094076611b69791a610065f28b7013b8c621795fa86ddccc8bac7d1b9df  /models/Qwen3.8-27B/model.safetensors.index.json

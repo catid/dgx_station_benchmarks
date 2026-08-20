@@ -1,0 +1,28 @@
+{
+  "accepted_topologies": [
+    "tp2"
+  ],
+  "rejected_topologies": {
+    "pp2": "Operator-observed PP2 startup failure at the configured 0.95 HBM utilization; the original startup logs were not retained. The operator observed pipeline-stage imbalance, one stage effectively full, and repeated small post-load allocation failures. No decode or prefill row was produced or accepted."
+  },
+  "pending_topologies": [],
+  "required_concurrencies": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    64,
+    128
+  ],
+  "required_prefill_contexts": [
+    8192,
+    65536,
+    131072
+  ],
+  "model_revision": "aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa",
+  "runtime_image": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+  "benchmark_commit": "0b4185b5b435e948b199c9077a00b084864aa963",
+  "lm_eval_commit": "8a07e1110d060de48cfc7a9a7987b7659060b60b"
+}

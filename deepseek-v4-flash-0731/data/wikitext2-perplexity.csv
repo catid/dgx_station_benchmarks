@@ -1,0 +1,2 @@
+model,cache_dtype,word_perplexity,byte_perplexity,bits_per_byte,documents
+DeepSeek-V4-Flash-0731,FP8 KV,6.01452934894402,1.3986678855734567,0.48405343447001214,62

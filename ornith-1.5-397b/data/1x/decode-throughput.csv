@@ -1,0 +1,6 @@
+stations,topology,model,weight_quantization,kv_cache_dtype,input_tokens,output_tokens,concurrency,aggregate_tps,per_request_tps,ttft_seconds,itl_seconds,avg_running,max_running,capacity_limited,num_errors,aggregate_source,measurement_seconds
+1,TP1,Ornith-1.5-397B-NVFP4,ModelOpt NVFP4 W4A4 group16,fp8_e4m3,8192,1024,1,129.7709263756969,129.7709263756969,0.15287039000031655,0.007554717824047247,1.0,1,false,0,openai_continuous_usage,29.999015
+1,TP1,Ornith-1.5-397B-NVFP4,ModelOpt NVFP4 W4A4 group16,fp8_e4m3,8192,1024,2,232.2675926865844,116.1337963432922,0.28092168500006665,0.008380002783479706,1.9,2,false,0,openai_continuous_usage,29.99988
+1,TP1,Ornith-1.5-397B-NVFP4,ModelOpt NVFP4 W4A4 group16,fp8_e4m3,8192,1024,4,403.48295414378026,100.87073853594507,0.467095339000025,0.009425580344574766,3.6,4,true,0,openai_continuous_usage,29.998789
+1,TP1,Ornith-1.5-397B-NVFP4,ModelOpt NVFP4 W4A4 group16,fp8_e4m3,8192,1024,8,650.137961947211,81.26724524340138,0.8557075395001448,0.01159042722580687,7.7,8,false,0,openai_continuous_usage,29.999786
+1,TP1,Ornith-1.5-397B-NVFP4,ModelOpt NVFP4 W4A4 group16,fp8_e4m3,8192,1024,16,952.2988345336787,59.51867715835492,1.4615268759998798,0.015216873877809836,15.3,16,true,0,openai_continuous_usage,29.856174

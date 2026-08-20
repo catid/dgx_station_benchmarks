@@ -1,0 +1,5 @@
+stations,topology,model,kv_cache_dtype,server_max_model_len,target_label,tokenized_target,actual_prompt_tokens,ttft_seconds,prompt_tps,samples,method,notes
+1,TP1,Ornith-1.5-397B-NVFP4,fp8_e4m3,135168,8K,8192,8195,0.286,28690.0,28,client,
+1,TP1,Ornith-1.5-397B-NVFP4,fp8_e4m3,135168,64K,65536,65538,2.121,30903.0,6,client,
+1,TP1,Ornith-1.5-397B-NVFP4,fp8_e4m3,135168,128K canonical CLI,131072,131074,4.925,26614.0,3,client,The chat completion API reports two more prompt tokens than /tokenize.
+1,TP1,Ornith-1.5-397B-NVFP4,fp8_e4m3,135168,128K exact API,131070,131072,4.926,26607.0,3,client,Calibrated to 131070 via /tokenize so API usage is exactly 131072.

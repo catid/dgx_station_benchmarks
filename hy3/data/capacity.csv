@@ -1,0 +1,3 @@
+nodes,gpu_count,per_gpu_reported_hbm_mib,aggregate_hbm_bytes,weight_shards,weight_bytes,weight_only_fit,native_runtime_status,shortfall_bytes,cpu_offload_included
+1,1,256703,269172604928,101,299889838946,false,not_launchable,30717234018,false
+2,2,256703,538345209856,101,299889838946,true,validated_pp2_and_tp2_ep,0,false

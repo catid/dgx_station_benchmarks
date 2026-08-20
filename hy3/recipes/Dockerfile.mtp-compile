@@ -1,0 +1,10 @@
+ARG BASE_IMAGE=vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967
+FROM ${BASE_IMAGE}
+
+RUN target=/usr/local/lib/python3.12/dist-packages/vllm/model_executor/models/hy_v3_mtp.py \
+    && grep -q '^class HYV3MTP(nn.Module):' "$target" \
+    && ! grep -q '^@support_torch_compile$' "$target" \
+    && sed -i '/^from vllm.config import/i from vllm.compilation.decorators import support_torch_compile' "$target" \
+    && sed -i '/^class HYV3MTP(nn.Module):/i @support_torch_compile' "$target" \
+    && grep -q '^from vllm.compilation.decorators import support_torch_compile$' "$target" \
+    && grep -B 1 '^class HYV3MTP(nn.Module):' "$target" | grep -q '^@support_torch_compile$'

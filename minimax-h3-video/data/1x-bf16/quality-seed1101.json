@@ -1,0 +1,37 @@
+{
+  "run_id": "fl2va-bf16-1x-quality-seed1101",
+  "prompt": "At night, while their owner sleeps in a bedroom, three cats march in loudly playing tiny brass instruments, then abruptly file out.",
+  "seed": 1101,
+  "inference_time_s": 116.992481671,
+  "peak_memory_mb": 129568.0,
+  "container": {
+    "format": "mp4",
+    "duration_s": 5.175,
+    "size_bytes": 619693,
+    "sha256": "ac674a6496df49b765f217d23be75f96b8b6c99bcf14e632b4e053fc0a74c7ea"
+  },
+  "video": {
+    "codec": "h264",
+    "width": 1344,
+    "height": 768,
+    "fps": 24,
+    "frames": 124,
+    "duration_s": 5.166667,
+    "full_decode": "pass",
+    "black_intervals_ge_0_5s": 0,
+    "freeze_intervals_ge_1s": 0,
+    "manual_review": "Coherent scene and motion; cats and brass instruments are visible; subjects move through and leave the bedroom frame; no visual repetition or degeneracy observed."
+  },
+  "audio": {
+    "codec": "aac",
+    "sample_rate_hz": 32000,
+    "channels": 2,
+    "duration_s": 5.175,
+    "mean_volume_db": -37.7,
+    "max_volume_db": -21.2,
+    "integrated_loudness_lufs": -33.9,
+    "true_peak_dbfs": -21.1,
+    "silence_intervals_ge_0_25s_below_minus_50db": 0,
+    "manual_review": "Time-varying harmonic content is present rather than silence or a static tone; the mix is quiet."
+  }
+}

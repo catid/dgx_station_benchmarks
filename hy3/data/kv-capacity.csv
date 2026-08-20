@@ -1,0 +1,10 @@
+publication_status,topology,expert_parallel,mtp_tokens,gpu_memory_utilization,observed_global_kv_tokens,required_global_kv_tokens,margin_tokens,capacity_status,result_directory,runtime_file
+provisional_tuning,pp2,false,0,0.92,1071488,,,provisional,hy3-fp8-pp2-mtp0-092-provisional,data/runtime/pp2-mtp0-092-provisional.json
+accepted,pp2,false,0,0.956,1189328,1179904,9424,accepted,hy3-fp8-pp2-mtp0,data/runtime/pp2-mtp0.json
+rejected,pp2,false,0,0.956,602176,1179904,-577728,rejected_insufficient_kv_capacity,hy3-fp8-pp2-mtp0-attempt3-kv602176,data/runtime/pp2-mtp0-attempt3-kv602176.json
+accepted,tp2,true,0,0.956,1231232,1179904,51328,accepted,hy3-fp8-tp2-mtp0,data/runtime/tp2-mtp0.json
+accepted,tp2,true,1,0.956,1183696,1179904,3792,accepted,hy3-fp8-tp2-mtp1,data/runtime/tp2-mtp1.json
+rejected,tp2,true,1,0.956,1179216,1179904,-688,rejected_below_guard,hy3-fp8-tp2-mtp1-c128-confirm60-attempt1-kv1179216,data/failure-evidence.json
+stability_confirmation,tp2,true,1,0.958,1185664,1179904,5760,accepted_confirmation,hy3-fp8-tp2-mtp1-c128-confirm60-util0958,data/runtime/tp2-mtp1-c128-confirm60-util0958.json
+rejected,tp2,true,2,0.956,1175760,1179904,-4144,rejected_below_guard,hy3-fp8-tp2-mtp2-attempt1-kv1175760-util0956,data/failure-evidence.json
+accepted,tp2,true,2,0.958,1187056,1179904,7152,accepted,hy3-fp8-tp2-mtp2,data/runtime/tp2-mtp2.json

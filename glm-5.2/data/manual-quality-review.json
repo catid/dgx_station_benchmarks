@@ -1,0 +1,6 @@
+{
+  "tp2": {
+    "status": "clean",
+    "notes": "All four BF16-KV outputs ended normally with complete final answers and no degenerate text. The probability answer is 74/105 and the interval implementation is correct. The TP/PP comparison is coherent but makes broad, simplified interconnect and scheduling claims; treat it as a natural-output check, not an authoritative systems reference."
+  }
+}

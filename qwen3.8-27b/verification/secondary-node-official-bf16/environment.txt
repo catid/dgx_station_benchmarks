@@ -1,0 +1,9 @@
+hostname=node1
+hostname_fqdn=node1.example
+kernel=6.17.0-1029-nvidia-64k
+architecture=aarch64
+os=Ubuntu 24.04.4 LTS
+docker=Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2
+nvidia_ctk=NVIDIA Container Toolkit CLI version 1.19.0
+llm_inference_bench_commit=0b4185b5b435e948b199c9077a00b084864aa963
+lm_eval_commit=8a07e1110d060de48cfc7a9a7987b7659060b60b

@@ -1,0 +1,55 @@
+{
+  "model_revision": "aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa",
+  "attempts": [
+    {
+      "name": "pp2-u095",
+      "status": "operator_observed_startup_failure_unretained",
+      "result": "At the configured 0.95 HBM utilization, the operator observed pipeline-stage imbalance, one stage effectively full, and repeated small post-load allocation failures. No decode or prefill measurement was produced or accepted.",
+      "evidence": "The original startup logs were not retained. This is an operator-observed failure note, not checksummed raw evidence or a performance row."
+    },
+    {
+      "name": "tp2-trtllm-u092",
+      "status": "startup_failure",
+      "result": "The automatically selected TensorRT-LLM NVFP4 MoE path exhausted HBM during conversion/repacking and repeatedly failed 20 MiB allocations.",
+      "raw_log_sha256": {
+        "node0": "fcba4901cac50ba58977abed0b297a9109e13f62cc6c7e7ac4919f5971f19d2f",
+        "node1": "67814c3db3a603b27ba65bad094535870756d0471438e9c425c8b8ef8f0d2688"
+      }
+    },
+    {
+      "name": "tp2-cutedsl-u092",
+      "status": "startup_failure",
+      "result": "Weights loaded, but only 4.05 GiB remained for KV. vLLM estimated a 91,136-token maximum, below the configured 135,168-token server context.",
+      "raw_log_sha256": {
+        "node0": "836b3dd0299c89d5a81f2a96a3d05af1cd4360e8dafb7ffc96f93d62c6e50a56",
+        "node1": "cc806c6dfd583cd4bd9c4455db8c2eafe00f2ace1d6c4689e3b41a28a4497852"
+      }
+    },
+    {
+      "name": "wikitext2-transformers4-tokenizer",
+      "status": "evaluator_failure_before_inference",
+      "result": "lm-eval/Transformers 4 rejected the checkpoint tokenizer_class TokenizersBackend before any WikiText request was sent. A tokenizer-only PreTrainedTokenizerFast compatibility directory was subsequently validated, but no PPL value was produced.",
+      "raw_log_sha256": "3a5bdc01090483cbb0ebdcf3704aa39fe888d1e9985c3d65997321ee39325c58"
+    }
+  ],
+  "wikitext2_relaunch": {
+    "status": "complete_after_coordinated_reboot",
+    "reason": "The earlier retry was held after cleanup left material, asymmetric HBM use with no userspace compute owner. After operator-coordinated clean-baseline recovery, the pinned BF16-KV TP2 retry completed all 62 documents. No reset, module reload, PCI operation, or automatic reboot was used.",
+    "perplexity_result": {
+      "dataset": "EleutherAI/wikitext_document_level",
+      "documents": 62,
+      "requested_max_length": 2048,
+      "effective_max_length": 2047,
+      "batch_size": 4,
+      "kv_cache_dtype": "bfloat16",
+      "word_perplexity": 3.3523661880941193,
+      "byte_perplexity": 1.2538435423801955,
+      "bits_per_byte": 0.3263573364058227,
+      "evidence": "data/evidence/tp2-wikitext2.json"
+    },
+    "post_run_handoff": {
+      "compute_owners": 0,
+      "disposition": "No further GPU work was attempted after the run because clean-idle policy was not satisfied after container removal. No in-place recovery was attempted."
+    }
+  }
+}

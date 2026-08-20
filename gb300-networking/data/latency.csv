@@ -1,0 +1,2 @@
+benchmark,memory_path,message_bytes,average_us,typical_us,min_us,p99_us,p999_us
+ib_write_lat,host,8,1.40,1.39,1.38,1.52,2.02

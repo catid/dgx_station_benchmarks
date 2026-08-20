@@ -1,0 +1,81 @@
+{
+  "files": {
+    "node0-inspect.json": {
+      "sha256": "2e08ef2d77b4a64c8f2411e034d3a34ffe12614cc26265fb6f0bcfef7c7176d6",
+      "bytes": 16418
+    },
+    "node0-nvidia-smi-q.txt": {
+      "sha256": "8b4ee6409545028dea490420d0ce5765ffa4b797b080164b936cbc4d34a49238",
+      "bytes": 28741
+    },
+    "node0-server.log": {
+      "sha256": "b131a2554228ff0ec0d5ce2ac8b136693351270c31efe3859ecb2d022c151def",
+      "bytes": 86332
+    },
+    "node1-inspect.json": {
+      "sha256": "38b01c84b53256bca2bbfcaa8f4d24e08e8b504149ed3508b20fd82f444c4c85",
+      "bytes": 16276
+    },
+    "node1-nvidia-smi-q.txt": {
+      "sha256": "a6885d7297e977aec7071619c664b8ee2ba4a4a81f9aca62ebac961c8b9251d3",
+      "bytes": 28742
+    },
+    "node1-server.log": {
+      "sha256": "c517c62a644f06534ce1cab38bf1a65014b10b62960c356ac8ee1cefe4a58968",
+      "bytes": 29048
+    },
+    "kv-cache-tokens.txt": {
+      "sha256": "534abfb4db113bf4af20fcdd4d948866fcf94c35e8c955b3e7195931a80954ec",
+      "bytes": 8
+    },
+    "llm-inference-bench-commit.txt": {
+      "sha256": "705a7238a7099b1f795f553da2f4f921b1529447953bd9bd46e4922e5cd456f9",
+      "bytes": 41
+    },
+    "lm-eval-commit.txt": {
+      "sha256": "e24c05c5fccbf5ae512be7f7528a5cc4fdcaaad35602ee01497c1766afd42b86",
+      "bytes": 41
+    },
+    "metrics-after.txt": {
+      "sha256": "e15f26174fba3631a0fb49a26798121427d568ace6da46d1ca91bf0f3ee80a1d",
+      "bytes": 60106
+    },
+    "metrics-before.txt": {
+      "sha256": "66d461f19e63aae6da72fc92f4d726f27a5289a1c80b2a1b708611ab7bd521dc",
+      "bytes": 54076
+    },
+    "model-revision.txt": {
+      "sha256": "973186cd40adc2ccac95843b1237db2664c454eee8efbed3f8423334bdc2d329",
+      "bytes": 41
+    },
+    "models.json": {
+      "sha256": "91184801185ac05e823609fb17d229ea659d28899aeb18749e4eca262ba9b88c",
+      "bytes": 449
+    },
+    "run-settings.txt": {
+      "sha256": "299a4158222688db5de62b2627860a3ab7bad591cfc6a23d6b7ea92dab51f17d",
+      "bytes": 172
+    },
+    "runtime-image.txt": {
+      "sha256": "73e5f5f4d6ca91d9fdf158f2b6bafd2b50d83b1dde3834eb304c0ac82e3b2c5c",
+      "bytes": 28
+    }
+  },
+  "gpu_memory_utilization": 0.958,
+  "flashinfer_autotune": true,
+  "observed_global_kv_tokens": 1185664,
+  "required_global_kv_tokens": 1179904,
+  "kv_margin_tokens": 5760,
+  "model_revision": "ecc1d8e194e093f33177f2f0ef7ce8f397b2d68b",
+  "runtime_image": "hy3-vllm:0.27.1-mtp-compile",
+  "benchmark_commit": "0b4185b5b435e948b199c9077a00b084864aa963",
+  "provenance_limitations": [],
+  "observations": [
+    "Runtime logs prove that FlashInfer autotune was enabled.",
+    "Node 0 reached Application startup complete."
+  ],
+  "source_directory": "hy3-fp8-tp2-mtp1-c128-confirm60-util0958/runtime",
+  "publication_status": "stability_confirmation",
+  "topology": "tp2",
+  "mtp_tokens": 1
+}

@@ -1,0 +1,9 @@
+{
+  "clean_up_tokenization_spaces": false,
+  "do_lower_case": false,
+  "eos_token": "<|endoftext|>",
+  "model_max_length": 1048576,
+  "pad_token": "<|endoftext|>",
+  "padding_side": "left",
+  "tokenizer_class": "PreTrainedTokenizerFast"
+}

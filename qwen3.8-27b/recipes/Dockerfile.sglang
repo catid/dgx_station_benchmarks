@@ -1,0 +1,16 @@
+FROM lmsysorg/sglang@sha256:c3c427732dd726b6e1656dd3cb491bee3629a269c83c57496d26fe28b4d8c5ea
+
+ARG SGLANG_COMMIT=4cdb1dcc7ff725e3b4965c3f688c1107098a007e
+
+RUN git init /opt/sglang-pr \
+    && git -C /opt/sglang-pr remote add origin https://github.com/sgl-project/sglang.git \
+    && git -C /opt/sglang-pr fetch --depth 1 origin "${SGLANG_COMMIT}" \
+    && test "$(git -C /opt/sglang-pr rev-parse FETCH_HEAD)" = "${SGLANG_COMMIT}" \
+    && git -C /opt/sglang-pr checkout --detach FETCH_HEAD
+
+ENV PYTHONPATH=/opt/sglang-pr/python
+
+LABEL org.opencontainers.image.source="https://github.com/sgl-project/sglang" \
+      ai.sglang.commit="${SGLANG_COMMIT}" \
+      ai.benchmark.target="Qwen/Qwen3.8-27B@1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0" \
+      ai.benchmark.dflash2="incoai/Qwen3.8-27B-DFlash2@adde41d8fde3a75dc905a7df0bd5088d2a44b5a1"

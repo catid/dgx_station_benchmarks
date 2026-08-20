@@ -1,0 +1,2 @@
+topology,model_revision,runtime_image,kv_cache_dtype,dataset,documents,max_length,batch_size,word_ppl,byte_ppl,bits_per_byte,lm_eval_commit,source_json
+tp2,aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa,vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967,bfloat16,EleutherAI/wikitext_document_level,62,2047,4,3.3523661880941193,1.2538435423801955,0.3263573364058227,8a07e1110d060de48cfc7a9a7987b7659060b60b,data/evidence/tp2-wikitext2.json

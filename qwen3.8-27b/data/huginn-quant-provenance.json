@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "publication_scope": {
+    "included": [
+      "Huginn FP8 autoregressive xhigh fixed-length decode at C1-C128",
+      "Huginn NVFP4A16 autoregressive xhigh fixed-length decode at C1-C128",
+      "Huginn FP8 standalone cold prefill at 8K-128K",
+      "Huginn NVFP4A16 standalone cold prefill at 8K-128K",
+      "Huginn FP8 canonical WikiText-2 perplexity",
+      "Huginn NVFP4A16 canonical WikiText-2 perplexity",
+      "Huginn FP8 and NVFP4A16 retained-text natural xhigh audits at C1, C64, and C128"
+    ],
+    "pending_not_measured": [],
+    "excluded": [
+      "Quantized MTP throughput: the retained FP8 and NVFP4A16 matrices are incomplete or use different prefix-cache methods"
+    ]
+  },
+  "checkpoints": {
+    "huginn_fp8": {
+      "repo_id": "huginnfork/Qwen3.8-27B-FP8",
+      "revision": "ee0358b3e33d7bedcd6db022c5039385b1ac72f2",
+      "format": "MLP W8A8 FP8 with dynamic per-token activations; attention and state-space paths remain BF16",
+      "config_sha256": "beb69830aad909e239e398b94bd5dad31758c8ff1b810f774cbf5ae8e708aaf3",
+      "weight_index_sha256": "7417ff7899d24dc34ebd5cf699e25947789b987333642c3d31f3000d7ba87765",
+      "tokenizer_sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523",
+      "tree_sha256": "3554ae23fdc3f9a78e5b4b15b5548825cfcf985eb2eb59ec1ce5d975c2e0812b",
+      "tree_files": 93,
+      "tree_bytes": 38485660981
+    },
+    "huginn_nvfp4a16": {
+      "repo_id": "huginnfork/Qwen3.8-27B-NVFP4A16",
+      "revision": "6916a5bb185e57c6e32bcffdc13a92fdea3b4095",
+      "format": "MLP weight-only W4A16, group size 16; not native W4A4 FP4",
+      "config_sha256": "7fafb0c97f29546a9b2fa035dd92a4dbbd11d5596723e1059ef7225b97dfa944",
+      "weight_index_sha256": "da107adf198d22cc32eb7153a845ab55c01b123fabe15d2f4ff4a33acbfd4097",
+      "tokenizer_sha256": "f399b3cd12fa270d51457bb749fb30863521e8359b8a27059c71b6c2f7d6dd6",
+      "tree_sha256": "16b5d9e06954cc745c5496cac59b11a05a76081ea9afe2e02ca8a1ef92b7a963",
+      "tree_files": 84,
+      "tree_bytes": 30993761606
+    }
+  },
+  "runtime": {
+    "engine": "vLLM 0.27.1",
+    "image": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+    "benchmark": "local-inference-lab/llm-inference-bench 0.4.29",
+    "dtype": "bfloat16",
+    "kv_cache_dtype": "bfloat16",
+    "prefix_caching": true,
+    "fp8_linear_kernel": "CutlassFP8ScaledMMLinearKernel",
+    "nvfp4_linear_kernel": "MarlinNvFp4LinearKernel"
+  },
+  "fixed_xhigh_method": {
+    "input_tokens": 8192,
+    "output_tokens": 1024,
+    "temperature": 0,
+    "ignore_eos": true,
+    "measured_requests": "5 * concurrency",
+    "warmup_requests": "1 * concurrency",
+    "concurrencies": [1, 2, 4, 8, 16, 32, 64, 128],
+    "output_text_retained": false,
+    "csv_modes": [
+      "huginn-fp8-autoregressive",
+      "huginn-nvfp4-autoregressive"
+    ]
+  },
+  "source_sha256": {
+    "huginn_fp8_xhigh_ar": {
+      "c1.json": "14bd59a0f76fccc60d5d629030706344aaeba37230e7bf40824a27484ae33bf5",
+      "c2.json": "b4434410f78c801b9259d46efb601efe58a5496cd6fdf89d60bee1a8c3ffeeea",
+      "c4.json": "fc12b8594e0e3b06bb1091d14338f4600251f15517487c75d20b75e7c7c56146",
+      "c8.json": "d27acf7beb54eabb3dd97616e53e5cdb163cec5b97e66309f3cf978bd1d17c96",
+      "c16.json": "d4159b0ebdea2655d3fdc82ad52a50f8931562c10c9c9bb1ff534540b6f4c372",
+      "c32.json": "25bf37de641a71270097b6bf40e35a8bb250f162c390540633c847b46b1a92e3",
+      "c64.json": "cedba841e37de5b5fd52866086950d74cda1ec92feaf34c0957a2a30fd34cec4",
+      "c128.json": "ba5de6211cff5e5a4baef8e8b6b4000a83bc60df6aaa80163f0d4f50f75d760f"
+    },
+    "huginn_nvfp4a16_xhigh_ar": {
+      "c1.json": "987ee0a57d5d0465d6f0dcb0be3f6da2026cb076d46fc74db229ea99f13578df",
+      "c2.json": "aef89dd7100ca32b22a4d6ee264d56f31bca0716aaac6babef83bd0ac5e16aa4",
+      "c4.json": "c0b267d4ef7407597a054a17a2bb5f0181b67942a8a5a5f0b66060811cc348b6",
+      "c8.json": "cd42dd35ccc7064f06d1489b34778f63a02b28b4799d5a514836658cae7beb26",
+      "c16.json": "84b0fbaa77adc2a35ae7843572b7293869177978a21a7ea703a8f0fac90ea300",
+      "c32.json": "ccef5c2d5ab1c17dee67ad52a0427a2a2e2c6e1d44b4f12ebddbfa8632a6ea46",
+      "c64.json": "1810a508dcaa0cc96285ba949cceb00135008e98c65771a2922fc15013472bb5",
+      "c128.json": "b9651976c2d830a92a4ee785b3f89c773920ba019b5a4c0dd1169e7bdbf15f41"
+    },
+    "huginn_fp8_prefill": "5831460d26689f2557065e16393aea2562ffce73bc4c9d6920c2baab50f1e119",
+    "huginn_fp8_wikitext2": "cb5e3f9fc22095bbc170267fa8e891000048299056ab9d6e57dbea7708ca829a",
+    "huginn_nvfp4a16_prefill": "d87b9d3d43773bdd79c0a52f342224891196f1c77779260b02929e9653e59636",
+    "huginn_nvfp4a16_wikitext2": "39fc0c7005090f550c5df6b579158fb4ea2011d4a546f9c6d0107f721e0252ad",
+    "standardized_natural_xhigh_audit": {
+      "huginn_fp8": {
+        "c1.json": "ef8174640fd1e8f4292a0788715fff4cc655828dbdf532a38c4cc41a0b6c3b4f",
+        "c64.json": "ccd3e84a72da26b460136be8c076604104dccdb316609606dcc67f9edb25bdcd",
+        "c128.json": "814f50382ce1689a6ff035e4afc38b833b5dcf6e0715afa0049c6d1a792853df",
+        "quality-audit.json": "21c926f2e0e34518c86254c315aa3ec435caaed4e53529f8f2fea35aea3b91b4"
+      },
+      "huginn_nvfp4a16": {
+        "c1.json": "0bd2705633a0b15f9e93c24f7aa3341117c2b023db83468e2f678c5059d3c93a",
+        "c64.json": "26dae8c6eb55d6663bfe61810c48fd1ca7ac8cb910d4c33dacd2bc7ac03fa892",
+        "c128.json": "d17923dc2ca0807eea3f514654d0c1a096303d2106e30f1219f6fffc96016c97",
+        "quality-audit.json": "46d354a99664b630e89f0c66bfd22e32f1073a2938d8209fcb9b7d0434698710"
+      }
+    }
+  },
+  "standardized_natural_xhigh_audit": {
+    "measurement_node": "node1",
+    "prompt_tokens": 8051,
+    "prompt_sha256": "3aa36d4bacfa9ef48e1b1ff265d79f740a29e1c1bc0c50a300e3135f6653d918",
+    "output_tokens_max": 1024,
+    "temperature": 0,
+    "reasoning_effort": "xhigh",
+    "respect_eos": true,
+    "measured_requests": "5 * concurrency",
+    "concurrencies": [1, 64, 128],
+    "output_text_retained": true,
+    "flag_rule": "repeated 8-gram fraction >= 0.20 or at least 4 consecutive phrase repeats",
+    "results_csv": "huginn-natural-xhigh-audit.csv",
+    "huginn_fp8": {
+      "total_outputs": 965,
+      "flagged_outputs": 20,
+      "missing_output_text": 0,
+      "flagged_by_concurrency": {"1": 0, "64": 5, "128": 15},
+      "audit_exit_code": 2
+    },
+    "huginn_nvfp4a16": {
+      "total_outputs": 965,
+      "flagged_outputs": 12,
+      "missing_output_text": 0,
+      "flagged_by_concurrency": {"1": 5, "64": 4, "128": 3},
+      "audit_exit_code": 2
+    }
+  },
+  "quality_caveat": {
+    "fixed_xhigh_rows": "All requests completed without API errors, but generated text was not retained. The standardized natural xhigh audit uses the same checkpoints, autoregressive mode, xhigh thinking, prefix caching, and BF16 KV state, but a natural WikiText prompt with EOS respected; it is supporting quality evidence, not a retroactive audit of the forced-length matrix.",
+    "observed_elsewhere": [
+      {
+        "checkpoint": "huginn_fp8",
+        "mode": "MTP-2, xhigh, prefix cache disabled, C64",
+        "flagged_outputs": 6,
+        "total_outputs": 320,
+        "finding": "Six outputs met the published repetition rule. Four severe loops repeated a six-word phrase 45 consecutive times with repeated 8-gram fraction 0.458685; two additional outputs had 6-7 consecutive phrase repeats.",
+        "source_sha256": "5b59a16c428a86b07bb65a58815dbcbaed53ea6baddc7c87e82acd4d9f466e04"
+      },
+      {
+        "checkpoint": "huginn_nvfp4a16",
+        "mode": "autoregressive, thinking disabled, natural WikiText continuation, C128",
+        "flagged_outputs": 1,
+        "total_outputs": 640,
+        "finding": "The flagged output repeated a six-word phrase 21 consecutive times; repeated 8-gram fraction 0.188341.",
+        "source_sha256": "7d4867d3bccc5db37eb931d7b12db401b7a8a5826c21570d70921e4eced9bd25"
+      }
+    ],
+    "interpretation": "Both standardized retained-text audits returned exit code 2 because the published repetition rule found loops: 20/965 FP8 outputs and 12/965 NVFP4A16 outputs. The NVFP4A16 deterministic C1 continuation was flagged in all five repetitions. These rates describe only the natural xhigh audit and must not be assigned to the fixed 8K/1K throughput rows, whose text was not retained. The older MTP/no-prefix and thinking-disabled findings remain separate configurations."
+  }
+}

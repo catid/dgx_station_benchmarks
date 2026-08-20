@@ -1,0 +1,218 @@
+{
+  "failures": [
+    {
+      "result_directory": "hy3-fp8-pp2-mtp0-attempt2-hung",
+      "status": "confirmed_distributed_autotune_deadlock",
+      "finding": "PP stages entered incompatible distributed FlashInfer autotune sequences; PP1 ended while PP0 remained blocked in collectives.",
+      "workaround": "Launch PP2 with --no-enable-flashinfer-autotune.",
+      "source_files": {
+        "node0-server.log": {
+          "sha256": "17939cac8a66825a3b54e13af0cd8dce8e34055f2e6ede7cb0ceb829ad0a0266",
+          "bytes": 47987
+        },
+        "node1-server.log": {
+          "sha256": "8e7752ab146c34e9b376b6c20882d5e137f63b9e219655458f08ed794720473b",
+          "bytes": 28742
+        }
+      },
+      "confirmed_markers": [
+        "flashinfer.jit: [Autotuner]: Autotuning process starts",
+        "No available shared memory broadcast block found in 60 seconds"
+      ]
+    },
+    {
+      "result_directory": "hy3-fp8-tp2-mtp0-attempt1-no-ep-oom",
+      "status": "confirmed_tp2_without_expert_parallel_oom",
+      "finding": "Plain TP2 completed weight loading but exhausted each GB300 during initialization/warmup.",
+      "workaround": "Launch TP2 with --enable-expert-parallel.",
+      "source_files": {
+        "node0-server.log": {
+          "sha256": "a76a73cd97b0b5ddb96371490d98832822971cde37106b3ba79054d7b982247d",
+          "bytes": 138244
+        },
+        "node1-server.log": {
+          "sha256": "2b8029add70e91d8f4a17c7b1faed865c5f0657af379e5da05eea8231c41fa31",
+          "bytes": 242684
+        }
+      },
+      "confirmed_markers": [
+        "tensor_parallel_size=2",
+        "memory allocation failed with OOM"
+      ]
+    },
+    {
+      "result_directory": "hy3-fp8-pp2-mtp0-attempt3-kv602176",
+      "status": "rejected_before_benchmark_insufficient_kv_capacity",
+      "benchmark_started": false,
+      "server_reached_health": true,
+      "topology": "TP1/PP2",
+      "mtp_tokens": 0,
+      "gpu_memory_utilization": 0.956,
+      "kv_cache_dtype": "fp8_e4m3",
+      "max_model_len": 262144,
+      "observed_global_kv_tokens": 602176,
+      "required_global_kv_tokens": 1179904,
+      "kv_token_shortfall": 577728,
+      "fraction_of_required_kv": 0.5103601648947711,
+      "rank_runtime_memory": {
+        "node0_pp0": {
+          "model_loading_gib": 137.34,
+          "available_kv_gib": 79.43,
+          "consumed_weights_plus_non_torch_gib": 153.47,
+          "peak_activation_gib": 5.62,
+          "cuda_graph_gib": 0.24
+        },
+        "node1_pp1": {
+          "model_loading_gib": 140.57,
+          "available_kv_gib": 45.94,
+          "consumed_weights_plus_non_torch_gib": 187.03,
+          "peak_activation_gib": 5.55,
+          "cuda_graph_gib": 0.24
+        }
+      },
+      "source_files": {
+        "node0-server-failed.log": {
+          "sha256": "2414da9b4f23d05a83cfb0742b554472eb4ee2428daf7320c29d589f78540565",
+          "bytes": 39171
+        },
+        "node1-server-failed.log": {
+          "sha256": "ecf646ae0e027519e04d28bed4ad9a1cbb37615fed564fa51c0be53145e2cc6d",
+          "bytes": 16377
+        },
+        "kv-cache-tokens.txt": {
+          "sha256": "bddc77d33123fcdbdba55a705c866112dffa5aab5a711b5c952bf9e4400f79fe",
+          "bytes": 7
+        },
+        "metrics-before.txt": {
+          "sha256": "023a2df88f3a4f1c2544d5a30957a2a3a81f60a5f4a9aef568c9e9162bb9905a",
+          "bytes": 52234
+        },
+        "model-revision.txt": {
+          "sha256": "973186cd40adc2ccac95843b1237db2664c454eee8efbed3f8423334bdc2d329",
+          "bytes": 41
+        },
+        "run-settings.txt": {
+          "sha256": "aff7c5b5a2aeb332213b3ad5f1713fd6b6d7ae4b5f4d6c67dfa096bbafe72b99",
+          "bytes": 172
+        },
+        "runtime-image.txt": {
+          "sha256": "2cae77c027fd1b820ee6787979dac83c564e24e8a5d388763340bcd0111bc7eb",
+          "bytes": 89
+        }
+      },
+      "disposition": "rejected_capacity_profile",
+      "notes": "The API became healthy, but the capacity guard rejected the run before any decode, prefill, quality, or perplexity request. The retained server logs and KV-capacity record support this rejection; no unretained teardown summary is included as evidence."
+    },
+    {
+      "result_directory": "hy3-fp8-pp2-mtp1-attempt1-unsupported-mtp-pp",
+      "status": "confirmed_mtp_draft_model_lacks_pipeline_parallel_support",
+      "affected_configurations": [
+        "pp2-mtp1",
+        "pp2-mtp2"
+      ],
+      "benchmark_started": false,
+      "finding": "The pinned vLLM runtime resolves HYV3MTPModel, then rejects pipeline parallelism because the draft model lacks SupportsPP.",
+      "workaround": "Use TP2 with expert parallel for MTP1/MTP2; do not patch or fabricate PP2 speculative results.",
+      "confirmed_markers": [
+        "Resolved architecture: HYV3MTPModel",
+        "Pipeline parallelism is not supported for this model. Supported models implement the `SupportsPP` interface."
+      ],
+      "source_files": {
+        "node0-server-failed.log": {
+          "sha256": "a8566320c2bd7c7df23fcbefb66f2a52db5b01684538e6445b722f4278859466",
+          "bytes": 7418
+        },
+        "node1-server-failed.log": {
+          "sha256": "dd7eb571788372f2737e5ee99e583e470a6271d047e36ec8bdf03b138ac00720",
+          "bytes": 2238
+        }
+      }
+    },
+    {
+      "result_directory": "hy3-fp8-tp2-mtp1-c128-confirm60-attempt1-kv1179216",
+      "status": "rejected_capacity_profile_variance",
+      "benchmark_started": false,
+      "server_reached_health": true,
+      "topology": "TP2/PP1 + expert parallel",
+      "mtp_tokens": 1,
+      "gpu_memory_utilization": 0.956,
+      "observed_global_kv_tokens": 1179216,
+      "required_global_kv_tokens": 1179904,
+      "kv_token_shortfall": 688,
+      "finding": "The confirmation relaunch profiled 5.57 GiB peak activation instead of 5.08 GiB in the accepted full run, leaving 688 fewer KV tokens than the publication guard requires.",
+      "source_files": {
+        "node0-server-failed.log": {
+          "sha256": "da348dcbf460f3327062ba8c5721093020c1e7fe1d3dac25bf929d5f3467ae64",
+          "bytes": 73553
+        },
+        "node1-server-failed.log": {
+          "sha256": "82b469e66d6ab972cd686d4123b9a815e9b2fcc3d4b504bebd0cce661f116123",
+          "bytes": 44695
+        },
+        "kv-cache-tokens.txt": {
+          "sha256": "6741a2baab2619f69f71b77ceb51ba25d628081e49708489725411912571d651",
+          "bytes": 8
+        },
+        "metrics-before.txt": {
+          "sha256": "1098bf077834c5dbf95b477ab78a56db2408c3221f51a54e2b333e96922c7974",
+          "bytes": 54052
+        },
+        "model-revision.txt": {
+          "sha256": "973186cd40adc2ccac95843b1237db2664c454eee8efbed3f8423334bdc2d329",
+          "bytes": 41
+        },
+        "run-settings.txt": {
+          "sha256": "55fd72b6369b3e28cad76630c5c00b383dfecfd8f5aa0b1ccb9ef7c995e95da3",
+          "bytes": 172
+        },
+        "runtime-image.txt": {
+          "sha256": "73e5f5f4d6ca91d9fdf158f2b6bafd2b50d83b1dde3834eb304c0ac82e3b2c5c",
+          "bytes": 28
+        }
+      }
+    },
+    {
+      "result_directory": "hy3-fp8-tp2-mtp2-attempt1-kv1175760-util0956",
+      "status": "rejected_insufficient_kv_capacity",
+      "benchmark_started": false,
+      "server_reached_health": true,
+      "topology": "TP2/PP1 + expert parallel",
+      "mtp_tokens": 2,
+      "gpu_memory_utilization": 0.956,
+      "observed_global_kv_tokens": 1175760,
+      "required_global_kv_tokens": 1179904,
+      "kv_token_shortfall": 4144,
+      "finding": "MTP2 at the 0.956 baseline missed the fixed KV guard by 4,144 tokens; one clean-baseline 0.958 profile supplied a 7,152-token reserve.",
+      "source_files": {
+        "node0-server-failed.log": {
+          "sha256": "37fb1ff8e6c419ad8be041c3ae24e64c82ebcb82db94b1a0595abf41dcaf11e1",
+          "bytes": 75092
+        },
+        "node1-server-failed.log": {
+          "sha256": "00bfdb31a06cf3ceb59598481d92c34e4631d535966e52c877e63fc33036ba1c",
+          "bytes": 46428
+        },
+        "kv-cache-tokens.txt": {
+          "sha256": "2c81161d094463658e763f6a0fb29b37a1710407b8e25cf1238623aa202e5624",
+          "bytes": 8
+        },
+        "metrics-before.txt": {
+          "sha256": "4b029b3a32d8ede26528b2a87a94720b06ad50ecbe52166980595264bc83ce4c",
+          "bytes": 54278
+        },
+        "model-revision.txt": {
+          "sha256": "973186cd40adc2ccac95843b1237db2664c454eee8efbed3f8423334bdc2d329",
+          "bytes": 41
+        },
+        "run-settings.txt": {
+          "sha256": "d3d5d8b8a5628092de147d7fc1a8764730ea71b278e9dd26432a100b953acc71",
+          "bytes": 172
+        },
+        "runtime-image.txt": {
+          "sha256": "73e5f5f4d6ca91d9fdf158f2b6bafd2b50d83b1dde3834eb304c0ac82e3b2c5c",
+          "bytes": 28
+        }
+      }
+    }
+  ]
+}

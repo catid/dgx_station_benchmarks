@@ -1,0 +1,7 @@
+9e1fab65f72e6f3ab48aebb09f57aeda33b91d7c9f497bc952792b28625720a8  raw/benchmark.json
+ab64c1cb74b16444a2d136ddc0a4165807b83d97b8d54be236bc5247033f7b26  performance.csv
+6e49ed4f8be05c2ac1cc198a1af07dcaa94016fc11f72712727c620beecc4371  stage-timings.csv
+7d2dd17b759e5d5e180ad3c29dde21dade7801cae714fe867509484b45d27602  quality-seed1101.json
+a2687849659af3adba3524af6bf51467ae81013903eb3daa23ce829567d7c6f9  ../../charts/1x-bf16-stage-breakdown.svg
+1a1bb67bdfdfaa1c406cdfa67a53dac27b410f6c43c16bf672e0cc6235098f1f  ../../charts/quality-seed1101-contact-sheet.jpg
+cefa7460858e49447b32a5eaaf91b9b8a5c9b644161e75e1c4354c1c3155384a  ../../charts/quality-seed1101-audio-spectrogram.png

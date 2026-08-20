@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "scope": "Official Qwen3.8-27B BF16 fixed-length C128 rows in throughput.csv",
+  "source_archive": "Retained local social-matrix benchmark artifacts; raw files are not published because they include machine-specific diagnostics",
+  "method": {
+    "engine": "sglang",
+    "benchmark": "llm-inference-bench 0.4.29",
+    "input_tokens": 8192,
+    "output_tokens": 1024,
+    "temperature": 0.0,
+    "ignore_eos": true,
+    "request_count": 640,
+    "warmup_request_count": 128,
+    "concurrency": 128
+  },
+  "validation": {
+    "json_duplicate_keys": "rejected",
+    "json_nonfinite_numbers": "rejected",
+    "required_completed_requests": 640,
+    "required_errors": 0,
+    "csv_mapping_checked_against_retained_c64_rows": true
+  },
+  "sources": {
+    "autoregressive": {
+      "low": {
+        "source": "social-matrix/qwen3.8-27b-bf16/autoregressive/low/c128.json",
+        "sha256": "511ccbe6d2004231f48bad1e07658993e6f338dfa63597f7041e6d011634f2f8",
+        "aggregate_tps": 5058.066106689288
+      },
+      "medium": {
+        "source": "social-matrix/qwen3.8-27b-bf16/autoregressive/medium/c128.json",
+        "sha256": "6db57f16ecc5d1ec0451dc669c3ea0b2a2ccf8beab13c2d1e699eeb037ba2022",
+        "aggregate_tps": 5055.9517670694995
+      },
+      "none": {
+        "source": "social-matrix/qwen3.8-27b-bf16/autoregressive/none/c128.json",
+        "sha256": "ac0c3bb917dd1888a7031becf0eb9dd5e214796bbd2648daf229dbd24fd254b9",
+        "aggregate_tps": 5098.007362044645
+      },
+      "xhigh": {
+        "source": "social-matrix/qwen3.8-27b-bf16/autoregressive/xhigh/c128.json",
+        "sha256": "7179cc6a9720896d6dcdef7bb2e5a5359de62282b7db3601718ce3eea97f23e6",
+        "aggregate_tps": 5054.215188752074
+      }
+    },
+    "dflash1-community": {
+      "low": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dflash1-community/low/c128.json",
+        "sha256": "adf92339d64b1a7bb8503c48374a029e2c78a2f5c09c179785a8bb5b012673a3",
+        "aggregate_tps": 3699.0042379878546
+      },
+      "medium": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dflash1-community/medium/c128.json",
+        "sha256": "4c87a82b4abc599177c4417242898b13e400cdf16bc633b2dffbaa89096e7077",
+        "aggregate_tps": 3854.362451285401
+      },
+      "none": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dflash1-community/none/c128.json",
+        "sha256": "2335905549249e1b727011020047d70edb28c0b0865fc745cb00670a7eda9da2",
+        "aggregate_tps": 3688.4603426002377
+      },
+      "xhigh": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dflash1-community/xhigh/c128.json",
+        "sha256": "a27763bfa14b91f3ab5ddc83cc3553d2e63bf60eab57b33cbe31e2596b654314",
+        "aggregate_tps": 3531.9652548446643
+      }
+    },
+    "dflash2": {
+      "low": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dflash2/low/c128.json",
+        "sha256": "2fb7be00653d74e9994b188260d5428c14cbb99c9c439903cf1629a4e5ceca54",
+        "aggregate_tps": 4804.848706194472
+      },
+      "medium": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dflash2/medium/c128.json",
+        "sha256": "1ed984d4ed130a9e5404a7a917a957a21305a79b649c4decba825acc6ab55f16",
+        "aggregate_tps": 4918.383295452108
+      },
+      "none": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dflash2/none/c128.json",
+        "sha256": "ef3176e61743bfc398e026b4c85627ad707d8e54db86506ff737a9df0d74af79",
+        "aggregate_tps": 4916.550858005435
+      },
+      "xhigh": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dflash2/xhigh/c128.json",
+        "sha256": "cc65c5453b516ff1bdf8de4a3d6c2043afcd0deb0e63f5b6e8538a6971e14fdf",
+        "aggregate_tps": 4215.212633979741
+      }
+    },
+    "dspark": {
+      "low": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dspark/low/c128.json",
+        "sha256": "6ae8caddf2c46ce73e60da703db4161cd26f342044efca48c306d363a6fb3140",
+        "aggregate_tps": 3263.484783857742
+      },
+      "medium": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dspark/medium/c128.json",
+        "sha256": "e3919822988ea8d44b74c866461aa01fd131a9658b3cef7a59a94298e43f9748",
+        "aggregate_tps": 3113.500325270858
+      },
+      "none": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dspark/none/c128.json",
+        "sha256": "ec79593c7375be42606b89ceacaabf440e8d5629a9bca838dc366f5945c492e6",
+        "aggregate_tps": 2862.675368249027
+      },
+      "xhigh": {
+        "source": "social-matrix/qwen3.8-27b-bf16/dspark/xhigh/c128.json",
+        "sha256": "81fce6d653cb89f17181ed1e26b01597f0d80acee2fef10922a842266745b27d",
+        "aggregate_tps": 2708.077328803083
+      }
+    },
+    "mtp": {
+      "low": {
+        "source": "social-matrix/qwen3.8-27b-bf16/mtp/low/c128.json",
+        "sha256": "d06d5d5751f2e58764a37cdaa8b8dae94ba293c42e2e7b69b849580c955ada6c",
+        "aggregate_tps": 6348.846097190364
+      },
+      "medium": {
+        "source": "social-matrix/qwen3.8-27b-bf16/mtp/medium/c128.json",
+        "sha256": "76a80664a2d89a01d37d349a5505d7e334cf268bc572373ce25ccf6437145ee0",
+        "aggregate_tps": 6151.600927122042
+      },
+      "none": {
+        "source": "social-matrix/qwen3.8-27b-bf16/mtp/none/c128.json",
+        "sha256": "72d91e97d915e63df03eaf757ab3a235506a5cd2b36844c695766904e808f5c0",
+        "aggregate_tps": 6241.026352173423
+      },
+      "xhigh": {
+        "source": "social-matrix/qwen3.8-27b-bf16/mtp/xhigh/c128.json",
+        "sha256": "a4d93de64f60ad4ac76b1bfeaa18578586dfa84c72d319708385403900335b3e",
+        "aggregate_tps": 5658.079954644903
+      }
+    }
+  }
+}

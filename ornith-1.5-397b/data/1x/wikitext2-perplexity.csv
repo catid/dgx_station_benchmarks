@@ -1,0 +1,2 @@
+stations,topology,model,kv_cache_dtype,task,documents,max_length,api_batch_size,word_perplexity,byte_perplexity,bits_per_byte
+1,TP1,Ornith-1.5-397B-NVFP4,bfloat16,EleutherAI/wikitext_document_level,62,2048,4,4.619592802877302,1.3313253861043137,0.41286322004612036

@@ -1,0 +1,476 @@
+2026-08-19:15:33:47 INFO     [_cli.run:388] Selected Tasks: ['wikitext']
+2026-08-19:15:33:47 INFO     [evaluator:214] Setting random seed to 0 | Setting numpy seed to 1234 | Setting torch manual seed to 1234 | Setting fewshot manual seed to 1234
+2026-08-19:15:33:47 INFO     [evaluator:239] Initializing local-completions model, with arguments: {'model': 'Qwen3.8-27B', 'base_url': 'http://127.0.0.1:30000/v1/completions', 'tokenizer': '/models/Qwen3.8-27B', 'tokenizer_backend': 'huggingface', 'tokenized_requests': True, 'num_concurrent': 1, 'max_length': 2048, 'trust_remote_code': True, 'timeout': 900}
+2026-08-19:15:33:47 WARNING  [models.api_models:172] Batch size > 1 detected. Ensure your API supports batched requests with varying total sequence lengths.
+2026-08-19:15:33:47 INFO     [models.api_models:182] Using max length 2048 - 1
+2026-08-19:15:33:47 INFO     [models.api_models:185] Concurrent requests are disabled. To enable concurrent requests, set `num_concurrent` > 1.
+2026-08-19:15:33:47 INFO     [models.api_models:203] Using tokenizer huggingface
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+2026-08-19:15:33:48 WARNING  [api.task:734] [Task: wikitext] metric word_perplexity is defined, but aggregation is not. using default aggregation=weighted_perplexity
+2026-08-19:15:33:48 WARNING  [api.task:746] [Task: wikitext] metric word_perplexity is defined, but higher_is_better is not. using default higher_is_better=False
+2026-08-19:15:33:48 WARNING  [api.task:734] [Task: wikitext] metric byte_perplexity is defined, but aggregation is not. using default aggregation=weighted_perplexity
+2026-08-19:15:33:48 WARNING  [api.task:746] [Task: wikitext] metric byte_perplexity is defined, but higher_is_better is not. using default higher_is_better=False
+2026-08-19:15:33:48 WARNING  [api.task:734] [Task: wikitext] metric bits_per_byte is defined, but aggregation is not. using default aggregation=bits_per_byte
+2026-08-19:15:33:48 WARNING  [api.task:746] [Task: wikitext] metric bits_per_byte is defined, but higher_is_better is not. using default higher_is_better=False
+
+Generating train split:   0%|          | 0/629 [00:00<?, ? examples/s]
+Generating train split: 100%|██████████| 629/629 [00:00<00:00, 38067.86 examples/s]
+
+Generating validation split:   0%|          | 0/60 [00:00<?, ? examples/s]
+Generating validation split: 100%|██████████| 60/60 [00:00<00:00, 25952.17 examples/s]
+
+Generating test split:   0%|          | 0/62 [00:00<?, ? examples/s]
+Generating test split: 100%|██████████| 62/62 [00:00<00:00, 26135.36 examples/s]
+2026-08-19:15:33:51 INFO     [evaluator_utils:446] Selected tasks:
+2026-08-19:15:33:51 INFO     [evaluator_utils:480] Task: wikitext (wikitext/wikitext.yaml)
+2026-08-19:15:33:51 INFO     [api.task:312] Building contexts for wikitext on rank 0...
+
+  0%|          | 0/62 [00:00<?, ?it/s]
+ 94%|█████████▎| 58/62 [00:00<00:00, 578.34it/s]
+100%|██████████| 62/62 [00:00<00:00, 579.55it/s]
+2026-08-19:15:33:51 INFO     [evaluator:589] Running loglikelihood_rolling requests
+
+  0%|          | 0/62 [00:00<?, ?it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:02<00:00,  2.69s/it][A
+Requesting API: 100%|██████████| 1/1 [00:02<00:00,  2.69s/it]
+
+  2%|▏         | 1/62 [00:02<02:44,  2.69s/it]
+
+Requesting API:   0%|          | 0/3 [00:00<?, ?it/s][A
+
+Requesting API:  33%|███▎      | 1/3 [00:00<00:00,  2.01it/s][A
+Requesting API: 100%|██████████| 3/3 [00:00<00:00,  6.03it/s]
+
+  3%|▎         | 2/62 [00:03<01:24,  1.41s/it]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  2.60it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  5.20it/s]
+
+  5%|▍         | 3/62 [00:03<00:55,  1.06it/s]
+
+Requesting API:   0%|          | 0/5 [00:00<?, ?it/s][A
+
+Requesting API:  20%|██        | 1/5 [00:00<00:02,  1.77it/s][A
+Requesting API: 100%|██████████| 5/5 [00:00<00:00,  8.84it/s]
+
+  6%|▋         | 4/62 [00:04<00:46,  1.25it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.50it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.99it/s]
+
+  8%|▊         | 5/62 [00:04<00:33,  1.68it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.48it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.95it/s]
+
+ 10%|▉         | 6/62 [00:04<00:26,  2.13it/s]
+
+Requesting API:   0%|          | 0/6 [00:00<?, ?it/s][A
+
+Requesting API:  17%|█▋        | 1/6 [00:00<00:03,  1.53it/s][A
+Requesting API: 100%|██████████| 6/6 [00:00<00:00,  9.17it/s]
+
+ 11%|█▏        | 7/62 [00:05<00:29,  1.86it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.48it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.96it/s]
+
+ 13%|█▎        | 8/62 [00:05<00:23,  2.28it/s]
+
+Requesting API:   0%|          | 0/7 [00:00<?, ?it/s][A
+
+Requesting API:  14%|█▍        | 1/7 [00:00<00:04,  1.33it/s][A
+Requesting API: 100%|██████████| 7/7 [00:00<00:00,  9.29it/s]
+
+ 15%|█▍        | 9/62 [00:06<00:28,  1.84it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.43it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.43it/s]
+
+ 16%|█▌        | 10/62 [00:06<00:21,  2.38it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.47it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.95it/s]
+
+ 18%|█▊        | 11/62 [00:06<00:18,  2.76it/s]
+
+Requesting API:   0%|          | 0/6 [00:00<?, ?it/s][A
+
+Requesting API:  17%|█▋        | 1/6 [00:00<00:03,  1.54it/s][A
+Requesting API: 100%|██████████| 6/6 [00:00<00:00,  9.21it/s]
+
+ 19%|█▉        | 12/62 [00:07<00:22,  2.20it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.27it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.27it/s]
+
+ 21%|██        | 13/62 [00:07<00:17,  2.82it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.50it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.99it/s]
+
+ 23%|██▎       | 14/62 [00:07<00:15,  3.16it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.74it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.73it/s]
+
+ 24%|██▍       | 15/62 [00:07<00:12,  3.90it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.48it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.96it/s]
+
+ 26%|██▌       | 16/62 [00:08<00:11,  4.04it/s]
+
+Requesting API:   0%|          | 0/5 [00:00<?, ?it/s][A
+
+Requesting API:  20%|██        | 1/5 [00:00<00:02,  1.79it/s][A
+Requesting API: 100%|██████████| 5/5 [00:00<00:00,  8.96it/s]
+
+ 27%|██▋       | 17/62 [00:08<00:15,  2.90it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.14it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.13it/s]
+
+ 29%|██▉       | 18/62 [00:08<00:12,  3.58it/s]
+
+Requesting API:   0%|          | 0/3 [00:00<?, ?it/s][A
+
+Requesting API:  33%|███▎      | 1/3 [00:00<00:00,  3.06it/s][A
+Requesting API: 100%|██████████| 3/3 [00:00<00:00,  9.16it/s]
+
+ 31%|███       | 19/62 [00:09<00:12,  3.37it/s]
+
+Requesting API:   0%|          | 0/3 [00:00<?, ?it/s][A
+
+Requesting API:  33%|███▎      | 1/3 [00:00<00:00,  3.05it/s][A
+Requesting API: 100%|██████████| 3/3 [00:00<00:00,  9.15it/s]
+
+ 32%|███▏      | 20/62 [00:09<00:12,  3.24it/s]
+
+Requesting API:   0%|          | 0/3 [00:00<?, ?it/s][A
+
+Requesting API:  33%|███▎      | 1/3 [00:00<00:00,  3.02it/s][A
+Requesting API: 100%|██████████| 3/3 [00:00<00:00,  9.06it/s]
+
+ 34%|███▍      | 21/62 [00:09<00:13,  3.14it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.94it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.94it/s]
+
+ 35%|███▌      | 22/62 [00:09<00:10,  3.82it/s]
+
+Requesting API:   0%|          | 0/3 [00:00<?, ?it/s][A
+
+Requesting API:  33%|███▎      | 1/3 [00:00<00:00,  3.07it/s][A
+Requesting API: 100%|██████████| 3/3 [00:00<00:00,  9.19it/s]
+
+ 37%|███▋      | 23/62 [00:10<00:11,  3.53it/s]
+
+Requesting API:   0%|          | 0/7 [00:00<?, ?it/s][A
+
+Requesting API:  14%|█▍        | 1/7 [00:00<00:04,  1.32it/s][A
+Requesting API: 100%|██████████| 7/7 [00:00<00:00,  9.24it/s]
+
+ 39%|███▊      | 24/62 [00:11<00:16,  2.31it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.43it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.85it/s]
+
+ 40%|████      | 25/62 [00:11<00:13,  2.69it/s]
+
+Requesting API:   0%|          | 0/4 [00:00<?, ?it/s][A
+
+Requesting API:  25%|██▌       | 1/4 [00:00<00:01,  2.27it/s][A
+Requesting API: 100%|██████████| 4/4 [00:00<00:00,  9.07it/s]
+
+ 42%|████▏     | 26/62 [00:11<00:14,  2.52it/s]
+
+Requesting API:   0%|          | 0/7 [00:00<?, ?it/s][A
+
+Requesting API:  14%|█▍        | 1/7 [00:00<00:04,  1.32it/s][A
+Requesting API: 100%|██████████| 7/7 [00:00<00:00,  9.21it/s]
+
+ 44%|████▎     | 27/62 [00:12<00:17,  1.95it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.08it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.07it/s]
+
+ 45%|████▌     | 28/62 [00:12<00:13,  2.52it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  9.90it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  9.90it/s]
+
+ 47%|████▋     | 29/62 [00:12<00:10,  3.24it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.70it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.69it/s]
+
+ 48%|████▊     | 30/62 [00:12<00:08,  3.99it/s]
+
+Requesting API:   0%|          | 0/3 [00:00<?, ?it/s][A
+
+Requesting API:  33%|███▎      | 1/3 [00:00<00:00,  3.06it/s][A
+Requesting API: 100%|██████████| 3/3 [00:00<00:00,  9.18it/s]
+
+ 50%|█████     | 31/62 [00:13<00:08,  3.61it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.31it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.30it/s]
+
+ 52%|█████▏    | 32/62 [00:13<00:07,  4.24it/s]
+
+Requesting API:   0%|          | 0/4 [00:00<?, ?it/s][A
+
+Requesting API:  25%|██▌       | 1/4 [00:00<00:01,  2.28it/s][A
+Requesting API: 100%|██████████| 4/4 [00:00<00:00,  9.13it/s]
+
+ 53%|█████▎    | 33/62 [00:13<00:08,  3.33it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.73it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.72it/s]
+
+ 55%|█████▍    | 34/62 [00:13<00:07,  3.99it/s]
+
+Requesting API:   0%|          | 0/5 [00:00<?, ?it/s][A
+
+Requesting API:  20%|██        | 1/5 [00:00<00:02,  1.78it/s][A
+Requesting API: 100%|██████████| 5/5 [00:00<00:00,  8.89it/s]
+
+ 56%|█████▋    | 35/62 [00:14<00:09,  2.86it/s]
+
+Requesting API:   0%|          | 0/5 [00:00<?, ?it/s][A
+
+Requesting API:  20%|██        | 1/5 [00:00<00:02,  1.80it/s][A
+Requesting API: 100%|██████████| 5/5 [00:00<00:00,  8.98it/s]
+
+ 58%|█████▊    | 36/62 [00:15<00:10,  2.40it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.00it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.99it/s]
+
+ 60%|█████▉    | 37/62 [00:15<00:08,  3.03it/s]
+
+Requesting API:   0%|          | 0/8 [00:00<?, ?it/s][A
+
+Requesting API:  12%|█▎        | 1/8 [00:00<00:06,  1.14it/s][A
+Requesting API: 100%|██████████| 8/8 [00:00<00:00,  9.12it/s]
+
+ 61%|██████▏   | 38/62 [00:16<00:12,  1.99it/s]
+
+Requesting API:   0%|          | 0/3 [00:00<?, ?it/s][A
+
+Requesting API:  33%|███▎      | 1/3 [00:00<00:00,  3.02it/s][A
+Requesting API: 100%|██████████| 3/3 [00:00<00:00,  9.06it/s]
+
+ 63%|██████▎   | 39/62 [00:16<00:10,  2.20it/s]
+
+Requesting API:   0%|          | 0/6 [00:00<?, ?it/s][A
+
+Requesting API:  17%|█▋        | 1/6 [00:00<00:03,  1.52it/s][A
+Requesting API: 100%|██████████| 6/6 [00:00<00:00,  9.12it/s]
+
+ 65%|██████▍   | 40/62 [00:17<00:11,  1.92it/s]
+
+Requesting API:   0%|          | 0/7 [00:00<?, ?it/s][A
+
+Requesting API:  14%|█▍        | 1/7 [00:00<00:04,  1.31it/s][A
+Requesting API: 100%|██████████| 7/7 [00:00<00:00,  9.19it/s]
+
+ 66%|██████▌   | 41/62 [00:17<00:12,  1.66it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.42it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.84it/s]
+
+ 68%|██████▊   | 42/62 [00:18<00:09,  2.04it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.35it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.35it/s]
+
+ 69%|██████▉   | 43/62 [00:18<00:07,  2.63it/s]
+
+Requesting API:   0%|          | 0/3 [00:00<?, ?it/s][A
+
+Requesting API:  33%|███▎      | 1/3 [00:00<00:00,  3.05it/s][A
+Requesting API: 100%|██████████| 3/3 [00:00<00:00,  9.15it/s]
+
+ 71%|███████   | 44/62 [00:18<00:06,  2.72it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.46it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.92it/s]
+
+ 73%|███████▎  | 45/62 [00:18<00:05,  3.06it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.35it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.34it/s]
+
+ 74%|███████▍  | 46/62 [00:18<00:04,  3.77it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.12it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.11it/s]
+
+ 76%|███████▌  | 47/62 [00:19<00:03,  4.47it/s]
+
+Requesting API:   0%|          | 0/4 [00:00<?, ?it/s][A
+
+Requesting API:  25%|██▌       | 1/4 [00:00<00:01,  2.27it/s][A
+Requesting API: 100%|██████████| 4/4 [00:00<00:00,  9.08it/s]
+
+ 77%|███████▋  | 48/62 [00:19<00:04,  3.41it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.62it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.61it/s]
+
+ 79%|███████▉  | 49/62 [00:19<00:03,  4.07it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.60it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  7.59it/s]
+
+ 81%|████████  | 50/62 [00:19<00:02,  4.70it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.42it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.84it/s]
+
+ 82%|████████▏ | 51/62 [00:20<00:02,  4.57it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.43it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.87it/s]
+
+ 84%|████████▍ | 52/62 [00:20<00:02,  4.49it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.37it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.36it/s]
+
+ 85%|████████▌ | 53/62 [00:20<00:01,  5.19it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.36it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.35it/s]
+
+ 87%|████████▋ | 54/62 [00:20<00:01,  5.83it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.03it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.02it/s]
+
+ 89%|████████▊ | 55/62 [00:20<00:01,  6.32it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.31it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  8.31it/s]
+
+ 90%|█████████ | 56/62 [00:20<00:00,  6.77it/s]
+
+Requesting API:   0%|          | 0/4 [00:00<?, ?it/s][A
+
+Requesting API:  25%|██▌       | 1/4 [00:00<00:01,  2.27it/s][A
+Requesting API: 100%|██████████| 4/4 [00:00<00:00,  9.09it/s]
+
+ 92%|█████████▏| 57/62 [00:21<00:01,  4.16it/s]
+
+Requesting API:   0%|          | 0/1 [00:00<?, ?it/s][A
+
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  9.04it/s][A
+Requesting API: 100%|██████████| 1/1 [00:00<00:00,  9.03it/s]
+
+ 94%|█████████▎| 58/62 [00:21<00:00,  4.95it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.50it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.99it/s]
+
+ 95%|█████████▌| 59/62 [00:21<00:00,  4.76it/s]
+
+Requesting API:   0%|          | 0/4 [00:00<?, ?it/s][A
+
+Requesting API:  25%|██▌       | 1/4 [00:00<00:01,  2.25it/s][A
+Requesting API: 100%|██████████| 4/4 [00:00<00:00,  9.01it/s]
+
+ 97%|█████████▋| 60/62 [00:21<00:00,  3.52it/s]
+
+Requesting API:   0%|          | 0/3 [00:00<?, ?it/s][A
+
+Requesting API:  33%|███▎      | 1/3 [00:00<00:00,  2.98it/s][A
+Requesting API: 100%|██████████| 3/3 [00:00<00:00,  8.94it/s]
+
+ 98%|█████████▊| 61/62 [00:22<00:00,  3.31it/s]
+
+Requesting API:   0%|          | 0/2 [00:00<?, ?it/s][A
+
+Requesting API:  50%|█████     | 1/2 [00:00<00:00,  4.42it/s][A
+Requesting API: 100%|██████████| 2/2 [00:00<00:00,  8.83it/s]
+
+100%|██████████| 62/62 [00:22<00:00,  3.54it/s]
+100%|██████████| 62/62 [00:22<00:00,  2.75it/s]
+2026-08-19:15:34:14 INFO     [loggers.evaluation_tracker:247] Saving results aggregated
+2026-08-19:15:34:14 INFO     [loggers.evaluation_tracker:119] Saving per-task samples to /workspace/results/qwen3.8-official-bf16/perplexity/Qwen3.8-27B/*.jsonl
+local-completions ({'model': 'Qwen3.8-27B', 'base_url': 'http://127.0.0.1:30000/v1/completions', 'tokenizer': '/models/Qwen3.8-27B', 'tokenizer_backend': 'huggingface', 'tokenized_requests': True, 'num_concurrent': 1, 'max_length': 2048, 'timeout': 900}), gen_kwargs: ({}), limit: None, num_fewshot: None, batch_size: 8
+| Tasks  |Version|Filter|n-shot|    Metric     |   |Value |   |Stderr|
+|--------|------:|------|-----:|---------------|---|-----:|---|------|
+|wikitext|      2|none  |     0|bits_per_byte  |↓  |0.6015|±  |   N/A|
+|        |       |none  |     0|byte_perplexity|↓  |1.5173|±  |   N/A|
+|        |       |none  |     0|word_perplexity|↓  |9.2942|±  |   N/A|
