@@ -122,6 +122,48 @@ Those are client-timed cold samples with 20, 5, and 3 retained measurements.
 
 ![MiniMax M3 NVFP4 versus MXFP8 prefill](charts/prefill-comparison.png)
 
+## MiniMax M3 NVFP4: 4× RTX PRO 6000 versus GB300
+
+An independently run comparison used four RTX PRO 6000 Max-Q GPUs with TP4,
+PP1, and PCIe-only communication (no NVLink). The reference is the one-GB300
+TP1/PP1 result above. Both systems used the same official NVIDIA NVFP4
+checkpoint, vLLM 0.27.1, thinking disabled, FP8 main KV, text-only mode, and no
+CPU offload.
+
+### Cold prefill at concurrency 1
+
+| Context | Prompt tokens | 4× RTX prompt tok/s | 4× RTX TTFT | 1× GB300 prompt tok/s | 1× GB300 TTFT | RTX / GB300 |
+|---:|---:|---:|---:|---:|---:|---:|
+| 8K | 8,194 | 7,524 | 1.089 s | 29,927 | 0.274 s | 25.1% |
+| 64K | 65,538 | 6,899 | 9.500 s | 27,227 | 2.407 s | 25.3% |
+| 128K | 131,074 | 6,349 | 20.646 s | 25,285 | 5.184 s | 25.1% |
+
+### Sustained decode with exact 8K input and 1K output
+
+| Concurrency | 4× RTX aggregate tok/s | 4× RTX per stream | 1× GB300 aggregate tok/s | 1× GB300 per stream | RTX / GB300 |
+|---:|---:|---:|---:|---:|---:|
+| C1 | 105.6 | 105.6 | 152.6 | 152.6 | 69.2% |
+| C2 | 195.7 | 97.8 | 257.3 | 128.7 | 76.0% |
+| C4 | 389.8 | 97.5 | 505.4 | 126.4 | 77.1% |
+| C8 | 700.1 | 87.5 | 959.7 | 120.0 | 72.9% |
+| C16 | **1,165.0** | 72.8 | **1,575.4** | 98.5 | 73.9% |
+
+The four-GPU system delivers about 25% of GB300 prefill throughput and 69–77%
+of its sustained decode throughput, peaking at 1,165 aggregate output tok/s.
+All supplied decode cells completed with zero request errors and exact
+client/server token agreement; C4 was independently repeated at the same
+389.8 tok/s.
+
+This is an end-to-end system comparison, not a silicon-only comparison. The
+GB300 result uses optimized SM100 FlashInfer/TensorRT-LLM kernels. The SM120
+RTX system used Triton attention, a BF16 indexer cache, MARLIN MoE, and PYNCCL
+across four PCIe GPUs. The RTX measurements were supplied by the comparison
+system's operator; raw RTX run artifacts are not included here. The normalized
+values are retained in
+[`external-rtx-pro-6000-prefill.csv`](data/external-rtx-pro-6000-prefill.csv)
+and
+[`external-rtx-pro-6000-decode.csv`](data/external-rtx-pro-6000-decode.csv).
+
 ## Retained natural-output audit
 
 For NVFP4, we retained 591 natural responses across disabled, adaptive, and enabled

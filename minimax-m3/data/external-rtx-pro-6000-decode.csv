@@ -1,0 +1,6 @@
+concurrency,rtx_pro_6000_maxq_aggregate_output_tokens_per_second,rtx_pro_6000_maxq_per_stream_output_tokens_per_second,gb300_aggregate_output_tokens_per_second,gb300_per_stream_output_tokens_per_second,rtx_relative_percent,rtx_request_errors,rtx_token_agreement
+1,105.6,105.6,152.6,152.6,69.2,0,exact
+2,195.7,97.8,257.3,128.7,76.0,0,exact
+4,389.8,97.5,505.4,126.4,77.1,0,exact
+8,700.1,87.5,959.7,120.0,72.9,0,exact
+16,1165.0,72.8,1575.4,98.5,73.9,0,exact
