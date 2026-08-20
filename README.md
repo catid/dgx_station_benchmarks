@@ -7,15 +7,7 @@ Spark/GB10.
 
 ![Two NVIDIA DGX Stations connected for distributed inference](assets/dgx-stations-direct-connect-redacted.png)
 
-*The two-station direct-connect test setup. Privacy-sensitive screen and asset
-labels were redacted; [original photo and post](https://x.com/mrcatid/status/2090190345732518370).*
-
-> **GB300 recovery safety:** Never run `nvidia-smi --gpu-reset` (including
-> `nvidia-smi -r`), unload or reload NVIDIA driver modules, or perform PCI
-> unbind/rescan on these systems. Some preserved raw benchmark metadata was
-> emitted by generic tooling and retains generic reset, module-reload, or reboot
-> hints for provenance; do not execute those hints. If the driver is unhealthy,
-> stop GPU work and coordinate a controlled host reboot with the operator.
+*The two-station direct-connect test setup.*
 
 ## DGX Station guide
 
