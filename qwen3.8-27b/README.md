@@ -30,6 +30,39 @@ The Huginn tree counts, byte totals, and content hashes are retained in [`data/h
 - The natural-output repetition audit flagged **0/1,600 Qwen C64 outputs and 0/3,200 C128 outputs** across AR, DFlash1, DFlash2, DSpark, and MTP.
 - A separate retained-text natural xhigh audit of the unofficial quants did find loops: **20/965 FP8** and **12/965 NVFP4A16** outputs were flagged. Those rates do not apply to the fixed-length throughput rows, which did not retain text.
 
+### Unofficial quantizations versus the official BF16 baseline
+
+The directly comparable decode workload is autoregressive xhigh thinking with
+an 8K input and forced 1K output. Values are aggregate output tok/s; the value
+in parentheses is the change from the official BF16 row at the same
+concurrency.
+
+| Target / runtime | C1 | C16 | C64 | C128 |
+| --- | ---: | ---: | ---: | ---: |
+| Official BF16 / SGLang | 93.0 (baseline) | 1,231.5 (baseline) | 3,461.9 (baseline) | 5,054.2 (baseline) |
+| Huginn FP8 / vLLM | **108.0 (+16.2%)** | **1,447.8 (+17.6%)** | **3,912.1 (+13.0%)** | **5,494.4 (+8.7%)** |
+| Huginn NVFP4A16 / vLLM | 107.4 (+15.5%) | 1,357.0 (+10.2%) | 2,934.9 (−15.2%) | 3,607.4 (−28.6%) |
+
+The FP8 target was the clear quantized throughput winner: it stayed 8.7–17.6%
+ahead of the official BF16 autoregressive baseline at these four points.
+NVFP4A16 helped at low concurrency but crossed behind BF16 at higher load. It
+is a weight-only W4A16 Marlin path—not native W4A4 NVFP4 tensor-core execution.
+
+Prefill used different runtimes and batching ceilings, so the following is an
+end-to-end system comparison rather than an isolated quantization speedup.
+
+| Metric | Official BF16 | Huginn FP8 | Huginn NVFP4A16 |
+| --- | ---: | ---: | ---: |
+| Cold prefill, 8K | 18,212 tok/s | **27,220 (+49.5%)** | 8,897 (−51.1%) |
+| Cold prefill, 128K | 17,022 tok/s | **19,234 (+13.0%)** | 7,939 (−53.4%) |
+| WikiText-2 word PPL ↓ | **9.2942** | 9.3187 (+0.263%) | 9.4434 (+1.605%) |
+
+Quality is the main caveat. Separate EOS-respecting natural xhigh runs flagged
+20/965 FP8 outputs (2.07%) and 12/965 NVFP4A16 outputs (1.24%) for repetition;
+the NVFP4A16 C1 continuation repeated deterministically in all five trials.
+Those audits are not failure rates for the forced-length throughput matrix,
+whose output text was not retained.
+
 ![Qwen throughput across thinking levels](charts/qwen-thinking-grid.png)
 
 ## Fixed-length decode throughput
