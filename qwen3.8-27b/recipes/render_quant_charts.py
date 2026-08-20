@@ -17,9 +17,10 @@ PACKAGE = Path(__file__).resolve().parents[1]
 DATA = PACKAGE / "data"
 CHARTS = PACKAGE / "charts"
 CONCURRENCIES = [1, 2, 4, 8, 16, 32, 64, 128]
-QUANT_MODES = {
-    "huginn-fp8-autoregressive": ("Huginn FP8 W8A8", "#facc15"),
-    "huginn-nvfp4-autoregressive": ("Huginn NVFP4A16 W4A16", "#e879f9"),
+DECODE_MODES = {
+    "autoregressive": ("Official BF16 · SGLang", "#22d3ee"),
+    "huginn-fp8-autoregressive": ("Huginn FP8 W8A8 · vLLM", "#facc15"),
+    "huginn-nvfp4-autoregressive": ("Huginn NVFP4A16 W4A16 · vLLM", "#e879f9"),
 }
 
 
@@ -57,7 +58,7 @@ def validate() -> tuple[
     perplexity = rows(DATA / "wikitext2-perplexity.csv")
     quality = rows(DATA / "huginn-natural-xhigh-audit.csv")
 
-    for mode in QUANT_MODES:
+    for mode in DECODE_MODES:
         selected = [
             row
             for row in throughput
@@ -99,7 +100,14 @@ def validate() -> tuple[
 
 def render_throughput(data: list[dict[str, str]]) -> None:
     fig, ax = plt.subplots(figsize=(14, 8))
-    for mode, (label, color) in QUANT_MODES.items():
+    baseline_c128 = next(
+        float(row["aggregate_tps"])
+        for row in data
+        if row["mode"] == "autoregressive"
+        and row["thinking"] == "xhigh"
+        and row["concurrency"] == "128"
+    )
+    for mode, (label, color) in DECODE_MODES.items():
         selected = sorted(
             (
                 row
@@ -111,8 +119,10 @@ def render_throughput(data: list[dict[str, str]]) -> None:
         xs = [int(row["concurrency"]) for row in selected]
         ys = [float(row["aggregate_tps"]) for row in selected]
         ax.plot(xs, ys, marker="o", markersize=7, linewidth=3, label=label, color=color)
+        delta = 100 * (ys[-1] / baseline_c128 - 1)
+        endpoint = f"{ys[-1]:,.0f}" if mode == "autoregressive" else f"{ys[-1]:,.0f} ({delta:+.1f}%)"
         ax.annotate(
-            f"{ys[-1]:,.0f}",
+            endpoint,
             (xs[-1], ys[-1]),
             xytext=(-8, 10),
             textcoords="offset points",
@@ -130,7 +140,7 @@ def render_throughput(data: list[dict[str, str]]) -> None:
     ax.grid(True, alpha=0.42)
     ax.legend(frameon=False, loc="upper left")
     fig.suptitle(
-        "Qwen3.8-27B unofficial quantized targets on one GB300",
+        "Qwen3.8-27B quantized targets versus official BF16",
         x=0.06,
         ha="left",
         fontsize=24,
@@ -139,14 +149,14 @@ def render_throughput(data: list[dict[str, str]]) -> None:
     fig.text(
         0.061,
         0.90,
-        "Autoregressive · xhigh thinking · 8K input + 1K forced output · vLLM 0.27.1 · BF16 KV",
+        "Autoregressive · xhigh thinking · 8K input + 1K forced output · SGLang/vLLM 0.27.1 · BF16 KV",
         color="#aab8cc",
         fontsize=12,
     )
     fig.text(
         0.06,
         0.025,
-        "5×C measured requests after C warmups; prefix cache enabled. Fixed-run text was not retained, so output quality is not certified by this chart.",
+        "Same xhigh AR 8K/1K workload; runtime differs (official BF16 SGLang, quantized targets vLLM). C128 labels show delta vs BF16.",
         color="#f5a39a",
         fontsize=9.5,
     )
