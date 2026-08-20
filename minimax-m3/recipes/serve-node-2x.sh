@@ -13,7 +13,7 @@ readonly gpu_device="${GPU_DEVICE:?Set GPU_DEVICE to the GB300 CDI selector}"
 readonly thinking_mode="${THINKING_MODE:-disabled}"
 readonly enable_tool_parser="${ENABLE_TOOL_PARSER:-0}"
 readonly disable_async_scheduling="${DISABLE_ASYNC_SCHEDULING:-1}"
-readonly max_graph="${MAX_CUDAGRAPH_CAPTURE_SIZE:-16}"
+readonly max_graph="${MAX_CUDAGRAPH_CAPTURE_SIZE:-32}"
 readonly container_name="${CONTAINER_NAME:-minimax-m3-mxfp8-vllm}"
 readonly image="${VLLM_IMAGE:-vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967}"
 readonly cache_dir="${CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/dgx-station-benchmarks/minimax-m3-vllm}"
@@ -25,9 +25,10 @@ case "$thinking_mode" in disabled|adaptive|enabled) ;; *) echo "Invalid THINKING
 case "$enable_tool_parser" in 0|1) ;; *) echo "ENABLE_TOOL_PARSER must be 0 or 1" >&2; exit 2 ;; esac
 case "$disable_async_scheduling" in 0|1) ;; *) echo "DISABLE_ASYNC_SCHEDULING must be 0 or 1" >&2; exit 2 ;; esac
 case "$max_graph" in
+  4) graph_sizes=(1 2 4) ;;
   16) graph_sizes=(1 2 4 8 16) ;;
   32) graph_sizes=(1 2 4 8 16 32) ;;
-  *) echo "MAX_CUDAGRAPH_CAPTURE_SIZE must be 16 or 32" >&2; exit 2 ;;
+  *) echo "MAX_CUDAGRAPH_CAPTURE_SIZE must be 4, 16, or 32" >&2; exit 2 ;;
 esac
 [[ "$gpu_device" == nvidia.com/gpu=GPU-* ]] || { echo "GPU_DEVICE must select one GPU by CDI UUID" >&2; exit 2; }
 [[ -c "$rdma_device" ]] || { echo "Missing RDMA device $rdma_device" >&2; exit 1; }

@@ -267,7 +267,7 @@ export MAX_MODEL_LEN=132096
 export MAX_NUM_SEQS=128
 export MAX_NUM_BATCHED_TOKENS=8192
 export GPU_MEMORY_UTILIZATION=0.97
-export MAX_CUDAGRAPH_CAPTURE_SIZE=16
+export MAX_CUDAGRAPH_CAPTURE_SIZE=32
 ./serve-node-2x.sh
 
 # rank 0: same settings, but NODE_RANK=0 and rank-0 GPU_DEVICE
@@ -299,18 +299,58 @@ export MODEL_NAME=MiniMax-M3-MXFP8
 export CONTAINER_NAME=minimax-m3-mxfp8-vllm
 export BENCH_PORT=30001
 export TOPOLOGY=2x-mxfp8-pp2
-export MAX_TOTAL_TOKENS_OVERRIDE=505984
+export MAX_TOTAL_TOKENS_OVERRIDE=743168
 export DECODE_WARMUP_SECONDS=0
 export RUN_PREFILL=1
 ./benchmark.sh disabled
 ```
 
-The measured server exposed 505,984 FP8-KV tokens. Fixed 8K+1K therefore fits
-through C32; C64 and C128 are explicit capacity limits. Graphs were captured
-through C16. C32 completed without request errors but ran eagerly and showed a
-large throughput cliff. Treat that row as provisional until a graph-C32
-restart is completed after a clean idle-HBM gate. Do not increase memory
-utilization to force the relaunch.
+Repeat with separate clean launches for adaptive and enabled thinking, setting
+`RUN_PREFILL=0` for those modes. The clean measured server exposed 743,168
+FP8-KV tokens. Fixed 8K+1K therefore fits through C64; C128 is an explicit
+capacity limit. Graphs were captured through C32. C64 is valid client-counted
+measurement but runs eagerly and shows a large throughput cliff. The earlier
+C32 result from a graph-C16 launch is retained as superseded evidence; do not
+mix it with the graph-C32 matrix.
+
+Run the same retained-output audit against the proxy/API for C1, C64, and C128
+in each thinking mode. C128 natural requests use variable-length prompts and
+outputs and are a quality stress test, not the fixed 8K/1K capacity cell:
+
+```bash
+for concurrency in 1 64 128; do
+  "$BENCH_PYTHON" ./natural_quality_audit.py \
+    --host 127.0.0.1 --port 30001 \
+    --model MiniMax-M3-MXFP8 \
+    --thinking-mode "$THINKING_MODE" \
+    --concurrency "$concurrency" \
+    --output "$RESULT_ROOT/2x-mxfp8-pp2/$THINKING_MODE/natural-c${concurrency}.json"
+done
+```
+
+For the MXFP8 WikiText-2 run, restart both ranks with the same PP2 settings but
+use BF16 KV, a 9,216-token server limit, four sequences, and only C1/C2/C4
+graphs. The successful profile used 95% memory and exposed 313,984 global KV
+tokens:
+
+```bash
+export KV_CACHE_DTYPE=bfloat16
+export GPU_MEMORY_UTILIZATION=0.95
+export MAX_MODEL_LEN=9216
+export MAX_NUM_SEQS=4
+export MAX_NUM_BATCHED_TOKENS=8192
+export MAX_CUDAGRAPH_CAPTURE_SIZE=4
+# Start rank 1, then rank 0 with ./serve-node-2x.sh.
+
+export MODEL_DIR="$MXFP8_MODEL_DIR"
+export MODEL_NAME=MiniMax-M3-MXFP8
+export TOPOLOGY=2x-mxfp8-pp2
+./wikitext2.sh
+```
+
+A 97%-memory BF16-KV probe OOMed while allocating prompt-logprob workspace and
+is excluded. The 95% profile completed all 62 documents and the matched C1
+decode row. Do not increase memory utilization to force quality evaluation.
 
 ## 9. Optional multimodal smoke test
 
@@ -339,7 +379,8 @@ validated cells, then render charts entirely from the package-local CSV files:
 python3 ./package_results.py \
   --raw-root /absolute/path/to/private/minimax-m3-raw \
   --ppl-root /absolute/path/to/private/minimax-m3-ppl \
-  --mxfp8-json /absolute/path/to/private/mxfp8/llm-inference-bench.json \
+  --mxfp8-root /absolute/path/to/private/mxfp8-postrestart-results \
+  --mxfp8-legacy-json /absolute/path/to/private/mxfp8-superseded/llm-inference-bench.json \
   --package-root ..
 
 python3 -m venv .chart-venv
@@ -349,9 +390,10 @@ python3 -m venv .chart-venv
 
 The packaging step rejects selected cells with request errors or a capacity
 flag. It sanitizes the source host identity, preserves canonical and selected
-rerun JSON, publishes five retained natural samples per audit cell, and keeps
-SHA-256 hashes for every audited output. MXFP8 quality fields stay blank until
-they have their own retained natural-output and WikiText-2 runs.
+rerun JSON, publishes at least five retained natural samples per audit cell
+plus every length-capped or answerless sample, and keeps SHA-256 hashes for
+every audited output. The legacy argument is optional; when supplied, its
+graph-C16 C32 cliff is clearly labeled as superseded evidence.
 
 ## 11. Cleanup
 
@@ -362,10 +404,11 @@ docker rm -f minimax-m3-vllm
 ```
 
 For the optional PP2 MXFP8 capacity run, also remove the named container on
-the second participating system:
+both participating systems:
 
 ```bash
-ssh node1 docker rm -f minimax-m3-vllm
+docker rm -f minimax-m3-mxfp8-vllm
+ssh node1 docker rm -f minimax-m3-mxfp8-vllm
 ```
 
 Then, while the driver is still known healthy, compare idle HBM with the clean

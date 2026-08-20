@@ -17,7 +17,7 @@
       "files": 52,
       "gated": false,
       "license": "MiniMax Community License",
-      "role": "Native official MXFP8 two-station PP2 capacity track; disabled-thinking decode/prefill measured provisionally"
+      "role": "Native official MXFP8 two-station PP2 capacity track; decode, prefill, retained-output audit, and WikiText-2 measured"
     },
     {
       "repository": "nvidia/MiniMax-M3-NVFP4",
