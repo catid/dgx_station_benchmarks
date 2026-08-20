@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "exclusions": [
+    {
+      "id": "cpu-offload",
+      "status": "excluded",
+      "reason": "The study measures resident-HBM serving and the operator explicitly excluded CPU offload."
+    },
+    {
+      "id": "vllm-pp2-plus-speculation",
+      "status": "invalid-on-pinned-runtime",
+      "reason": "Pipeline parallel speculative decoding has unresolved startup, warmup, and scheduling failures in vLLM 0.27.1.",
+      "sources": [
+        "https://github.com/vllm-project/vllm/issues/49355",
+        "https://github.com/vllm-project/vllm/issues/52069"
+      ]
+    },
+    {
+      "id": "sglang-pp2-plus-speculation",
+      "status": "invalid-on-pinned-runtime",
+      "reason": "SGLang 0.5.17 explicitly rejects pipeline parallelism combined with speculative decoding.",
+      "source": "https://github.com/sgl-project/sglang/blob/v0.5.17/python/sglang/srt/server_args.py#L8277-L8280"
+    },
+    {
+      "id": "stock-vllm-dspark",
+      "status": "invalid-on-pinned-runtime",
+      "reason": "DSpark dispatch/support is incomplete in stock vLLM 0.27.1; the support pull request remains unmerged.",
+      "nvfp4_target_draft": {
+        "repository": "RedHatAI/GLM-5.2-speculator.dspark",
+        "revision": "a6b551e8dfadd77b5111bd0f11aa509117b6ef15"
+      },
+      "fp8_target_preview": {
+        "repository": "RedHatAI/GLM-5.2-speculator.dspark-preview",
+        "revision": "a278cc09c65def2b23cabb6d2273d911a811135e"
+      },
+      "sources": [
+        "https://github.com/vllm-project/vllm/issues/50851",
+        "https://github.com/vllm-project/vllm/pull/50694"
+      ]
+    },
+    {
+      "id": "wrong-dspark-target",
+      "status": "invalid",
+      "reason": "The preview draft targets zai-org/GLM-5.2-FP8, not the NVIDIA NVFP4 checkpoint.",
+      "sources": [
+        "https://huggingface.co/RedHatAI/GLM-5.2-speculator.dspark",
+        "https://huggingface.co/RedHatAI/GLM-5.2-speculator.dspark-preview"
+      ]
+    },
+    {
+      "id": "pure-dflash",
+      "status": "unavailable",
+      "reason": "The official DFlash catalog has no released GLM-5.2-compatible draft checkpoint.",
+      "source": "https://github.com/vllm-project/speculators/blob/main/docs/user_guide/algorithms/dflash.md"
+    },
+    {
+      "id": "external-eagle3",
+      "status": "unavailable",
+      "reason": "No released official external EAGLE3 draft was found for this exact GLM-5.2 NVFP4 target. Native checkpoint MTP is a separate path."
+    },
+    {
+      "id": "sglang-tp2-mtp-headline",
+      "status": "quarantined",
+      "reason": "GLM DSA plus TP>1 speculative decoding has unresolved compatibility work; keep it outside stable headline runs.",
+      "sources": [
+        "https://github.com/sgl-project/sglang/issues/30296",
+        "https://github.com/sgl-project/sglang/pull/30642",
+        "https://github.com/sgl-project/sglang/issues/32459"
+      ]
+    },
+    {
+      "id": "tp2-plus-pcp2",
+      "status": "invalid-on-two-gpus",
+      "reason": "TP2 x PCP2 requires four process ranks; this study has two GPUs."
+    },
+    {
+      "id": "flashinfer-b12x",
+      "status": "invalid-on-gb300",
+      "reason": "The B12x path targets SM120/SM121, not the GB300's SM103."
+    },
+    {
+      "id": "fp8-ds-mla-with-draft",
+      "status": "quarantined",
+      "reason": "The draft-cache interaction remains unresolved; use standard fp8_e4m3 KV for speculative tests.",
+      "sources": [
+        "https://github.com/vllm-project/vllm/issues/48380",
+        "https://github.com/vllm-project/vllm/pull/48381"
+      ]
+    },
+    {
+      "id": "amd-mxfp4-on-cuda",
+      "status": "invalid",
+      "reason": "amd/GLM-5.2-MXFP4 is published for ROCm on MI350/MI355, not CUDA GB300.",
+      "source": "https://huggingface.co/amd/GLM-5.2-MXFP4"
+    }
+  ]
+}

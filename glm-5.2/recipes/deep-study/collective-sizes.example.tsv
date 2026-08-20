@@ -1,0 +1,2 @@
+operation	count	datatype	bytes	occurrences
+AllReduce	REPLACE_WITH_TRACE_COUNT	ncclBfloat16	REPLACE_WITH_TRACE_BYTES	REPLACE_WITH_TRACE_OCCURRENCES
