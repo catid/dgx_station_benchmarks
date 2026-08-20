@@ -14,6 +14,9 @@ See the [agent-ready recipes](recipes/) for pinned download and verification,
 the one-node capacity check, the accepted TP2 launch, failed-profile evidence,
 `llm-inference-bench`, output-quality checks, and WikiText-2 setup.
 
+A broader [deep optimization study](recipes/deep-study/) is staged but still
+pending measurement; its profiles contain no unpublished performance claims.
+
 ## Checkpoint provenance
 
 | Role | Hugging Face source | Exact revision | Status | Weight format | Retained size evidence |

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "checkpoints": [
+    {
+      "repository": "nvidia/GLM-5.2-NVFP4",
+      "revision": "aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa",
+      "huggingface_used_storage_bytes": 464865454030,
+      "format": "ModelOpt NVFP4",
+      "disposition": "target"
+    },
+    {
+      "repository": "zai-org/GLM-5.2",
+      "revision": "b4734de4facf877f85769a911abafc5283eab3d9",
+      "huggingface_used_storage_bytes": 1506689458421,
+      "format": "BF16",
+      "disposition": "excluded-no-fit-on-two-gb300"
+    },
+    {
+      "repository": "zai-org/GLM-5.2-FP8",
+      "revision": "ba978f7d347eaf65d22f1a86833408afdb953541",
+      "huggingface_used_storage_bytes": 761025363709,
+      "format": "FP8",
+      "disposition": "excluded-no-fit-on-two-gb300"
+    },
+    {
+      "repository": "amd/GLM-5.2-MXFP4",
+      "revision": "386bd0e4ec821f7b07975701cec3c3b953a5576a",
+      "huggingface_used_storage_bytes": 438033639817,
+      "format": "AMD Quark MXFP4",
+      "disposition": "excluded-rocm-checkpoint-on-cuda"
+    },
+    {
+      "repository": "amd/GLM-5.2-EXTENSOR",
+      "revision": "86b579d0f1fdad31ebc7fbc225875f46e74a6594",
+      "format": "GGUF Q2_K",
+      "disposition": "excluded-different-runtime-study"
+    }
+  ]
+}
