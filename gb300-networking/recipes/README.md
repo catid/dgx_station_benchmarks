@@ -77,6 +77,9 @@ Direct function because Grace does not provide the conventional ATS route.
 
 Build perftest with CUDA support if `ib_write_bw --help` does not show `--use_data_direct`:
 
+The distribution-owned binary can remain in `/usr/bin`; install the
+CUDA-enabled build in `/usr/local/bin` and invoke that path explicitly below.
+
 ```bash
 git clone https://github.com/linux-rdma/perftest.git
 cd perftest
