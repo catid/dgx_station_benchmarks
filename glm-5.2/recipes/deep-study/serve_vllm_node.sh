@@ -37,6 +37,13 @@ docker_env=(
   --env "VLLM_ALLREDUCE_USE_SYMM_MEM=0"
   --env "VLLM_MAX_TOKENS_PER_EXPERT_FP4_MOE=32768"
 )
+if [[ -n "${VLLM_USE_V2_MODEL_RUNNER:-}" ]]; then
+  [[ "$VLLM_USE_V2_MODEL_RUNNER" == 0 ]] || {
+    echo "VLLM_USE_V2_MODEL_RUNNER override must be 0" >&2
+    exit 2
+  }
+  docker_env+=(--env "VLLM_USE_V2_MODEL_RUNNER=0")
+fi
 case "${NCCL_TRACE_MODE:-headline}" in
   headline) docker_env+=(--env "NCCL_DEBUG=WARN") ;;
   info) docker_env+=(--env "NCCL_DEBUG=INFO" --env "NCCL_DEBUG_SUBSYS=INIT,NET,TUNING") ;;
@@ -50,6 +57,13 @@ if [[ "${PP_SIZE:?}" == 2 ]]; then
   }
   docker_env+=(--env "VLLM_PP_LAYER_PARTITION=40,38")
 fi
+
+read -r -a cudagraph_sizes <<<"${CUDAGRAPH_CAPTURE_SIZES:?}"
+[[ "${#cudagraph_sizes[@]}" -gt 0 ]] || { echo "Empty CUDA graph grid" >&2; exit 2; }
+[[ "${cudagraph_sizes[-1]}" == "${MAX_CUDAGRAPH_CAPTURE_SIZE:?}" ]] || {
+  echo "CUDA graph maximum does not match capture grid" >&2
+  exit 2
+}
 
 vllm_args=(
   serve /model
@@ -72,8 +86,8 @@ vllm_args=(
   --max-num-batched-tokens "${MAX_NUM_BATCHED_TOKENS:?}"
   --gpu-memory-utilization "${GPU_MEMORY_UTILIZATION:?}"
   --enable-prefix-caching
-  --cudagraph-capture-sizes 1 2 4 8 16 32 64 128
-  --max-cudagraph-capture-size 128
+  --cudagraph-capture-sizes "${cudagraph_sizes[@]}"
+  --max-cudagraph-capture-size "$MAX_CUDAGRAPH_CAPTURE_SIZE"
   --compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE","custom_ops":["all"]}'
   --moe-backend "${MOE_BACKEND:?}"
 )
@@ -90,7 +104,14 @@ case "${FLASHINFER_AUTOTUNE:?}" in
 esac
 if (( MTP_TOKENS > 0 )); then
   [[ "$TP_SIZE" == 2 && "$PP_SIZE" == 1 ]] || { echo "MTP is restricted to TP2" >&2; exit 2; }
-  vllm_args+=(--speculative-config "{\"method\":\"mtp\",\"num_speculative_tokens\":${MTP_TOKENS}}")
+  [[ "${MTP_DRAFT_MOE_BACKEND:?}" == flashinfer_cutlass ]] || {
+    echo "MTP requires the audited FlashInfer CUTLASS draft override" >&2
+    exit 2
+  }
+  vllm_args+=(--speculative-config "{\"method\":\"mtp\",\"num_speculative_tokens\":${MTP_TOKENS},\"moe_backend\":\"${MTP_DRAFT_MOE_BACKEND}\"}")
+elif [[ -n "${MTP_DRAFT_MOE_BACKEND:-}" ]]; then
+  echo "MTP=0 must not set a draft MoE backend" >&2
+  exit 2
 fi
 if [[ "$node_rank" == 0 ]]; then
   vllm_args+=(--host 127.0.0.1 --port "${API_PORT:-30000}")

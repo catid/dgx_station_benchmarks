@@ -18,8 +18,9 @@ The broader [deep optimization study](recipes/deep-study/) now has frozen
 backend and autotune increments: an accepted CuTeDSL reproduction, two
 excluded FlashInfer-CUTLASS capacity starts, a vLLM-CUTLASS compatibility
 failure, an accepted CuTeDSL autotune-on A/B, and a native-MTP/CuTeDSL
-compatibility failure. Compact evidence and checksums are in
-[`data/deep-study/`](data/deep-study/).
+compatibility failure. A subsequent stock split-backend MTP start mapped
+correctly but failed KV capacity before API readiness. Compact evidence and
+checksums are in [`data/deep-study/`](data/deep-study/).
 
 ## Checkpoint provenance
 
@@ -103,6 +104,13 @@ backend in the pinned runtime. The API never became ready, so P4 has no
 throughput, acceptance, quality, capacity, or network row and issued zero
 requests.
 
+P5 used the stock per-draft override to retain the CuTeDSL target while routing
+the unquantized MTP1 draft to FlashInfer CUTLASS. Both ranks proved the intended
+mapping, but the conservative 32,768-token bootstrap exposed 3.42 / 0.20 GiB
+available KV by rank. The limiting rank needed 1.48 GiB and estimated only a
+4,352-token maximum, so the API never became ready and zero requests were
+issued. This proves backend compatibility, not usable MTP throughput.
+
 P0's quiet before/after RoCE counters recorded 1.236 TB in each direction over
 372.4 seconds, or 26.55 Gb/s average, with no health-counter deltas. That is a
 whole-matrix average, not a peak-link or bottleneck claim. P3 recorded 1.233 TB
@@ -115,7 +123,8 @@ kernel scan, and returned to 2–7 MiB idle HBM per rank. See the frozen
 [`P1 warm-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-warm-cache/),
 [`P2 incompatibility evidence`](data/deep-study/2026-08-20-p2-vllm-cutlass-incompatible/),
 [`P3 autotune evidence`](data/deep-study/2026-08-20-p3-cutedsl-autotune-on/),
-and [`P4 MTP1 incompatibility evidence`](data/deep-study/2026-08-20-p4-mtp1-cutedsl-incompatible/).
+[`P4 MTP1 incompatibility evidence`](data/deep-study/2026-08-20-p4-mtp1-cutedsl-incompatible/),
+and [`P5 split-backend capacity evidence`](data/deep-study/2026-08-20-p5-mtp1-split-bootstrap-capacity/).
 
 ## One DGX Station: capacity result
 

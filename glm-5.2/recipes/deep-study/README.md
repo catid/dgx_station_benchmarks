@@ -7,7 +7,8 @@ passed the structural, capacity, and natural-output gates; P1 FlashInfer
 CUTLASS did not fit the unchanged long-context envelope; and P2 vLLM CUTLASS
 was incompatible with the required EP2 configuration. P4 showed that native
 MTP's unquantized draft MoE cannot use the P0 CuTeDSL backend in the pinned
-stock runtime.
+stock runtime. P5 confirmed the stock per-draft FlashInfer-CUTLASS override,
+but its conservative 32K bootstrap failed KV capacity before API readiness.
 
 The target is
 [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) at
@@ -57,13 +58,18 @@ unquantized MoE does not support `flashinfer_cutedsl`. The API never became
 ready and no request was issued, so this is compatibility evidence rather than
 a performance or acceptance-rate result.
 
+P5 used `VLLM_USE_V2_MODEL_RUNNER=0` and the nested speculative-config
+`moe_backend=flashinfer_cutlass`, while leaving the target on CuTeDSL. Both
+ranks proved the intended split mapping. The limiting rank exposed only 0.20
+GiB KV and an estimated 4,352-token maximum, so the API never became ready and
+no request was issued.
+
 These are capacity dispositions at the fixed 135,168-token profile, not
 throughput comparisons. The accepted and excluded records, source hashes, and
 per-directory checksums are in
-[`../../data/deep-study/`](../../data/deep-study/). Additional MTP depths are
-blocked pending a compatible stock backend path; PP2, SGLang, and
-chunked-prefill experiments below remain pending and must pass the same gates
-before publication.
+[`../../data/deep-study/`](../../data/deep-study/). Additional MTP depths remain
+blocked by measured capacity; PP2, SGLang, and chunked-prefill experiments
+below remain pending and must pass the same gates before publication.
 
 ## What is pinned
 
@@ -189,19 +195,19 @@ applicable instead of running the on arm; the resolver rejects that pairing.
 
 ### 3. Native MTP
 
-The measured P4 start establishes that `flashinfer_cutedsl` is not a valid
-stock-runtime choice for the unquantized MTP draft MoE. The failed plan can be
-inspected without touching hardware:
+P4 establishes that inheriting `flashinfer_cutedsl` is not valid for the
+unquantized MTP draft MoE. P5 confirms the stock split-backend configuration:
+the target remains CuTeDSL while the nested speculative configuration selects
+FlashInfer CUTLASS for the draft. Inspect it without touching hardware:
 
 ```bash
-python3 resolve_plan.py vllm-tp2-mtp1 \
-  --winner-backend flashinfer_cutedsl
+python3 resolve_plan.py vllm-tp2-mtp1-split-bootstrap
 ```
 
-Do not execute further MTP depths with that winner until the runtime exposes a
-separately compatible draft backend. Any alternative global backend must first
-pass the same target capacity and full-workload gates; it is a new backend
-experiment, not a retry of P4.
+The P5 32K bootstrap selected both intended backends but failed before API
+readiness at 3.42 / 0.20 GiB available KV by rank. Do not treat backend mapping
+as a throughput result or run the full MTP depth matrix until a separately
+labeled profile passes its pre-request capacity and correctness gates.
 
 Once a compatible path exists, run native vLLM MTP at N=0,1,2,3,5 on TP2 and
 record acceptance length, draft count, position acceptance, and target-step

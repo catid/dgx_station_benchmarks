@@ -48,6 +48,19 @@ def option(command: list[str], name: str) -> str | None:
         return None
 
 
+def option_values(command: list[str], name: str) -> list[str]:
+    try:
+        start = command.index(name) + 1
+    except ValueError:
+        return []
+    values: list[str] = []
+    for value in command[start:]:
+        if value.startswith("--"):
+            break
+        values.append(value)
+    return values
+
+
 def env_map(inspect: dict) -> dict[str, str]:
     result = {}
     for item in inspect.get("Config", {}).get("Env", []):
@@ -113,6 +126,16 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
                 raise ValueError(f"node{rank}: TP2 lacks expert parallelism")
             if "--enable-prefix-caching" not in command:
                 raise ValueError(f"node{rank}: prefix caching is not enabled")
+            expected_graphs = [str(value) for value in plan["cudagraph_capture_sizes"]]
+            if option_values(command, "--cudagraph-capture-sizes") != expected_graphs:
+                raise ValueError(f"node{rank}: wrong CUDA graph capture grid")
+            if option(command, "--max-cudagraph-capture-size") != expected_graphs[-1]:
+                raise ValueError(f"node{rank}: wrong maximum CUDA graph capture size")
+            mr_v2 = plan.get("vllm_use_v2_model_runner")
+            if mr_v2 == 0 and environment.get("VLLM_USE_V2_MODEL_RUNNER") != "0":
+                raise ValueError(f"node{rank}: MRv1 environment pin is absent")
+            if mr_v2 is None and "VLLM_USE_V2_MODEL_RUNNER" in environment:
+                raise ValueError(f"node{rank}: unexpected model-runner override")
             autotune_flag = (
                 "--enable-flashinfer-autotune"
                 if plan["flashinfer_autotune"]
@@ -127,7 +150,14 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
                     spec = json.loads(spec_value or "")
                 except json.JSONDecodeError as exc:
                     raise ValueError(f"node{rank}: invalid speculative config") from exc
-                if spec != {"method": "mtp", "num_speculative_tokens": expected_mtp}:
+                expected_spec = {
+                    "method": "mtp",
+                    "num_speculative_tokens": expected_mtp,
+                }
+                draft_backend = plan["speculation"].get("moe_backend")
+                if draft_backend is not None:
+                    expected_spec["moe_backend"] = draft_backend
+                if spec != expected_spec:
                     raise ValueError(f"node{rank}: wrong MTP configuration")
             elif spec_value is not None:
                 raise ValueError(f"node{rank}: MTP0 must omit speculative config")
@@ -172,6 +202,11 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
         }[plan["moe_backend"]]
         if backend_marker not in joined_logs:
             raise ValueError("server logs do not prove the requested NVFP4 MoE backend")
+        draft_backend = plan["speculation"].get("moe_backend")
+        if draft_backend == "flashinfer_cutlass":
+            marker = "Using FlashInfer CUTLASS Unquantized MoE backend"
+            if marker not in joined_logs:
+                raise ValueError("server logs do not prove the split MTP draft backend")
         for marker in ("FLASHINFER_MLA_SPARSE attention backend", "TRTLLM_RAGGED MLA prefill backend"):
             if marker not in joined_logs:
                 raise ValueError(f"server logs do not prove fixed attention path: {marker}")
@@ -194,6 +229,13 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
     minimum = int(plan["benchmark"]["minimum_kv_tokens"])
     if min(map(int, capacities)) < minimum:
         raise ValueError(f"KV/token capacity {capacities} is below required {minimum}")
+    if plan["speculation"].get("moe_backend") is not None:
+        gate = runtime / "backend-gate-before-requests.txt"
+        text = gate.read_text(errors="replace")
+        if text.count("target=FLASHINFER_CUTEDSL draft=FLASHINFER_CUTLASS") != 2:
+            raise ValueError("pre-request split-MTP backend gate evidence is incomplete")
+        if "Split-MTP backend and capacity gate passed before benchmark requests." not in text:
+            raise ValueError("pre-request split-MTP gate did not pass")
     return capacities, logs
 
 
@@ -208,6 +250,9 @@ def validate_benchmark(run: Path, plan: dict) -> dict:
         value = float(cell.get("tok_per_sec") or cell.get("client_tok_per_sec") or 0)
         if not math.isfinite(value) or value <= 0:
             raise ValueError(f"prefill {context} lacks a finite positive measurement")
+    if plan.get("phase") == "native-mtp-split-bootstrap":
+        if int(prefill["8192"].get("prompt_tokens", 0)) != 8194:
+            raise ValueError("split-MTP bootstrap did not admit the exact 8,194-token API prompt")
 
     results = data.get("results", [])
     if plan["benchmark"]["mode"] == "prefill-only":
@@ -231,11 +276,18 @@ def validate_benchmark(run: Path, plan: dict) -> dict:
         tps = float(row.get("aggregate_tps", 0))
         if not math.isfinite(tps) or tps <= 0:
             raise ValueError(f"C{concurrency}: invalid aggregate throughput")
-        if mtp and concurrency == 1:
+        if mtp:
             if float(row.get("server_spec_accept_length", 0)) <= 0:
-                raise ValueError("MTP run lacks a positive acceptance length")
+                raise ValueError(f"C{concurrency}: MTP lacks a positive acceptance length")
             if int(row.get("server_spec_drafts", 0)) <= 0:
-                raise ValueError("MTP run lacks draft-token telemetry")
+                raise ValueError(f"C{concurrency}: MTP lacks draft-token telemetry")
+            positions = row.get("server_spec_pos_accept", [])
+            if not isinstance(positions, list) or not positions:
+                raise ValueError(f"C{concurrency}: MTP lacks per-position acceptance")
+            if float(row.get("server_engine_steps", 0)) <= 0:
+                raise ValueError(f"C{concurrency}: MTP lacks target-step telemetry")
+            if float(row.get("server_steps_per_s", 0)) <= 0:
+                raise ValueError(f"C{concurrency}: MTP lacks target steps/s")
     return {"decode_rows": len(results), "prefill_rows": len(expected_prefill)}
 
 
