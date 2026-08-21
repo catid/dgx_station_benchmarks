@@ -11,7 +11,8 @@ stock runtime. P5 confirmed the stock per-draft FlashInfer-CUTLASS override,
 but its conservative 32K bootstrap failed KV capacity before API readiness.
 P6 reached API readiness and sufficient capacity at a shorter 9,216-token
 envelope, but two pre-request audit-harness failures produced zero benchmark
-requests and no performance result.
+requests and no performance result. P7 validated balanced 40/38 PP2 loading,
+then exposed an incompatible 64/32 KV block-size pair before API readiness.
 
 The target is
 [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) at
@@ -84,13 +85,14 @@ EngineCore log. [`test_offline.py`](test_offline.py) includes a regression case
 whose remote worker log intentionally omits the global token marker. This fix
 was not used to justify a third attempt.
 
-These are capacity dispositions at the fixed 135,168-token profile, not
-throughput comparisons. The accepted and excluded records, source hashes, and
+These starts use separately declared envelopes and are not throughput
+comparisons. The accepted and excluded records, source hashes, and
 per-directory checksums are in
 [`../../data/deep-study/`](../../data/deep-study/). Additional MTP depths remain
 unmeasured; P6 proved only short-context startup capacity, not request-serving
-correctness or speed. PP2, SGLang, and chunked-prefill experiments below remain
-pending and must pass the same gates before publication.
+correctness or speed. Pinned vLLM PP2 is blocked by P7's KV-layout
+incompatibility; SGLang and chunked-prefill experiments below remain pending
+and must pass the same gates before publication.
 
 ## What is pinned
 
@@ -272,9 +274,12 @@ bash run_headline.sh vllm-pp2-balanced --execute
 ```
 
 The bootstrap is explicitly nonreportable and proves only that partitioning
-and startup work. PP2 always has speculation and distributed FlashInfer
-autotuning disabled. The reportable profile restores the same headline
-workload envelope.
+and startup work. P7 showed that 40/38 loads at 206.32 / 209.52 GiB, but pinned
+vLLM 0.27.1 fails before API readiness: the indexer stage selects a 64-token KV
+block, the MLA stage selects 32, and `select_common_block_size` raises
+`No common block size for 32`. Do not launch the reportable profile against
+this pinned runtime pending a source-level compatibility fix. PP2 always has
+speculation and distributed FlashInfer autotuning disabled.
 
 ### 5. SGLang 0.5.17
 

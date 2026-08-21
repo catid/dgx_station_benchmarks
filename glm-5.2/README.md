@@ -21,8 +21,10 @@ failure, an accepted CuTeDSL autotune-on A/B, and a native-MTP/CuTeDSL
 compatibility failure. A subsequent stock split-backend MTP start mapped
 correctly but failed KV capacity before API readiness. A shorter MTP1 profile
 later reached API readiness and sufficient KV capacity, but two fail-closed
-audit-harness errors stopped it before the first request. Compact evidence and
-checksums are in [`data/deep-study/`](data/deep-study/).
+audit-harness errors stopped it before the first request. An audited 40/38 PP2
+split then loaded with only 3.20 GiB stage-memory spread, but pinned vLLM could
+not reconcile the stages' 64/32 KV block sizes. Compact evidence and checksums
+are in [`data/deep-study/`](data/deep-study/).
 
 ## Checkpoint provenance
 
@@ -37,20 +39,18 @@ The shard count and byte total come from the pinned checkpoint's `model.safetens
 <!-- BEGIN GENERATED:STATUS -->
 - Checkpoint download and integrity verification: complete
 - One-station capacity test: complete; no fit
-- Accepted two-station performance: TP2 / PP1 + expert parallel; operator-observed startup failure (original logs not retained): TP1 / PP2
+- Accepted two-station performance: TP2 / PP1 + expert parallel; checksummed vLLM incompatibility before API: TP1 / PP2
 - Natural-output audits: TP2 / PP1 + expert parallel; WikiText-2: TP2 / PP1 + expert parallel
 <!-- END GENERATED:STATUS -->
 
 No pending field below should be interpreted as a zero.
 
-PP2 was attempted, but its original startup logs were not retained. The operator
-observed stage imbalance, one rank effectively full, and subsequent small
-allocation failures. This is an operator-observed startup-failure note, not a
-checksummed measurement, so it has no throughput row. The optimization path and
-excluded starts are recorded in
-[`data/failure-attempts.json`](data/failure-attempts.json).
+An earlier PP2 attempt had no retained logs; its operator-observed stage
+imbalance remains in [`data/failure-attempts.json`](data/failure-attempts.json)
+as provenance only. P7 supersedes that anecdote with a checksummed 40/38
+bootstrap disposition, described below. It is still not a throughput row.
 
-## Deep-study increments: backend, autotune, and native MTP
+## Deep-study increments: backend, autotune, native MTP, and PP2
 
 The existing canonical tables later in this README remain unchanged. P0 below
 is an independent, fully captured repeat using the deep-study runner: the same
@@ -122,13 +122,20 @@ audit incorrectly expected vLLM's global EngineCore KV-token marker in both
 worker logs. Both issued zero benchmark requests. P6 therefore has no decode,
 prefill, speculative-acceptance, target-step, quality, or network result.
 
+P7 audited vLLM pipeline parallelism with TP1/PP2, EP1, speculation off,
+autotuning off, and a 40/38 partition. PP0 and PP1 loaded 206.32 and 209.52 GiB
+respectively, validating the intended balance. Startup then failed before API:
+the indexer stage selected a 64-token KV block and the MLA stage selected 32,
+and pinned vLLM raised `No common block size for 32`. No request or full
+P0-envelope PP2 run followed, so P7 has no performance or network row.
+
 P0's quiet before/after RoCE counters recorded 1.236 TB in each direction over
 372.4 seconds, or 26.55 Gb/s average, with no health-counter deltas. That is a
 whole-matrix average, not a peak-link or bottleneck claim. P3 recorded 1.233 TB
 in each direction over 370.5 seconds, or 26.62 Gb/s average, also with no
 health-counter deltas. Its four natural outputs finished normally with zero
 automatic flags. All starts used graceful teardown, passed the current-boot
-kernel scan, and returned to 2–7 MiB idle HBM per rank. See the frozen
+kernel scan, and returned to 2–8 MiB idle HBM per rank. See the frozen
 [`P0 evidence`](data/deep-study/2026-08-20-p0-cutedsl/),
 [`P1 cold-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-cold-cache/),
 [`P1 warm-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-warm-cache/),
@@ -136,7 +143,8 @@ kernel scan, and returned to 2–7 MiB idle HBM per rank. See the frozen
 [`P3 autotune evidence`](data/deep-study/2026-08-20-p3-cutedsl-autotune-on/),
 [`P4 MTP1 incompatibility evidence`](data/deep-study/2026-08-20-p4-mtp1-cutedsl-incompatible/),
 [`P5 split-backend capacity evidence`](data/deep-study/2026-08-20-p5-mtp1-split-bootstrap-capacity/),
-and [`P6 short-context harness evidence`](data/deep-study/2026-08-20-p6-mtp1-short-context-harness-only/).
+[`P6 short-context harness evidence`](data/deep-study/2026-08-20-p6-mtp1-short-context-harness-only/),
+and [`P7 PP2 incompatibility evidence`](data/deep-study/2026-08-20-p7-pp2-kv-block-incompatible/).
 
 ## One DGX Station: capacity result
 
