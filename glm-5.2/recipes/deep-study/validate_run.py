@@ -12,6 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from resolve_plan import validate  # noqa: E402
+from postvalidate_pp2_correctness import validate_retained  # noqa: E402
 from validate_quality import validate_natural  # noqa: E402
 
 
@@ -134,11 +135,29 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
                 raise ValueError(f"node{rank}: TP2 lacks expert parallelism")
             if "--enable-prefix-caching" not in command:
                 raise ValueError(f"node{rank}: prefix caching is not enabled")
-            expected_graphs = [str(value) for value in plan["cudagraph_capture_sizes"]]
-            if option_values(command, "--cudagraph-capture-sizes") != expected_graphs:
-                raise ValueError(f"node{rank}: wrong CUDA graph capture grid")
-            if option(command, "--max-cudagraph-capture-size") != expected_graphs[-1]:
-                raise ValueError(f"node{rank}: wrong maximum CUDA graph capture size")
+            block_size = plan.get("block_size")
+            if option(command, "--block-size") != (
+                None if block_size is None else str(block_size)
+            ):
+                raise ValueError(f"node{rank}: wrong KV block-size override")
+            if plan.get("enforce_eager"):
+                if "--enforce-eager" not in command:
+                    raise ValueError(f"node{rank}: eager correctness flag is absent")
+                for forbidden in (
+                    "--cudagraph-capture-sizes",
+                    "--max-cudagraph-capture-size",
+                    "--compilation-config",
+                ):
+                    if forbidden in command:
+                        raise ValueError(f"node{rank}: eager run declared {forbidden}")
+            else:
+                if "--enforce-eager" in command:
+                    raise ValueError(f"node{rank}: unexpected eager execution")
+                expected_graphs = [str(value) for value in plan["cudagraph_capture_sizes"]]
+                if option_values(command, "--cudagraph-capture-sizes") != expected_graphs:
+                    raise ValueError(f"node{rank}: wrong CUDA graph capture grid")
+                if option(command, "--max-cudagraph-capture-size") != expected_graphs[-1]:
+                    raise ValueError(f"node{rank}: wrong maximum CUDA graph capture size")
             mr_v2 = plan.get("vllm_use_v2_model_runner")
             if mr_v2 == 0 and environment.get("VLLM_USE_V2_MODEL_RUNNER") != "0":
                 raise ValueError(f"node{rank}: MRv1 environment pin is absent")
@@ -218,6 +237,20 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
         for marker in ("FLASHINFER_MLA_SPARSE attention backend", "TRTLLM_RAGGED MLA prefill backend"):
             if marker not in joined_logs:
                 raise ValueError(f"server logs do not prove fixed attention path: {marker}")
+        if plan.get("phase") == "pp-correctness-smoke":
+            # With an explicit --block-size, vLLM does not emit the backend's
+            # usual "Setting kv cache block size" selector message.  Both
+            # container commands were already checked above; the API-rank
+            # parsed-argument record plus successful KV initialization proves
+            # that the shared override was admitted by the engine.
+            if "'block_size': 64" not in joined_logs:
+                raise ValueError("server logs do not prove the parsed block64 override")
+            if "No common block size" in joined_logs:
+                raise ValueError("PP2 did not find a common KV block size")
+            if "enforce_eager=True" not in joined_logs:
+                raise ValueError("server logs do not prove eager engine configuration")
+            if "capturing cuda graphs" in joined_logs.casefold():
+                raise ValueError("eager correctness smoke unexpectedly captured CUDA graphs")
     elif plan["moe_backend"].casefold() not in joined_logs.casefold():
         raise ValueError("SGLang logs do not mention the requested MoE runner")
 
@@ -247,7 +280,38 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
     return capacities, logs
 
 
+def validate_correctness_smoke(run: Path) -> dict:
+    raw_path = run / "quality" / "pp2-correctness-smoke.json"
+    corrected_path = run / "quality" / "pp2-correctness-corrected.json"
+    corrected = load_object(corrected_path)
+    recomputed = validate_retained(raw_path)
+    if corrected != recomputed:
+        raise ValueError("corrected PP2 result does not match independent recomputation")
+    if corrected.get("status") != "passed_no_corruption_detected":
+        raise ValueError("PP2 corrected correctness smoke did not pass")
+    quality = corrected.get("automated_quality", {})
+    if (
+        quality.get("outputs_retained") != 4
+        or quality.get("outputs_passing_all_text_checks") != 4
+        or quality.get("corruption_or_degeneration_flags") != 0
+    ):
+        raise ValueError("PP2 corrected output-quality grid is incomplete")
+    repeatability = corrected.get("repeatability", {})
+    comparisons = repeatability.get("comparisons", [])
+    if len(comparisons) != 2:
+        raise ValueError("PP2 corrected repeat comparisons are incomplete")
+    return {
+        "decode_rows": 0,
+        "prefill_rows": 0,
+        "correctness_outputs": 4,
+        "byte_identical_pairs": repeatability.get("byte_identical_pairs"),
+        "non_byte_identical_pairs": repeatability.get("non_byte_identical_pairs"),
+    }
+
+
 def validate_benchmark(run: Path, plan: dict) -> dict:
+    if plan["benchmark"]["mode"] == "correctness-smoke":
+        return validate_correctness_smoke(run)
     data = load_object(run / "benchmark" / "llm-inference-bench.json")
     expected_prefill = {str(value) for value in plan["benchmark"]["prefill_context_tokens"]}
     prefill = data.get("prefill", {})
@@ -326,7 +390,7 @@ def main() -> None:
     capacities, _ = validate_runtime(run, plan)
     benchmark = validate_benchmark(run, plan)
     quality = run / "quality" / "quality-audit.json"
-    if plan["benchmark"]["mode"] != "prefill-only":
+    if plan["benchmark"]["mode"] not in {"prefill-only", "correctness-smoke"}:
         validate_natural(quality)
     network_delta = load_object(run / "network" / "delta.json")
     report = {
@@ -336,7 +400,13 @@ def main() -> None:
         "capacity_tokens_observed": [int(value) for value in capacities],
         "capacity_tokens_required": plan["benchmark"]["minimum_kv_tokens"],
         "benchmark": benchmark,
-        "natural_quality": "not-run" if plan["benchmark"]["mode"] == "prefill-only" else "passed",
+        "natural_quality": (
+            "pp2-correctness-smoke-passed"
+            if plan["benchmark"]["mode"] == "correctness-smoke"
+            else "not-run"
+            if plan["benchmark"]["mode"] == "prefill-only"
+            else "passed"
+        ),
         "network_health_counter_deltas": network_delta.get("health_counter_deltas", {}),
         "status": "accepted-by-structural-validator",
     }

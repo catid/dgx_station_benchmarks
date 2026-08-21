@@ -14,7 +14,9 @@ provenance extracted from the much larger retained runtime logs. Run
 from the broader optimization matrix. Accepted TP2+EP2 CuTeDSL measurements
 are kept separate from backend incompatibilities, capacity failures, and
 pre-request audit-harness failures. Excluded and harness-only starts contain no
-throughput values.
+throughput values. P8 separately retains the immutable raw PP2 correctness
+harness plus a transparent corrected validator/result; it has no performance
+row.
 
 When publishing new measurements, retain the source benchmark JSON, startup
 logs, and complete natural-output audit alongside the normalized tables.

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import os
 import shlex
@@ -15,6 +16,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from resolve_plan import MANIFEST_DIR, PlanError, load_json, resolve, validate  # noqa: E402
+from pp2_correctness_smoke import analyze  # noqa: E402
+from postvalidate_pp2_correctness import validate_retained  # noqa: E402
+from validate_run import validate_correctness_smoke  # noqa: E402
 
 
 def must_reject(plan: dict, message: str) -> None:
@@ -61,6 +65,15 @@ def main() -> None:
     assert short["cudagraph_capture_sizes"] == [1, 2, 4, 8]
     assert short["benchmark"]["minimum_kv_tokens"] == 16384
     assert short["cache_profile_id"] == "vllm-tp2-mtp1-split-bootstrap"
+    smoke = resolved["vllm-pp2-block64-eager-smoke"]
+    assert smoke["topology"] == "pp2"
+    assert smoke["pp_layer_partition"] == "40,38"
+    assert smoke["block_size"] == 64
+    assert smoke["enforce_eager"] is True
+    assert smoke["cudagraph_capture_sizes"] == []
+    assert smoke["max_model_len"] == 16384
+    assert smoke["benchmark"]["minimum_kv_tokens"] == 12802
+    assert smoke["reportable"] is False
     assert resolved["sglang-pp2-balanced"]["speculation"]["method"] == "none"
 
     base = resolved["vllm-tp2-exact"]
@@ -101,6 +114,111 @@ def main() -> None:
     bad = copy.deepcopy(short)
     bad["cache_profile_id"] = "../unsafe"
     must_reject(bad, "unsafe compiler-cache profile ID")
+    bad = copy.deepcopy(smoke)
+    bad["block_size"] = None
+    must_reject(bad, "PP correctness smoke without block64")
+    bad = copy.deepcopy(smoke)
+    bad["enforce_eager"] = False
+    bad["cudagraph_capture_sizes"] = [1, 2, 4]
+    must_reject(bad, "PP correctness smoke without eager execution")
+    bad = copy.deepcopy(smoke)
+    bad["benchmark"]["mode"] = "headline"
+    must_reject(bad, "PP correctness workload accidentally reportable")
+    bad = copy.deepcopy(smoke)
+    bad["reportable"] = True
+    must_reject(bad, "PP correctness profile marked reportable")
+    bad = copy.deepcopy(smoke)
+    bad["gpu_memory_utilization"] = 0.91
+    must_reject(bad, "PP correctness utilization drift")
+
+    good_text = " ".join(
+        f"Section{i} explains a distinct mathematical idea with careful historical context."
+        for i in range(180)
+    )
+    assert analyze(good_text, 1024)["flagged"] is False
+    assert analyze("A" * 100, 1024)["flagged"] is True
+    settings = {
+        "tokenize_target": 8192,
+        "expected_api_prompt_tokens": 8192,
+        "output_lengths": [1024, 4608],
+        "repeats_per_length": 2,
+        "temperature": 0,
+        "seed": 0,
+        "ignore_eos": True,
+        "sequential": True,
+    }
+    outputs = []
+    for output_tokens in (1024, 4608):
+        for repeat in range(2):
+            text = f"length{output_tokens} repeat{repeat} " + good_text
+            digest = hashlib.sha256(text.encode()).hexdigest()
+            analysis = analyze(text, output_tokens)
+            assert analysis["flagged"] is False
+            outputs.append(
+                {
+                    "requested_output_tokens": output_tokens,
+                    "repeat": repeat,
+                    "finish_reason": "length",
+                    "usage": {
+                        "prompt_tokens": 8192,
+                        "completion_tokens": output_tokens,
+                        "total_tokens": 8192 + output_tokens,
+                    },
+                    "exact_usage_checks": {
+                        "prompt_tokens": True,
+                        "completion_tokens": True,
+                        "total_tokens": True,
+                    },
+                    "reasoning_content": "",
+                    "content": text,
+                    "combined_text": text,
+                    "sha256": digest,
+                    "analysis": analysis,
+                    "passed": True,
+                }
+            )
+    synthetic_correctness = {
+        "schema_version": 1,
+        "status": "passed",
+        "settings": settings,
+        "prompt_proof": {
+            "tokenize_target": 8192,
+            "tokenize_count": 8192,
+            "messages_sha256": hashlib.sha256(
+                json.dumps(
+                    [{"role": "user", "content": "synthetic"}],
+                    ensure_ascii=False,
+                    sort_keys=True,
+                ).encode()
+            ).hexdigest(),
+            "messages": [{"role": "user", "content": "synthetic"}],
+        },
+        "outputs": outputs,
+        "failures": [],
+    }
+    with tempfile.TemporaryDirectory() as temp_dir:
+        quality = Path(temp_dir) / "quality"
+        quality.mkdir()
+        (quality / "pp2-correctness-smoke.json").write_text(
+            json.dumps(synthetic_correctness)
+        )
+        corrected = validate_retained(quality / "pp2-correctness-smoke.json")
+        (quality / "pp2-correctness-corrected.json").write_text(
+            json.dumps(corrected)
+        )
+        correctness = validate_correctness_smoke(Path(temp_dir))
+        assert correctness["correctness_outputs"] == 4
+        assert correctness["non_byte_identical_pairs"] == 2
+        synthetic_correctness["outputs"][-1]["sha256"] = "b" * 64
+        (quality / "pp2-correctness-smoke.json").write_text(
+            json.dumps(synthetic_correctness)
+        )
+        try:
+            validate_correctness_smoke(Path(temp_dir))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("correctness validator accepted a forged retained hash")
 
     gate_script = Path(__file__).resolve().parent / "verify_split_mtp_pair.sh"
     gate_env = os.environ.copy()
@@ -202,7 +320,7 @@ def main() -> None:
     summary = {
         "profiles_validated": len(resolved),
         "exclusions_validated": len(exclusions["exclusions"]),
-        "negative_rules_validated": 13,
+        "negative_rules_validated": 18,
     }
     print(json.dumps(summary, indent=2))
 

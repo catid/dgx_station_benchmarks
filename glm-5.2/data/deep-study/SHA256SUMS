@@ -43,4 +43,12 @@ d3341de0ff80248566e73df034f3f4b0ca85d2adec1abba426ba19271be3c453  ./2026-08-20-p
 8b53c6805deb7cbf6037c1173cfd11c99b8d31bd90bdc526f00949f913d79e95  ./2026-08-20-p7-pp2-kv-block-incompatible/SHA256SUMS
 0c0a1520a9ced631940d845c9b5d73ae510731a1ad6234645c97940c67a9f353  ./2026-08-20-p7-pp2-kv-block-incompatible/failure-summary.json
 9bc66943e0a956d4e9cbd3967517ad528dd9639a1d4e1ea3e348148e81654095  ./2026-08-20-p7-pp2-kv-block-incompatible/resolved-plan.json
-db64676ed663e125ac42227f19a3e70571737e7857cea06019defb2ccce210d0  ./README.md
+ad7ebf6a878473f63b3a7cc7731e4daf2dbdec9fa8a3afad9519e06b98e6e822  ./2026-08-21-p8-pp2-block64-eager-correctness/README.md
+ab9ed29c2c8aef9fe708bb6860e45281dff3c8562344cf35d4428debbf5ef8f0  ./2026-08-21-p8-pp2-block64-eager-correctness/SHA256SUMS
+10dd345dda22e9bf1ba05f3e2cbc43a1d35dbf10ea0852d2b06e28a54336a1da  ./2026-08-21-p8-pp2-block64-eager-correctness/corrected-result.json
+10453476f3da7f3cc7bc10ddbef027f2c43765bff74e96899ab52d3c50529f00  ./2026-08-21-p8-pp2-block64-eager-correctness/network-delta.json
+a7a62878e0d07602a95288d5d074811c2349e5f6120a72ebe7842f3712188847  ./2026-08-21-p8-pp2-block64-eager-correctness/raw-harness.json
+2f667fa37db28114a52f1a74deae682976ce91d7674a558b90255fa53a4fe22c  ./2026-08-21-p8-pp2-block64-eager-correctness/resolved-plan.json
+e0177af3366266a698625d82e6e625438917314b8b2d06c2a324d9d1e75736e3  ./2026-08-21-p8-pp2-block64-eager-correctness/runtime-summary.json
+fb67c00f7182a42753e88c69a593a55ded2362b65a307b6211ddc393dcdf4c05  ./2026-08-21-p8-pp2-block64-eager-correctness/structural-validation.json
+0b79933074bfc461f17ae558cb072a096ea7335d9883ae64f5ae8d98d8804234  ./README.md

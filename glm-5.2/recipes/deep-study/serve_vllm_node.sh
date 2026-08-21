@@ -63,12 +63,24 @@ if [[ "${PP_SIZE:?}" == 2 ]]; then
   docker_env+=(--env "VLLM_PP_LAYER_PARTITION=40,38")
 fi
 
-read -r -a cudagraph_sizes <<<"${CUDAGRAPH_CAPTURE_SIZES:?}"
-[[ "${#cudagraph_sizes[@]}" -gt 0 ]] || { echo "Empty CUDA graph grid" >&2; exit 2; }
-[[ "${cudagraph_sizes[-1]}" == "${MAX_CUDAGRAPH_CAPTURE_SIZE:?}" ]] || {
-  echo "CUDA graph maximum does not match capture grid" >&2
-  exit 2
-}
+read -r -a cudagraph_sizes <<<"${CUDAGRAPH_CAPTURE_SIZES:-}"
+case "${ENFORCE_EAGER:?}" in
+  yes)
+    [[ "${#cudagraph_sizes[@]}" -eq 0 && "${MAX_CUDAGRAPH_CAPTURE_SIZE:?}" == 0 ]] || {
+      echo "Eager mode must not declare CUDA graph captures" >&2
+      exit 2
+    }
+    [[ "${BLOCK_SIZE:?}" == 64 ]] || { echo "Eager PP smoke requires block64" >&2; exit 2; }
+    ;;
+  no)
+    [[ "${#cudagraph_sizes[@]}" -gt 0 ]] || { echo "Empty CUDA graph grid" >&2; exit 2; }
+    [[ "${cudagraph_sizes[-1]}" == "${MAX_CUDAGRAPH_CAPTURE_SIZE:?}" ]] || {
+      echo "CUDA graph maximum does not match capture grid" >&2
+      exit 2
+    }
+    ;;
+  *) echo "ENFORCE_EAGER must be yes or no" >&2; exit 2 ;;
+esac
 
 vllm_args=(
   serve /model
@@ -91,11 +103,21 @@ vllm_args=(
   --max-num-batched-tokens "${MAX_NUM_BATCHED_TOKENS:?}"
   --gpu-memory-utilization "${GPU_MEMORY_UTILIZATION:?}"
   --enable-prefix-caching
-  --cudagraph-capture-sizes "${cudagraph_sizes[@]}"
-  --max-cudagraph-capture-size "$MAX_CUDAGRAPH_CAPTURE_SIZE"
-  --compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE","custom_ops":["all"]}'
   --moe-backend "${MOE_BACKEND:?}"
 )
+if [[ -n "${BLOCK_SIZE:-}" ]]; then
+  [[ "$BLOCK_SIZE" == 64 ]] || { echo "Only block64 is audited" >&2; exit 2; }
+  vllm_args+=(--block-size "$BLOCK_SIZE")
+fi
+if [[ "$ENFORCE_EAGER" == yes ]]; then
+  vllm_args+=(--enforce-eager)
+else
+  vllm_args+=(
+    --cudagraph-capture-sizes "${cudagraph_sizes[@]}"
+    --max-cudagraph-capture-size "$MAX_CUDAGRAPH_CAPTURE_SIZE"
+    --compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE","custom_ops":["all"]}'
+  )
+fi
 if [[ "${TP_SIZE:?}" == 2 ]]; then
   vllm_args+=(--enable-expert-parallel)
 fi

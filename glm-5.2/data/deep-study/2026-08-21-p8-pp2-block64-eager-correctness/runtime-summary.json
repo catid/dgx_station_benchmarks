@@ -1,0 +1,147 @@
+{
+  "api_ready": true,
+  "capacity_gate_tokens": 12802,
+  "checkpoint": {
+    "repository": "nvidia/GLM-5.2-NVFP4",
+    "revision": "aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa"
+  },
+  "correctness": {
+    "all_text_checks_passed": true,
+    "all_usage_exact": true,
+    "byte_identical_repeat_pairs": 0,
+    "completion_token_grid": [
+      1024,
+      1024,
+      4608,
+      4608
+    ],
+    "corrected_status": "passed_no_corruption_detected",
+    "corruption_or_degeneration_flags": 0,
+    "direct_api_prompt_tokens_each": 8192,
+    "non_byte_identical_repeat_pairs": 2,
+    "raw_harness_disposition": "preserved failure from a path-specific 8,194-token accounting assumption and an overstrict byte-repeatability gate; corrected validator accepts exact 8,192-token direct API usage and records nondeterminism separately",
+    "raw_harness_status": "failed",
+    "requests_issued": 4
+  },
+  "gpu_kv_cache_tokens": 402688,
+  "network": {
+    "disposition": "correctness-window counters only; not a bandwidth headline",
+    "health_counter_deltas": {
+      "node0": {},
+      "node1": {}
+    },
+    "request_window_seconds_by_rank": [
+      1406.529546,
+      1406.542249
+    ]
+  },
+  "performance_rows": 0,
+  "profile_id": "vllm-pp2-block64-eager-smoke",
+  "raw_artifact_sha256": {
+    "corrected_result": "10dd345dda22e9bf1ba05f3e2cbc43a1d35dbf10ea0852d2b06e28a54336a1da",
+    "launch_log": "df49f912321f2739eb6dd7d7a84c004b3fb76d5ea4a192ffde0f4efb1e092f7c",
+    "network_delta": "10453476f3da7f3cc7bc10ddbef027f2c43765bff74e96899ab52d3c50529f00",
+    "node0_inspect": "65876e14a23bdc816c8962aaafa9f5b09451b5c9916825f50c370b272ab54d11",
+    "node0_server_log": "ba9abc595e30ef02f37233925ce0e39080e43afb100180bd2bb0a6cd154e9613",
+    "node1_inspect": "35a8c8125b0b4de4de5d37e1ea962584cdf96a3c5f55c4c7648e7d86dc62d935",
+    "node1_server_log": "200b1ae258c7883b13b9e891d68fc3ef105331e1f2a00c3146e807ffce765437",
+    "post_teardown_idle_hbm_gate": "fa5b5ea613cfc8a3bdd36544b0218ac7222f94ffdd4e3305f8138ea19f6ae0af",
+    "post_teardown_kernel_danger_scan": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+    "prelaunch_kernel_danger_scan": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+    "raw_harness": "a7a62878e0d07602a95288d5d074811c2349e5f6120a72ebe7842f3712188847",
+    "resolved_plan": "2f667fa37db28114a52f1a74deae682976ce91d7674a558b90255fa53a4fe22c",
+    "structural_validation": "fb67c00f7182a42753e88c69a593a55ded2362b65a307b6211ddc393dcdf4c05"
+  },
+  "result_kind": "correctness_and_compatibility_only_no_performance_headline",
+  "retry_performed": false,
+  "runtime": {
+    "commit": "6e448d0ea9bf3d88d898b65449ca6dc2aec170ac",
+    "image": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+    "name": "vllm",
+    "version": "0.27.1"
+  },
+  "schema_version": 1,
+  "settings": {
+    "backend": "FLASHINFER_CUTEDSL",
+    "block_size": 64,
+    "compilation_mode": "NONE",
+    "cpu_offload": false,
+    "cudagraph_mode": "NONE",
+    "enforce_eager": true,
+    "flashinfer_autotune": false,
+    "gpu_memory_utilization": 0.9,
+    "kv_cache_dtype": "fp8_e4m3",
+    "max_model_len": 16384,
+    "max_num_batched_tokens": 16384,
+    "max_num_seqs": 4,
+    "speculation": false
+  },
+  "stages": [
+    {
+      "assigned_layers": 40,
+      "available_kv_memory_gib": 12.81,
+      "command_proof": {
+        "block_size": 64,
+        "cpu_offload_present": false,
+        "cudagraph_flags_present": false,
+        "enforce_eager": true,
+        "explicit_compilation_config_present": false,
+        "gpu_memory_utilization": 0.9,
+        "max_model_len": 16384,
+        "max_num_batched_tokens": 16384,
+        "max_num_seqs": 4,
+        "moe_backend": "flashinfer_cutedsl",
+        "pipeline_parallel_size": 2,
+        "speculative_config_present": false,
+        "tensor_parallel_size": 1
+      },
+      "model_memory_gib": 206.41,
+      "pipeline_rank": 0,
+      "rank": 0,
+      "target_checkpoint_load_seconds": 56.99,
+      "total_model_load_seconds": 70.800724
+    },
+    {
+      "assigned_layers": 38,
+      "available_kv_memory_gib": 8.65,
+      "command_proof": {
+        "block_size": 64,
+        "cpu_offload_present": false,
+        "cudagraph_flags_present": false,
+        "enforce_eager": true,
+        "explicit_compilation_config_present": false,
+        "gpu_memory_utilization": 0.9,
+        "max_model_len": 16384,
+        "max_num_batched_tokens": 16384,
+        "max_num_seqs": 4,
+        "moe_backend": "flashinfer_cutedsl",
+        "pipeline_parallel_size": 2,
+        "speculative_config_present": false,
+        "tensor_parallel_size": 1
+      },
+      "model_memory_gib": 209.61,
+      "pipeline_rank": 1,
+      "rank": 1,
+      "target_checkpoint_load_seconds": 57.71,
+      "total_model_load_seconds": 71.490067
+    }
+  ],
+  "status": "accepted_correctness_smoke_no_performance",
+  "teardown": {
+    "current_boot_kernel_danger_matches": 0,
+    "graceful": true,
+    "idle_hbm_mib_by_rank": [
+      2,
+      7
+    ]
+  },
+  "topology": {
+    "expert_parallel_size": 1,
+    "pipeline_layer_partition": [
+      40,
+      38
+    ],
+    "pipeline_parallel_size": 2,
+    "tensor_parallel_size": 1
+  }
+}

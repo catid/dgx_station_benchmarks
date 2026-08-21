@@ -95,16 +95,29 @@ curl --fail --silent http://127.0.0.1:30000/metrics >"$result_dir/runtime/metric
 REMOTE_HOST="${REMOTE_HOST:?}" FABRIC_IFACE="${FABRIC_IFACE:?}" FABRIC_HCA="${FABRIC_HCA:?}" \
   bash "$here/capture_roce_pair.sh" before "$result_dir/network"
 
-OUTPUT_DIR="$result_dir/benchmark" \
-BENCH_DIR="${BENCH_DIR:?}" BENCH_PYTHON="${BENCH_PYTHON:-python3}" \
-SERVED_MODEL_NAME="$SERVED_MODEL_NAME" CONCURRENCIES="$CONCURRENCIES" \
-DECODE_CONTEXT="$DECODE_CONTEXT" DURATION_SECONDS="$DURATION_SECONDS" \
-MAX_OUTPUT_TOKENS="$MAX_OUTPUT_TOKENS" PREFILL_CONTEXTS="$PREFILL_CONTEXTS" \
-BENCHMARK_MODE="$BENCHMARK_MODE" bash "$here/benchmark.sh"
+workload_status=0
+if [[ "$BENCHMARK_MODE" == correctness-smoke ]]; then
+  if "${BENCH_PYTHON:-python3}" "$here/pp2_correctness_smoke.py" \
+    --model "$SERVED_MODEL_NAME" \
+    --bench-dir "${BENCH_DIR:?}" \
+    --output "$result_dir/quality/pp2-correctness-smoke.json" \
+    2>&1 | tee "$result_dir/quality/pp2-correctness-smoke.log"; then
+    :
+  else
+    workload_status=$?
+  fi
+else
+  OUTPUT_DIR="$result_dir/benchmark" \
+  BENCH_DIR="${BENCH_DIR:?}" BENCH_PYTHON="${BENCH_PYTHON:-python3}" \
+  SERVED_MODEL_NAME="$SERVED_MODEL_NAME" CONCURRENCIES="$CONCURRENCIES" \
+  DECODE_CONTEXT="$DECODE_CONTEXT" DURATION_SECONDS="$DURATION_SECONDS" \
+  MAX_OUTPUT_TOKENS="$MAX_OUTPUT_TOKENS" PREFILL_CONTEXTS="$PREFILL_CONTEXTS" \
+  BENCHMARK_MODE="$BENCHMARK_MODE" bash "$here/benchmark.sh"
+fi
 
 REMOTE_HOST="${REMOTE_HOST:?}" FABRIC_IFACE="${FABRIC_IFACE:?}" FABRIC_HCA="${FABRIC_HCA:?}" \
   bash "$here/capture_roce_pair.sh" after "$result_dir/network"
-if [[ "$BENCHMARK_MODE" != prefill-only ]]; then
+if [[ "$BENCHMARK_MODE" != prefill-only && "$BENCHMARK_MODE" != correctness-smoke ]]; then
   "${BENCH_PYTHON:-python3}" "$here/../quality_audit.py" \
     --model "$SERVED_MODEL_NAME" --max-tokens 4096 --output "$result_dir/quality" \
     >"$result_dir/quality/quality-audit.log"
@@ -125,6 +138,11 @@ CONTAINER_NAME="$CONTAINER_NAME" REMOTE_HOST="${REMOTE_HOST:?}" \
   bash "$here/capture_host_memory_pair.sh" after "$result_dir/memory"
 PYTHONDONTWRITEBYTECODE=1 python3 "$here/diff_roce_counters.py" "$result_dir/network" \
   >"$result_dir/network/delta.json"
+if (( workload_status != 0 )); then
+  trap - EXIT INT TERM
+  echo "Correctness workload failed; evidence was retained and the cluster passed teardown gates. No retry was attempted." >&2
+  exit "$workload_status"
+fi
 PYTHONDONTWRITEBYTECODE=1 python3 "$here/validate_run.py" "$result_dir" \
   >"$result_dir/validation.json"
 trap - EXIT INT TERM
