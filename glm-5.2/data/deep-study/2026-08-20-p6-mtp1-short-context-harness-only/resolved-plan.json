@@ -1,0 +1,78 @@
+{
+  "benchmark": {
+    "concurrencies": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "decode_context_tokens": 8192,
+    "duration_seconds": 30,
+    "max_output_tokens": 1024,
+    "minimum_kv_tokens": 16384,
+    "mode": "headline",
+    "prefill_context_tokens": [
+      8192
+    ],
+    "shared_prefix": true,
+    "temperature": 0
+  },
+  "cache_profile_id": "vllm-tp2-mtp1-split-bootstrap",
+  "chunked_prefill_size": 16384,
+  "container_name": "glm52-deep-vllm-tp2-mtp1-split-short-context",
+  "cpu_offload_gb": 0,
+  "cudagraph_capture_sizes": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "expert_parallel_size": 2,
+  "flashinfer_autotune": false,
+  "gpu_memory_utilization": 0.95,
+  "kv_cache_dtype": "fp8_e4m3",
+  "max_model_len": 9216,
+  "max_num_batched_tokens": 16384,
+  "max_num_seqs": 8,
+  "model_revision": "aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa",
+  "moe_backend": "flashinfer_cutedsl",
+  "phase": "native-mtp-split-short-context",
+  "pp_layer_partition": null,
+  "pp_size": 1,
+  "prefix_caching": true,
+  "profile_id": "vllm-tp2-mtp1-split-short-context",
+  "reportable": true,
+  "runtime": "vllm",
+  "runtime_pin": {
+    "cutlass_dsl_version": "4.6.0",
+    "flashinfer_commit": "9dc1b2495b40314dec8a8cde8cd7faf5c5206702",
+    "flashinfer_version": "0.6.16.post3",
+    "git_commit": "6e448d0ea9bf3d88d898b65449ca6dc2aec170ac",
+    "glm_mtp_fix": {
+      "merge_commit": "d039c171144bdc6e19d14d3dd9b0625f84f16d1c",
+      "pull_request": 47448
+    },
+    "image": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+    "image_digest": "sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+    "nccl_version_observed": "2.30.7+cuda13.3",
+    "version": "0.27.1"
+  },
+  "speculation": {
+    "method": "mtp",
+    "moe_backend": "flashinfer_cutlass",
+    "num_speculative_tokens": 1
+  },
+  "target": {
+    "architecture": "GlmMoeDsaForCausalLM",
+    "index_tensor_bytes": 464795267072,
+    "indexed_shards": 47,
+    "quantization": "NVFP4",
+    "repository": "nvidia/GLM-5.2-NVFP4",
+    "revision": "aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa",
+    "served_model_name": "GLM-5.2-NVFP4",
+    "weight_file_bytes": 464823042096
+  },
+  "topology": "tp2",
+  "tp_size": 2,
+  "vllm_use_v2_model_runner": 0
+}

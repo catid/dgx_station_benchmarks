@@ -19,7 +19,9 @@ backend and autotune increments: an accepted CuTeDSL reproduction, two
 excluded FlashInfer-CUTLASS capacity starts, a vLLM-CUTLASS compatibility
 failure, an accepted CuTeDSL autotune-on A/B, and a native-MTP/CuTeDSL
 compatibility failure. A subsequent stock split-backend MTP start mapped
-correctly but failed KV capacity before API readiness. Compact evidence and
+correctly but failed KV capacity before API readiness. A shorter MTP1 profile
+later reached API readiness and sufficient KV capacity, but two fail-closed
+audit-harness errors stopped it before the first request. Compact evidence and
 checksums are in [`data/deep-study/`](data/deep-study/).
 
 ## Checkpoint provenance
@@ -111,6 +113,15 @@ available KV by rank. The limiting rank needed 1.48 GiB and estimated only a
 4,352-token maximum, so the API never became ready and zero requests were
 issued. This proves backend compatibility, not usable MTP throughput.
 
+P6 tested that same split at a separately labeled 9,216-token envelope, 95%
+static HBM utilization, and C1/C2/C4/C8 planned workload. Two controlled starts
+reached a healthy API and exposed 116,416 and 179,264 coordinated KV tokens,
+both above the 16,384-token pre-request minimum. The first stopped on SSH
+Go-template quoting in the audit; the one authorized retry stopped because the
+audit incorrectly expected vLLM's global EngineCore KV-token marker in both
+worker logs. Both issued zero benchmark requests. P6 therefore has no decode,
+prefill, speculative-acceptance, target-step, quality, or network result.
+
 P0's quiet before/after RoCE counters recorded 1.236 TB in each direction over
 372.4 seconds, or 26.55 Gb/s average, with no health-counter deltas. That is a
 whole-matrix average, not a peak-link or bottleneck claim. P3 recorded 1.233 TB
@@ -124,7 +135,8 @@ kernel scan, and returned to 2–7 MiB idle HBM per rank. See the frozen
 [`P2 incompatibility evidence`](data/deep-study/2026-08-20-p2-vllm-cutlass-incompatible/),
 [`P3 autotune evidence`](data/deep-study/2026-08-20-p3-cutedsl-autotune-on/),
 [`P4 MTP1 incompatibility evidence`](data/deep-study/2026-08-20-p4-mtp1-cutedsl-incompatible/),
-and [`P5 split-backend capacity evidence`](data/deep-study/2026-08-20-p5-mtp1-split-bootstrap-capacity/).
+[`P5 split-backend capacity evidence`](data/deep-study/2026-08-20-p5-mtp1-split-bootstrap-capacity/),
+and [`P6 short-context harness evidence`](data/deep-study/2026-08-20-p6-mtp1-short-context-harness-only/).
 
 ## One DGX Station: capacity result
 

@@ -13,7 +13,12 @@ case "$node_rank" in
 esac
 readonly node_ip
 readonly model_dir="${MODEL_DIR:?Set MODEL_DIR}"
-readonly cache_dir="${CACHE_ROOT:?Set CACHE_ROOT}/vllm/${PROFILE_ID:-$CONTAINER_NAME}"
+readonly cache_profile_id="${CACHE_PROFILE_ID:-${PROFILE_ID:-$CONTAINER_NAME}}"
+[[ "$cache_profile_id" =~ ^[a-z0-9][a-z0-9-]{2,80}$ ]] || {
+  echo "Unsafe compiler-cache profile ID" >&2
+  exit 2
+}
+readonly cache_dir="${CACHE_ROOT:?Set CACHE_ROOT}/vllm/$cache_profile_id"
 readonly expected_image="vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967"
 
 [[ "${RUNTIME_IMAGE:?}" == "$expected_image" ]] || { echo "Unpinned vLLM image" >&2; exit 2; }

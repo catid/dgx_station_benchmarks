@@ -9,6 +9,9 @@ was incompatible with the required EP2 configuration. P4 showed that native
 MTP's unquantized draft MoE cannot use the P0 CuTeDSL backend in the pinned
 stock runtime. P5 confirmed the stock per-draft FlashInfer-CUTLASS override,
 but its conservative 32K bootstrap failed KV capacity before API readiness.
+P6 reached API readiness and sufficient capacity at a shorter 9,216-token
+envelope, but two pre-request audit-harness failures produced zero benchmark
+requests and no performance result.
 
 The target is
 [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) at
@@ -64,12 +67,30 @@ ranks proved the intended split mapping. The limiting rank exposed only 0.20
 GiB KV and an estimated 4,352-token maximum, so the API never became ready and
 no request was issued.
 
+P6 used the same split with a separately labeled 9,216-token maximum, eight
+sequences, 16,384 batched tokens, CUDA graphs through eight, and 95% static HBM
+utilization. Both controlled starts reached a healthy API and exceeded the
+16,384-token coordinated KV minimum, at 116,416 and 179,264 tokens. The first
+stopped because SSH argument boundaries broke Docker's Go-template during the
+pre-request environment audit. After an offline quoting fix, the one authorized
+retry stopped because the audit treated vLLM's coordinated EngineCore KV-token
+count as a rank-local log marker. Both issued zero requests; no throughput or
+acceptance result exists.
+
+The corrected [`verify_split_mtp_pair.sh`](verify_split_mtp_pair.sh) now checks
+backend mapping, MRv1, fatal markers, and available-KV memory independently on
+both ranks, then checks the coordinated token capacity once in the API-rank
+EngineCore log. [`test_offline.py`](test_offline.py) includes a regression case
+whose remote worker log intentionally omits the global token marker. This fix
+was not used to justify a third attempt.
+
 These are capacity dispositions at the fixed 135,168-token profile, not
 throughput comparisons. The accepted and excluded records, source hashes, and
 per-directory checksums are in
 [`../../data/deep-study/`](../../data/deep-study/). Additional MTP depths remain
-blocked by measured capacity; PP2, SGLang, and chunked-prefill experiments
-below remain pending and must pass the same gates before publication.
+unmeasured; P6 proved only short-context startup capacity, not request-serving
+correctness or speed. PP2, SGLang, and chunked-prefill experiments below remain
+pending and must pass the same gates before publication.
 
 ## What is pinned
 
@@ -205,9 +226,12 @@ python3 resolve_plan.py vllm-tp2-mtp1-split-bootstrap
 ```
 
 The P5 32K bootstrap selected both intended backends but failed before API
-readiness at 3.42 / 0.20 GiB available KV by rank. Do not treat backend mapping
-as a throughput result or run the full MTP depth matrix until a separately
-labeled profile passes its pre-request capacity and correctness gates.
+readiness at 3.42 / 0.20 GiB available KV by rank. P6's separate short-context
+profile reached a healthy API and sufficient coordinated KV capacity twice,
+but its audit harness stopped before requests. Do not treat either backend
+mapping or startup capacity as a throughput result, and do not run the full MTP
+depth matrix until a request-bearing profile passes the correctness and
+telemetry gates.
 
 Once a compatible path exists, run native vLLM MTP at N=0,1,2,3,5 on TP2 and
 record acceptance length, draft count, position acceptance, and target-step
