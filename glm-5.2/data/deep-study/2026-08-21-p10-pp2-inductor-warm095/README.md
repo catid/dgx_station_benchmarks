@@ -1,4 +1,4 @@
-# P10: accepted full-context PP2 performance with warm caches
+# P10: structurally accepted PP2 run; decode-performance failure
 
 P10 is the first accepted request-bearing GLM-5.2 PP2 performance profile in
 this study. It kept P9's 40/38 pipeline split, explicit 64-token KV block,
@@ -6,6 +6,10 @@ CuTeDSL backend, Inductor compilation, CUDA graph mode `NONE`, full
 135,168-token context, and complete workload. The only declared profile change
 was HBM utilization from 93% to 95%; P10 also started after P9 had populated
 the PP-specific AOT and checkpoint page caches.
+
+It passed the structural gates, but it is **not recommended for serving**:
+decode reached only 13.5–58.9% of P0 across C1–C128. The higher standalone-
+prefill result is retained separately and does not reverse that decode verdict.
 
 ![P0 and P10 exact-configuration decode and prefill comparison](../../../charts/deep-study-p10-topology-comparison.png)
 
