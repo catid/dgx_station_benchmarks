@@ -35,6 +35,9 @@ caches. It passed full-context
 capacity, correctness, quality, network, and C1–C128/8K–128K performance
 gates. Compact evidence and checksums are in
 [`data/deep-study/`](data/deep-study/).
+P11–P13 then held the accepted P0 TP2 server profile fixed and swept vLLM's
+maximum batched-token/prefill-chunk setting at 4K, 8K, and 16K against the
+frozen 32K control.
 
 ## Checkpoint provenance
 
@@ -218,7 +221,39 @@ kernel scan, and returned to 2–8 MiB idle HBM per rank. See the frozen
 [`P7 PP2 incompatibility evidence`](data/deep-study/2026-08-20-p7-pp2-kv-block-incompatible/),
 [`P8 PP2 block64 correctness evidence`](data/deep-study/2026-08-21-p8-pp2-block64-eager-correctness/),
 [`P9 PP2 Inductor capacity evidence`](data/deep-study/2026-08-21-p9-pp2-inductor-full-capacity/),
-and [`P10 accepted PP2 performance evidence`](data/deep-study/2026-08-21-p10-pp2-inductor-warm095/).
+[`P10 accepted PP2 performance evidence`](data/deep-study/2026-08-21-p10-pp2-inductor-warm095/),
+and [`P11–P13 TP2 prefill-chunk evidence`](data/deep-study/2026-08-21-p11-p13-tp2-prefill-chunk-sweep/).
+
+## TP2 prefill chunk-size sweep
+
+P11–P13 use the same checkpoint, image, TP2/EP2 topology, CuTeDSL backend,
+FP8 KV, 93% HBM utilization, 135,168-token ceiling, prefix caching, and CUDA
+graph policy as P0. The only semantic server-argument change is
+`--max-num-batched-tokens`; the new arms run only standalone prefill, while P0
+supplies the 32K control from its identical prefill phase.
+
+| Max batched tokens | 8K prefill | 64K prefill | 128K prefill | Observed KV capacity |
+| ---: | ---: | ---: | ---: | ---: |
+| 4K | 6,661 tok/s<br><sub>1.230s · N=7</sub> | 6,584<br><sub>9.954s · N=1</sub> | 6,372<br><sub>20.570s · N=1</sub> | 329,408 tokens |
+| **8K** | **7,317**<br><sub>**1.120s · N=7**</sub> | 7,260<br><sub>9.028s · N=2</sub> | 7,069<br><sub>18.542s · N=1</sub> | 310,784 tokens |
+| 16K | 6,345<br><sub>1.291s · N=7</sub> | 7,294<br><sub>8.985s · N=2</sub> | 7,118<br><sub>18.414s · N=1</sub> | 218,624 tokens |
+| **32K (P0)** | 6,223<br><sub>1.317s · N=7</sub> | **7,461**<br><sub>**8.785s · N=2**</sub> | **7,179**<br><sub>**18.258s · N=1**</sub> | 261,952 tokens |
+
+![GLM-5.2 TP2 prefill chunk-size sweep](charts/deep-study-p11-p13-prefill-chunk-sweep.png)
+
+The 8K chunk led at 8K input (+17.58% versus P0), while the 32K control led at
+64K and 128K. The benchmark uses a fixed 10-second window per context, checked
+between completed requests, so sample counts depend on request duration. Each
+arm also incurred one runtime JIT event inside a measured long-context sample;
+the prompts used different generated padding seeds, and 128K is N=1. These are
+directional single-run results, not repeated warm steady-state estimates.
+
+All new-arm prompt tokens were locally computed with zero cached tokens,
+prefix hits, preemptions, aborts, request errors, or repetition finishes. No
+natural text was retained for the lean prefill-only arms, so they establish
+request health rather than semantic quality. Observed KV capacity includes
+startup-profiler variance and should not be read as a guaranteed monotonic
+chunk-size effect.
 
 ## One DGX Station: capacity result
 

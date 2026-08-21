@@ -1,0 +1,13 @@
+chunk_tokens,profile_id,source,context_target_tokens,actual_prompt_tokens,ttft_seconds,client_tok_per_s,samples,delta_vs_chunk32768_pct
+4096,vllm-tp2-prefill-4096,prefill_only_sweep,8192,8194,1.23,6661.0,7,7.038405913546519
+4096,vllm-tp2-prefill-4096,prefill_only_sweep,65536,65538,9.954,6584.0,1,-11.75445650717062
+4096,vllm-tp2-prefill-4096,prefill_only_sweep,131072,131074,20.57,6372.0,1,-11.241119933138322
+8192,vllm-tp2-prefill-8192,prefill_only_sweep,8192,8194,1.12,7317.0,7,17.57994536397236
+8192,vllm-tp2-prefill-8192,prefill_only_sweep,65536,65538,9.028,7260.0,2,-2.694008845999196
+8192,vllm-tp2-prefill-8192,prefill_only_sweep,131072,131073,18.542,7069.0,1,-1.5322468310349668
+16384,vllm-tp2-prefill-16384,prefill_only_sweep,8192,8194,1.291,6345.0,7,1.9604692270609014
+16384,vllm-tp2-prefill-16384,prefill_only_sweep,65536,65538,8.985,7294.0,2,-2.2383058571237124
+16384,vllm-tp2-prefill-16384,prefill_only_sweep,131072,131074,18.414,7118.0,1,-0.8497005153921156
+32768,vllm-tp2-exact,frozen_p0_control,8192,8194,1.317,6223.0,7,0.0
+32768,vllm-tp2-exact,frozen_p0_control,65536,65538,8.785,7461.0,2,0.0
+32768,vllm-tp2-exact,frozen_p0_control,131072,131073,18.258,7179.0,1,0.0

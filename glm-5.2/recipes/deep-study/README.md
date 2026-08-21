@@ -23,6 +23,9 @@ P10 retained P9's declared profile except for 95% rather than 93% HBM
 utilization and started from the PP-specific AOT and checkpoint page caches
 populated by P9. It reached a healthy API with 494,528 KV tokens and completed
 the full performance, correctness, natural-output, and network matrix.
+P11–P13 then swept vLLM's fixed maximum batched-token/prefill chunk at 8K,
+16K, and 4K, in that measured order, against P0's 32K control. All three
+prefill-only arms passed capacity, request/cache, network, and teardown gates.
 
 The target is
 [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) at
@@ -104,9 +107,8 @@ correctness or speed. P8 supersedes P7's vLLM PP2 startup diagnosis for the
 explicit block64 path, but validates only eager correctness; reportable
 Inductor-without-CUDA-graphs performance is now measured by P10, with the
 warm-cache/utilization and allocator-warning caveats retained in its evidence.
-SGLang and
-chunked-prefill experiments below remain pending and must pass the same gates
-before publication.
+The vLLM chunk sweep is now published; the SGLang control and SGLang chunk
+sweep remain pending and must pass the same gates before publication.
 
 ## What is pinned
 
@@ -344,9 +346,24 @@ parallelism. Speculative decoding is omitted from both stable SGLang arms.
 
 ### 6. Fixed prefill chunk sweep
 
+The published vLLM arms were run sequentially in this exact order:
+
 ```bash
-bash run_matrix.sh prefill-vllm \
-  --winner-backend flashinfer_cutedsl --execute
+bash run_headline.sh vllm-tp2-prefill-8192 --execute
+bash run_headline.sh vllm-tp2-prefill-16384 --execute
+bash run_headline.sh vllm-tp2-prefill-4096 --execute
+```
+
+P0's accepted 32,768-token standalone-prefill phase is the frozen control. To
+run all four fixed vLLM profiles as a new local matrix instead, use:
+
+```bash
+bash run_matrix.sh prefill-vllm --execute
+```
+
+The SGLang sweep remains unmeasured:
+
+```bash
 bash run_matrix.sh prefill-sglang --execute
 ```
 
@@ -354,14 +371,28 @@ The values are 4,096, 8,192, 16,384, and 32,768. vLLM varies
 `--max-num-batched-tokens`; SGLang varies `--chunked-prefill-size`. These
 profiles use `llm-inference-bench --prefill-only` at 8K/64K/128K. Dynamic
 SGLang chunking is a later experiment after a fixed-size winner is known.
+vLLM standalone prefill uses a fixed 10-second sampling window per context,
+checked between completed requests, with at least one and at most seven
+samples. Each measured request uses a unique prefix. The accepted P11–P13
+evidence, exact values, JIT/sample-count caveats, and raw-source hashes are in
+[`../../data/deep-study/2026-08-21-p11-p13-tp2-prefill-chunk-sweep/`](../../data/deep-study/2026-08-21-p11-p13-tp2-prefill-chunk-sweep/).
+
+Regenerate its deterministic chart from the checked-in CSV with:
+
+```bash
+python3 render_prefill_chunk_sweep.py
+```
 
 ## Result gates
 
 [`run_headline.sh`](run_headline.sh) saves the resolved plan before launch,
 captures low-overhead RoCE counters immediately before and after the workload,
-runs the benchmark and natural-output audit, preserves both container commands
-and logs, sends SIGTERM to both ranks concurrently, waits for clean exits, and
-then removes only the stopped named containers. It also records host
+runs the benchmark and, for request-bearing headline profiles, the
+natural-output audit. Prefill-only profiles deliberately retain no natural
+outputs and are labeled `not-run` for semantic quality. The runner preserves
+both container commands and logs, sends SIGTERM to both ranks concurrently,
+waits for clean exits, and then removes only the stopped named containers. It
+also records host
 NUMA/cgroup/page-cache snapshots before, during, and after the run, repeats the
 kernel-danger scan, enforces the post-teardown idle-HBM gate, and calls
 [`validate_run.py`](validate_run.py). The validator rejects:
