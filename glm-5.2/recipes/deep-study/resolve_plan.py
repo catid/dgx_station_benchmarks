@@ -25,6 +25,8 @@ SGLANG_BACKENDS = {
 }
 ALLOWED_MTP = {0, 1, 2, 3, 5}
 ALLOWED_CHUNKS = {4096, 8192, 16384, 32768}
+ALLOWED_CUDAGRAPH_SIZES = {1, 2, 4, 8, 16, 32, 64, 128}
+ALLOWED_DRAFT_MOE_BACKENDS = {"flashinfer_cutlass"}
 
 
 class PlanError(ValueError):
@@ -127,6 +129,20 @@ def validate(plan: dict[str, Any]) -> None:
         raise PlanError(f"unsupported SGLang MoE runner: {backend}")
     if runtime == "sglang" and mtp_tokens:
         raise PlanError("SGLang speculative GLM TP2 is quarantined in this study")
+    draft_moe_backend = speculation.get("moe_backend")
+    if mtp_tokens == 0 and draft_moe_backend is not None:
+        raise PlanError("MTP=0 must not set a draft MoE backend")
+    if mtp_tokens > 0:
+        if backend != "flashinfer_cutedsl":
+            raise PlanError("the audited split-MTP path requires a CuTeDSL target")
+        if draft_moe_backend not in ALLOWED_DRAFT_MOE_BACKENDS:
+            raise PlanError(
+                "CuTeDSL MTP requires the audited FlashInfer CUTLASS draft override"
+            )
+        if plan.get("vllm_use_v2_model_runner") != 0:
+            raise PlanError("the audited split-MTP path requires VLLM_USE_V2_MODEL_RUNNER=0")
+    if plan.get("phase") == "native-mtp" and plan.get("vllm_use_v2_model_runner") != 0:
+        raise PlanError("the MTP control and candidates must use the same MRv1 path")
     if topology == "pp2" and bool(plan.get("flashinfer_autotune")):
         raise PlanError("FlashInfer autotune is forbidden for PP2")
     if bool(plan.get("flashinfer_autotune")) and backend == "cutlass":
@@ -145,6 +161,14 @@ def validate(plan: dict[str, Any]) -> None:
     for field in ("max_model_len", "max_num_seqs", "max_num_batched_tokens"):
         if int(plan.get(field, 0)) <= 0:
             raise PlanError(f"{field} must be positive")
+    graph_sizes = [int(value) for value in plan.get("cudagraph_capture_sizes", [])]
+    if (
+        not graph_sizes
+        or graph_sizes != sorted(set(graph_sizes))
+        or any(value not in ALLOWED_CUDAGRAPH_SIZES for value in graph_sizes)
+        or graph_sizes[-1] > int(plan["max_num_seqs"])
+    ):
+        raise PlanError("invalid or oversized CUDA graph capture grid")
     utilization = float(plan.get("gpu_memory_utilization", 0))
     if not 0.5 <= utilization <= 0.95:
         raise PlanError("GPU memory utilization must stay in [0.5, 0.95]")
@@ -157,6 +181,22 @@ def validate(plan: dict[str, Any]) -> None:
     prefill = [int(value) for value in benchmark.get("prefill_context_tokens", [])]
     if not prefill or max(prefill) >= int(plan["max_model_len"]):
         raise PlanError("prefill target must fit below max_model_len")
+    if plan.get("phase") == "native-mtp-split-bootstrap":
+        expected = {
+            "max_model_len": 32768,
+            "max_num_seqs": 16,
+            "max_num_batched_tokens": 16384,
+        }
+        if any(int(plan[key]) != value for key, value in expected.items()):
+            raise PlanError("split-MTP bootstrap envelope must remain conservative")
+        if graph_sizes != [1, 2, 4, 8, 16]:
+            raise PlanError("split-MTP bootstrap CUDA graph grid must stop at 16")
+        if [int(value) for value in benchmark.get("concurrencies", [])] != [1, 2, 4, 8, 16]:
+            raise PlanError("split-MTP bootstrap concurrency grid must be C1-C16")
+        if prefill != [8192]:
+            raise PlanError("split-MTP bootstrap permits only the 8K prefill check")
+        if int(benchmark.get("minimum_kv_tokens", 0)) != 24578:
+            raise PlanError("split-MTP bootstrap capacity gate must cover 8,194 + 16x1,024")
     if plan.get("phase") == "prefill-chunk":
         chunk = int(plan.get("chunked_prefill_size", 0))
         if chunk not in ALLOWED_CHUNKS:
@@ -183,6 +223,15 @@ def shell_assignments(plan: dict[str, Any]) -> str:
         "MOE_BACKEND": plan["moe_backend"],
         "FLASHINFER_AUTOTUNE": "on" if plan["flashinfer_autotune"] else "off",
         "MTP_TOKENS": speculation["num_speculative_tokens"],
+        "MTP_DRAFT_MOE_BACKEND": speculation.get("moe_backend") or "",
+        "VLLM_USE_V2_MODEL_RUNNER": (
+            "" if plan.get("vllm_use_v2_model_runner") is None
+            else plan["vllm_use_v2_model_runner"]
+        ),
+        "CUDAGRAPH_CAPTURE_SIZES": " ".join(
+            map(str, plan["cudagraph_capture_sizes"])
+        ),
+        "MAX_CUDAGRAPH_CAPTURE_SIZE": max(plan["cudagraph_capture_sizes"]),
         "KV_CACHE_DTYPE": plan["kv_cache_dtype"],
         "MAX_MODEL_LEN": plan["max_model_len"],
         "MAX_NUM_SEQS": plan["max_num_seqs"],

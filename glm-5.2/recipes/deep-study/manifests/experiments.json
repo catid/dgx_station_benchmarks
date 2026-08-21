@@ -6,6 +6,8 @@
     "max_model_len": 135168,
     "max_num_seqs": 128,
     "max_num_batched_tokens": 32768,
+    "cudagraph_capture_sizes": [1, 2, 4, 8, 16, 32, 64, 128],
+    "vllm_use_v2_model_runner": null,
     "gpu_memory_utilization": 0.93,
     "cpu_offload_gb": 0,
     "prefix_caching": true,
@@ -86,6 +88,7 @@
       "pp_size": 1,
       "expert_parallel_size": 2,
       "moe_backend": "$WINNER_BACKEND",
+      "vllm_use_v2_model_runner": 0,
       "reportable": true
     },
     "vllm-tp2-mtp1": {
@@ -96,7 +99,8 @@
       "pp_size": 1,
       "expert_parallel_size": 2,
       "moe_backend": "$WINNER_BACKEND",
-      "speculation": {"method": "mtp", "num_speculative_tokens": 1},
+      "speculation": {"method": "mtp", "num_speculative_tokens": 1, "moe_backend": "flashinfer_cutlass"},
+      "vllm_use_v2_model_runner": 0,
       "reportable": true
     },
     "vllm-tp2-mtp2": {
@@ -107,7 +111,8 @@
       "pp_size": 1,
       "expert_parallel_size": 2,
       "moe_backend": "$WINNER_BACKEND",
-      "speculation": {"method": "mtp", "num_speculative_tokens": 2},
+      "speculation": {"method": "mtp", "num_speculative_tokens": 2, "moe_backend": "flashinfer_cutlass"},
+      "vllm_use_v2_model_runner": 0,
       "reportable": true
     },
     "vllm-tp2-mtp3": {
@@ -118,7 +123,8 @@
       "pp_size": 1,
       "expert_parallel_size": 2,
       "moe_backend": "$WINNER_BACKEND",
-      "speculation": {"method": "mtp", "num_speculative_tokens": 3},
+      "speculation": {"method": "mtp", "num_speculative_tokens": 3, "moe_backend": "flashinfer_cutlass"},
+      "vllm_use_v2_model_runner": 0,
       "reportable": true
     },
     "vllm-tp2-mtp5": {
@@ -129,7 +135,36 @@
       "pp_size": 1,
       "expert_parallel_size": 2,
       "moe_backend": "$WINNER_BACKEND",
-      "speculation": {"method": "mtp", "num_speculative_tokens": 5},
+      "speculation": {"method": "mtp", "num_speculative_tokens": 5, "moe_backend": "flashinfer_cutlass"},
+      "vllm_use_v2_model_runner": 0,
+      "reportable": true
+    },
+    "vllm-tp2-mtp1-split-bootstrap": {
+      "phase": "native-mtp-split-bootstrap",
+      "runtime": "vllm",
+      "topology": "tp2",
+      "tp_size": 2,
+      "pp_size": 1,
+      "expert_parallel_size": 2,
+      "moe_backend": "flashinfer_cutedsl",
+      "speculation": {"method": "mtp", "num_speculative_tokens": 1, "moe_backend": "flashinfer_cutlass"},
+      "vllm_use_v2_model_runner": 0,
+      "max_model_len": 32768,
+      "max_num_seqs": 16,
+      "max_num_batched_tokens": 16384,
+      "chunked_prefill_size": 16384,
+      "cudagraph_capture_sizes": [1, 2, 4, 8, 16],
+      "benchmark": {
+        "mode": "headline",
+        "concurrencies": [1, 2, 4, 8, 16],
+        "decode_context_tokens": 8192,
+        "max_output_tokens": 1024,
+        "duration_seconds": 30,
+        "prefill_context_tokens": [8192],
+        "temperature": 0,
+        "shared_prefix": true,
+        "minimum_kv_tokens": 24578
+      },
       "reportable": true
     },
     "vllm-pp2-balanced-bootstrap": {
@@ -145,6 +180,7 @@
       "max_model_len": 8192,
       "max_num_seqs": 16,
       "max_num_batched_tokens": 4096,
+      "cudagraph_capture_sizes": [1, 2, 4, 8, 16],
       "benchmark": {
         "mode": "bootstrap",
         "concurrencies": [1],

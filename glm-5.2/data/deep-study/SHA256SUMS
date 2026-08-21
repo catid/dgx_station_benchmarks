@@ -31,4 +31,8 @@ ddf4d0c3f07ec84b9e949caa4e9c71aea5fe14b089ffaf2e0d0ba9bc0bd886e5  ./2026-08-20-p
 cbd3a36dbc029bc7b227675a0b4dfb17c9141b27732785b7f0751ef33ef86a80  ./2026-08-20-p4-mtp1-cutedsl-incompatible/SHA256SUMS
 a48a3939c99bb3350f91c667049e145d735918f41f14fd457d7ac726c59ee434  ./2026-08-20-p4-mtp1-cutedsl-incompatible/failure-summary.json
 6d14623d90ebb0d1541da1e4f4bc5314ad14c05c0cd96775ab564d434902a7b1  ./2026-08-20-p4-mtp1-cutedsl-incompatible/resolved-plan.json
-30b518c240140e1569f13c266c634479330237d411503399c10dc9bf1afda121  ./README.md
+b12827596d7ee751497824b6c70ecff928f4bad4cfbece7ce026107eea3776f3  ./2026-08-20-p5-mtp1-split-bootstrap-capacity/README.md
+357fdcac5d5ed473e66fc0a597b8a5a1d7e83e56f611c504e64f755865206c39  ./2026-08-20-p5-mtp1-split-bootstrap-capacity/SHA256SUMS
+bf7d31154dbc25651c2ebeb24f5bdb7f2faf764f3e8db4d80b75ad93d2ad573a  ./2026-08-20-p5-mtp1-split-bootstrap-capacity/failure-summary.json
+af5c64c93633246fac1b4c526c9ded54a44124b51012c174fce9f8a5e9b34b43  ./2026-08-20-p5-mtp1-split-bootstrap-capacity/resolved-plan.json
+5ee216923851d5db539e5bdeea4c59965a6999c494ea3281a8700a91b968bb49  ./README.md

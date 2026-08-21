@@ -37,7 +37,7 @@ require_execution_opt_in
 }
 readonly result_dir="${RESULT_ROOT:?Set RESULT_ROOT}/$PROFILE_ID"
 [[ ! -e "$result_dir" ]] || { echo "Refusing to overwrite $result_dir" >&2; exit 4; }
-mkdir -p "$result_dir"/{benchmark,network,runtime,quality}
+mkdir -p "$result_dir"/{benchmark,network,runtime,quality,memory}
 
 plan_args=("$profile")
 launch_args=("$profile")
@@ -57,18 +57,40 @@ cleanup() {
     # shellcheck disable=SC2029  # The manifest-derived name is expanded locally.
     ssh "${REMOTE_HOST:?}" docker logs "$CONTAINER_NAME" \
       >"$result_dir/runtime/node1-server-failed.log" 2>&1 || true
-    ALLOW_GPU_EXECUTION=YES bash "$here/stop_cluster.sh" "${stop_args[@]}" --execute >/dev/null 2>&1 || true
+    ALLOW_GPU_EXECUTION=YES bash "$here/stop_cluster.sh" "${stop_args[@]}" --execute \
+      >"$result_dir/runtime/teardown-after-failure.log" 2>&1 || true
+    CONTAINER_NAME="$CONTAINER_NAME" REMOTE_HOST="${REMOTE_HOST:?}" \
+      bash "$here/capture_host_memory_pair.sh" after-failed "$result_dir/memory" \
+      >"$result_dir/runtime/memory-capture-after-failure.log" 2>&1 || true
+    if REMOTE_HOST="${REMOTE_HOST:?}" bash "$here/check_kernel_danger_pair.sh" \
+      "$result_dir/runtime/kernel-danger-after-failure.txt" \
+      >"$result_dir/runtime/kernel-danger-scan-after-failure.log" 2>&1; then
+      REMOTE_HOST="${REMOTE_HOST:?}" MAX_IDLE_HBM_MIB="${MAX_IDLE_HBM_MIB:-1024}" \
+        bash "${PREFLIGHT_IDLE_HBM_SCRIPT:-$here/preflight_idle_hbm.sh}" \
+        >"$result_dir/runtime/idle-hbm-after-failure.txt" 2>&1 || true
+    fi
     echo "Run failed; retained available logs under $result_dir. No retry was attempted." >&2
   fi
   exit "$status"
 }
 trap cleanup EXIT INT TERM
 
+CONTAINER_NAME="$CONTAINER_NAME" REMOTE_HOST="${REMOTE_HOST:?}" \
+  bash "$here/capture_host_memory_pair.sh" before "$result_dir/memory"
 CHECKPOINT_REPORT_DIR="$result_dir/runtime" NCCL_TRACE_MODE=headline \
   bash "$here/launch_cluster.sh" "${launch_args[@]}" --execute \
   2>&1 | tee "$result_dir/runtime/launch.log"
 CONTAINER_NAME="$CONTAINER_NAME" REMOTE_HOST="${REMOTE_HOST:?}" \
   bash "$here/wait_for_server.sh"
+if [[ -n "${MTP_DRAFT_MOE_BACKEND:-}" ]]; then
+  CONTAINER_NAME="$CONTAINER_NAME" REMOTE_HOST="${REMOTE_HOST:?}" \
+  MOE_BACKEND="$MOE_BACKEND" MTP_DRAFT_MOE_BACKEND="$MTP_DRAFT_MOE_BACKEND" \
+  MINIMUM_KV_TOKENS="$MINIMUM_KV_TOKENS" \
+    bash "$here/verify_split_mtp_pair.sh" \
+    | tee "$result_dir/runtime/backend-gate-before-requests.txt"
+fi
+CONTAINER_NAME="$CONTAINER_NAME" REMOTE_HOST="${REMOTE_HOST:?}" \
+  bash "$here/capture_host_memory_pair.sh" during "$result_dir/memory"
 curl --fail --silent http://127.0.0.1:30000/metrics >"$result_dir/runtime/metrics-before.txt" || true
 REMOTE_HOST="${REMOTE_HOST:?}" FABRIC_IFACE="${FABRIC_IFACE:?}" FABRIC_HCA="${FABRIC_HCA:?}" \
   bash "$here/capture_roce_pair.sh" before "$result_dir/network"
@@ -94,6 +116,13 @@ EVAL_DIR="${EVAL_DIR:-}" \
   bash "$here/collect_runtime.sh"
 
 ALLOW_GPU_EXECUTION=YES bash "$here/stop_cluster.sh" "${stop_args[@]}" --execute
+REMOTE_HOST="${REMOTE_HOST:?}" \
+  bash "$here/check_kernel_danger_pair.sh" "$result_dir/runtime/kernel-danger-after.txt"
+REMOTE_HOST="${REMOTE_HOST:?}" MAX_IDLE_HBM_MIB="${MAX_IDLE_HBM_MIB:-1024}" \
+  bash "${PREFLIGHT_IDLE_HBM_SCRIPT:-$here/preflight_idle_hbm.sh}" \
+  >"$result_dir/runtime/idle-hbm-after.txt"
+CONTAINER_NAME="$CONTAINER_NAME" REMOTE_HOST="${REMOTE_HOST:?}" \
+  bash "$here/capture_host_memory_pair.sh" after "$result_dir/memory"
 PYTHONDONTWRITEBYTECODE=1 python3 "$here/diff_roce_counters.py" "$result_dir/network" \
   >"$result_dir/network/delta.json"
 PYTHONDONTWRITEBYTECODE=1 python3 "$here/validate_run.py" "$result_dir" \
