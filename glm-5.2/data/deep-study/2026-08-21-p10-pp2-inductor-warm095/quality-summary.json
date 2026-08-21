@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "text_metric_scope": "Combined parsed reasoning_content plus final content; coherence/degeneration checks, not factual-accuracy evaluation.",
+  "preheadline_correctness_gate": {
+    "prompt_tokens": 8192,
+    "settings": {"temperature": 0, "seed": 0, "ignore_eos": true, "sequential": true},
+    "prompt_messages_sha256": "6dc4f84a2fae126f4862f9a26bf065d22612d6be68cd3854e4087ebb2cccaa1f",
+    "outputs": [
+      {"output_tokens": 512, "finish_reason": "length", "characters": 2436, "words": 306, "unique_word_ratio": 0.5718954248366013, "printable_fraction": 1.0, "ascii_fraction": 1.0, "alphanumeric_fraction": 0.9262418464626192, "max_identical_character_run": 3, "max_identical_word_run": 1, "repeated_8gram_fraction": 0.010033444816053512, "flagged": false, "sha256": "7ca933ab039bef4047abcaa7924bbab6a03563451acc6017bac578b08ec32522"},
+      {"output_tokens": 4097, "finish_reason": "length", "characters": 16948, "words": 2207, "unique_word_ratio": 0.4218396012686905, "printable_fraction": 1.0, "ascii_fraction": 0.9984305892424026, "alphanumeric_fraction": 0.9073334284491368, "max_identical_character_run": 3, "max_identical_word_run": 2, "repeated_8gram_fraction": 0.01, "flagged": false, "sha256": "ef4a5909066c9dea914030d39bd2960537c42b2ab97b7d669bf88e9744bb2645"}
+    ],
+    "failures": []
+  },
+  "natural_output_audit": {
+    "temperature": 0,
+    "max_tokens": 4096,
+    "outputs": [
+      {"prompt_index": 0, "prompt_tokens": 32, "completion_tokens": 906, "finish_reason": "stop", "characters": 4063, "words": 626, "unique_word_ratio": 0.3961661341853035, "max_identical_character_run": 2, "max_identical_word_run": 1, "repeated_8gram_fraction": 0.06946688206785137, "flagged": false, "sha256": "51772cba8e72e0764bb86f170e228859f7871a9b0f1404a3e4ddb9c4c6774c18"},
+      {"prompt_index": 1, "prompt_tokens": 48, "completion_tokens": 1444, "finish_reason": "stop", "characters": 4666, "words": 824, "unique_word_ratio": 0.3470873786407767, "max_identical_character_run": 3, "max_identical_word_run": 1, "repeated_8gram_fraction": 0.0036719706242350062, "flagged": false, "sha256": "0befc5e763de488af7bb89c8ef6c6a12f656d7620784af572705774b73d13b3c"},
+      {"prompt_index": 2, "prompt_tokens": 31, "completion_tokens": 1005, "finish_reason": "stop", "characters": 4384, "words": 643, "unique_word_ratio": 0.38724727838258166, "max_identical_character_run": 3, "max_identical_word_run": 1, "repeated_8gram_fraction": 0.009433962264150943, "flagged": false, "sha256": "c4218aa5fb39b33a5ddb7244f73a7bb01934fa34c75e8eca45f2a65fa1a28057"},
+      {"prompt_index": 3, "prompt_tokens": 39, "completion_tokens": 2612, "finish_reason": "stop", "characters": 11186, "words": 1663, "unique_word_ratio": 0.4101022248947685, "max_identical_character_run": 3, "max_identical_word_run": 2, "repeated_8gram_fraction": 0.0024154589371980675, "flagged": false, "sha256": "996eabc1dcc49f70a30cebcc8faddcf0d3fc0a3047eeca1ec0636033a3bfa3a4"}
+    ],
+    "output_count": 4,
+    "finish_reason_stop": 4,
+    "automatic_flags": 0
+  },
+  "raw_preheadline_gate_sha256": "4fbd568122b8a66169cdeb87e531fe42376b72735361f2a9bbfc2cdc58d2738d",
+  "raw_natural_audit_sha256": "8c8029ba74dcb6717b38314d0c0b641ae62af8666016b119ce45c6cdd319993b"
+}

@@ -19,6 +19,10 @@ text-corruption checks. The greedy pairs were coherent but not byte-identical;
 P8 has no performance row. P9 enabled Inductor with CUDA graphs disabled at the
 full P0 envelope. Both stages compiled, but PP1 retained only 0.28 GiB for KV;
 the API failed capacity before the correctness gate or any benchmark request.
+P10 retained P9's declared profile except for 95% rather than 93% HBM
+utilization and started from the PP-specific AOT and checkpoint page caches
+populated by P9. It reached a healthy API with 494,528 KV tokens and completed
+the full performance, correctness, natural-output, and network matrix.
 
 The target is
 [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) at
@@ -98,8 +102,9 @@ per-directory checksums are in
 unmeasured; P6 proved only short-context startup capacity, not request-serving
 correctness or speed. P8 supersedes P7's vLLM PP2 startup diagnosis for the
 explicit block64 path, but validates only eager correctness; reportable
-Inductor-without-CUDA-graphs performance remains unmeasured because P9 failed
-the full-context capacity gate at 93% HBM utilization. SGLang and
+Inductor-without-CUDA-graphs performance is now measured by P10, with the
+warm-cache/utilization and allocator-warning caveats retained in its evidence.
+SGLang and
 chunked-prefill experiments below remain pending and must pass the same gates
 before publication.
 
@@ -299,6 +304,33 @@ available KV memory. The limiting stage needed 2.9 GiB, estimated a 12,864-token
 maximum, and failed before API readiness. P9 issued zero requests and has no
 throughput, prefill, quality, or network row. Its immutable disposition is in
 [`../../data/deep-study/2026-08-21-p9-pp2-inductor-full-capacity/`](../../data/deep-study/2026-08-21-p9-pp2-inductor-full-capacity/).
+
+P10 changed only the declared profile's HBM utilization from 0.93 to 0.95,
+but it ran after P9 populated the PP-specific AOT and checkpoint page caches.
+It passed the same full-context/workload envelope, initialized 494,528
+coordinated KV tokens, and completed all 8 decode and 3 standalone-prefill
+cells. Its P0/P10 inputs, quality/capacity/network summaries, and graph are in
+[`../../data/deep-study/2026-08-21-p10-pp2-inductor-warm095/`](../../data/deep-study/2026-08-21-p10-pp2-inductor-warm095/).
+This is a configuration comparison rather than a topology-only A/B: P0 also
+differs in EP, HBM utilization, CUDA-graph execution, and cache state. P10's
+limiting stage logged nine recovered 2.25-GiB allocation failures during long
+prefill; all measured calls completed, but this is not a memory-headroom claim.
+Every P10 decode stream remained in flight at the 30-second boundary, so its
+reported aggregate values are continuous-usage in-flight token rates rather
+than completed-request throughput. Decode uses the declared shared 8K prefix.
+
+Resolve the two PP2 profiles offline with:
+
+```bash
+python3 resolve_plan.py vllm-pp2-block64-inductor-no-graphs-full
+python3 resolve_plan.py vllm-pp2-block64-inductor-no-graphs-warm095
+```
+
+Regenerate the deterministic P0/P10 comparison chart from its checked-in CSV:
+
+```bash
+python3 render_p10_comparison.py
+```
 
 ### 5. SGLang 0.5.17
 

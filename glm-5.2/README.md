@@ -29,7 +29,11 @@ and produced four coherent retained outputs with no corruption flags. P8 is
 correctness evidence, not a performance row. P9 then enabled Inductor with
 CUDA graphs disabled at the full P0 context envelope. Both stages compiled,
 but PP1 retained only 0.28 GiB for KV and the API failed capacity before any
-request. Compact evidence and checksums are in
+request. P10 repeated that declared profile at 95% rather than 93% HBM
+utilization after P9 had populated the PP-specific AOT and checkpoint page
+caches. It passed full-context
+capacity, correctness, quality, network, and C1–C128/8K–128K performance
+gates. Compact evidence and checksums are in
 [`data/deep-study/`](data/deep-study/).
 
 ## Checkpoint provenance
@@ -45,8 +49,8 @@ The shard count and byte total come from the pinned checkpoint's `model.safetens
 <!-- BEGIN GENERATED:STATUS -->
 - Checkpoint download and integrity verification: complete
 - One-station capacity test: complete; no fit
-- Accepted two-station performance: TP2 / PP1 + expert parallel; PP2 block64 eager correctness: accepted; full-context Inductor at 93% HBM: capacity-excluded
-- Natural-output audits: TP2 / PP1 + expert parallel; WikiText-2: TP2 / PP1 + expert parallel
+- Accepted two-station performance: TP2 / PP1 + expert parallel; PP2 40/38 block64/Inductor/no-graphs at 95% HBM; PP2 eager correctness: accepted; the 93% PP2 full-context start remains capacity-excluded
+- Natural-output audits: TP2 / PP1 + expert parallel and accepted P10 PP2; WikiText-2: TP2 / PP1 + expert parallel
 <!-- END GENERATED:STATUS -->
 
 No pending field below should be interpreted as a zero.
@@ -56,7 +60,8 @@ imbalance remains in [`data/failure-attempts.json`](data/failure-attempts.json)
 as provenance only. P7 supersedes that anecdote with a checksummed 40/38
 bootstrap disposition, and P8 supersedes P7's block-layout failure with a
 checksummed eager block64 correctness pass. P9 is the checksummed full-context
-Inductor capacity disposition. None of P7–P9 is a throughput row.
+Inductor capacity disposition. None of P7–P9 is a throughput row; P10 is the
+first accepted request-bearing PP2 performance run in this study.
 
 ## Deep-study increments: backend, autotune, native MTP, and PP2
 
@@ -69,6 +74,7 @@ length, 93% static HBM utilization, no speculation, and no CPU offload.
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | P0 | FlashInfer CuTeDSL, autotune off | 68.2 | 117.9 | 218.3 | 361.0 | 539.7 | 903.7 | 1,252.2 | 2,013.9 | Accepted |
 | P3 | FlashInfer CuTeDSL, autotune on | 67.7 | 115.1 | 211.1 | 357.4 | 546.6 | 886.5 | 1,252.1 | 1,997.1 | Accepted |
+| P10, PP2 40/38 | FlashInfer CuTeDSL, autotune off | 9.2 | 18.6 | 37.0 | 74.5 | 148.5 | 290.1 | 586.7 | 1,186.4 | Accepted |
 
 Aggregate output tok/s; exactly targeted 8K input, up to 1K output, temperature
 0, and a 30-second sustained window per cell.
@@ -77,6 +83,7 @@ Aggregate output tok/s; exactly targeted 8K input, up to 1K output, temperature
 | --- | ---: | ---: | ---: | ---: | --- |
 | P0, autotune off | 6,223 tok/s | 7,461 tok/s | 7,179 tok/s | 261,952 tokens | 4/4 finish naturally; 0 flags |
 | P3, autotune on | 6,359 tok/s | 7,624 tok/s | 7,318 tok/s | 147,264 tokens | 4/4 finish naturally; 0 flags |
+| P10, PP2 40/38 | 13,371 tok/s | 16,870 tok/s | 18,637 tok/s | 494,528 tokens | 4/4 finish naturally; 0 flags |
 
 P3 changed only FlashInfer autotuning. Exact P3 deltas against P0 were:
 
@@ -158,12 +165,47 @@ vLLM rejected the declared envelope before API readiness. The planned retained
 correctness gate and all benchmark/quality/network requests therefore remained
 unrun, and P9 has zero performance rows.
 
+P10 retained P9's declared configuration and workload but raised static HBM
+utilization from 93% to 95%; it also inherited the AOT/page-cache state
+populated by P9. Both stages loaded cached AOT artifacts, exposed 20.27 / 10.63
+GiB of available KV memory, and initialized 494,528 coordinated KV tokens,
+above the 139,264-token workload minimum. A forced exact-8K gate produced 512
+and 4,097 output tokens with 1.003% / 1.000% repeated 8-grams and no flags.
+The four-prompt natural audit ended 4/4 with `stop` and zero degeneration
+flags; it is a coherence check, not a factual-accuracy evaluation.
+
+![P0 and P10 exact-configuration decode and prefill comparison](charts/deep-study-p10-topology-comparison.png)
+
+| Exact accepted configuration | C1 | C16 | C128 | 8K prefill | 64K prefill | 128K prefill |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| P0: TP2/EP2, 93% HBM, normal CUDA-graph profile | 68.2 | 539.7 | 2,013.9 | 6,223 | 7,461 | 7,179 |
+| P10: PP2/EP1 40/38, 95% HBM, Inductor/no graphs, warm caches | 9.2 | 148.5 | 1,186.4 | 13,371 | 16,870 | 18,637 |
+| P10 versus P0 | -86.5% | -72.5% | -41.1% | +114.9% | +126.1% | +159.6% |
+
+These are exact-configuration comparisons, not a topology-only A/B. P0 and
+P10 share the checkpoint, image, benchmark, FP8 KV type, context ceiling, and
+workload, but differ in TP/PP/EP, HBM utilization, CUDA-graph execution, and
+cache state. P10's capacity recovery over P9 therefore cannot be attributed to
+the additional two HBM-utilization points alone. Decode uses a shared 8K
+prefix; C128 is not 128 unrelated 8K prompts. Every P10 stream remained in
+flight at the 30-second boundary, so its decode values are continuous-usage
+token rates rather than completed-request rates. During long prefill, P0 logged
+two recovered 1.125-GiB allocation failures and P10 logged nine recovered
+2.25-GiB allocation failures on its limiting stage. All measured requests
+for standalone prefill completed, but these client-observed results are not
+memory-robustness claims.
+
 P0's quiet before/after RoCE counters recorded 1.236 TB in each direction over
-372.4 seconds, or 26.55 Gb/s average, with no health-counter deltas. That is a
+372.4 seconds, or 26.55 Gb/s average, with no deltas in the configured
+health-counter set. That is a
 whole-matrix average, not a peak-link or bottleneck claim. P3 recorded 1.233 TB
 in each direction over 370.5 seconds, or 26.62 Gb/s average, also with no
-health-counter deltas. Its four natural outputs finished normally with zero
-automatic flags. All starts used graceful teardown, passed the current-boot
+configured health-counter deltas. Its four natural outputs finished normally with zero
+automatic flags. P10's PP0→PP1 quiet window averaged 0.361 Gb/s with no
+deltas in the configured health-counter set. The whole-window counters do not
+suggest sustained bulk-bandwidth saturation, but do not exclude brief bursts,
+small-message latency, synchronization, or pipeline bubbles. All starts used
+graceful teardown, passed the current-boot
 kernel scan, and returned to 2–8 MiB idle HBM per rank. See the frozen
 [`P0 evidence`](data/deep-study/2026-08-20-p0-cutedsl/),
 [`P1 cold-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-cold-cache/),
@@ -175,7 +217,8 @@ kernel scan, and returned to 2–8 MiB idle HBM per rank. See the frozen
 [`P6 short-context harness evidence`](data/deep-study/2026-08-20-p6-mtp1-short-context-harness-only/),
 [`P7 PP2 incompatibility evidence`](data/deep-study/2026-08-20-p7-pp2-kv-block-incompatible/),
 [`P8 PP2 block64 correctness evidence`](data/deep-study/2026-08-21-p8-pp2-block64-eager-correctness/),
-and [`P9 PP2 Inductor capacity evidence`](data/deep-study/2026-08-21-p9-pp2-inductor-full-capacity/).
+[`P9 PP2 Inductor capacity evidence`](data/deep-study/2026-08-21-p9-pp2-inductor-full-capacity/),
+and [`P10 accepted PP2 performance evidence`](data/deep-study/2026-08-21-p10-pp2-inductor-warm095/).
 
 ## One DGX Station: capacity result
 

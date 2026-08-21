@@ -16,7 +16,10 @@ are kept separate from backend incompatibilities, capacity failures, and
 pre-request audit-harness failures. Excluded and harness-only starts contain no
 throughput values. P8 separately retains the immutable raw PP2 correctness
 harness plus a transparent corrected validator/result; it has no performance
-row.
+row. P9 records the full-envelope 93% PP2 capacity exclusion. P10 is the first
+accepted PP2 request-bearing performance increment and includes a
+P0-versus-P10 configuration comparison, retained quality, network, capacity,
+and startup evidence.
 
 When publishing new measurements, retain the source benchmark JSON, startup
 logs, and complete natural-output audit alongside the normalized tables.

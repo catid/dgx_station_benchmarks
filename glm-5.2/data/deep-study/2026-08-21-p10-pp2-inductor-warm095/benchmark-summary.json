@@ -1,0 +1,40 @@
+{
+  "status": "accepted",
+  "result_kind": "full_context_request_bearing_performance",
+  "profile_id": "vllm-pp2-block64-inductor-no-graphs-warm095",
+  "workload": {
+    "decode_context_tokens": 8192,
+    "max_output_tokens": 1024,
+    "duration_seconds": 30,
+    "temperature": 0,
+    "shared_prefix": true,
+    "prefill_context_tokens": [8192, 65536, 131072]
+  },
+  "decode_measurement_semantics": {
+    "aggregate_source": "openai_continuous_usage",
+    "completed_request_count_all_cells": 0,
+    "interpretation": "Sustained in-flight output during each 30-second window; not completed-request or end-to-end request throughput."
+  },
+  "decode": [
+    {"concurrency": 1, "aggregate_tps": 9.222303482191839, "per_request_avg_tps": 9.222303482191839, "ttft_p50_seconds": 0.20397826100088423, "itl_p50_seconds": 0.10872829159047724, "observed_output_tokens_per_stream_avg": 316.0, "completed_request_count": 0, "max_running_reqs": 1, "capacity_limited": false, "num_errors": 0},
+    {"concurrency": 2, "aggregate_tps": 18.630864364994313, "per_request_avg_tps": 9.315432182497156, "ttft_p50_seconds": 0.363029029500467, "itl_p50_seconds": 0.1076109646506074, "observed_output_tokens_per_stream_avg": 318.0, "completed_request_count": 0, "max_running_reqs": 2, "capacity_limited": false, "num_errors": 0},
+    {"concurrency": 4, "aggregate_tps": 37.0130448487986, "per_request_avg_tps": 9.25326121219965, "ttft_p50_seconds": 0.5313264820006225, "itl_p50_seconds": 0.10840973039457039, "observed_output_tokens_per_stream_avg": 314.5, "completed_request_count": 0, "max_running_reqs": 4, "capacity_limited": false, "num_errors": 0},
+    {"concurrency": 8, "aggregate_tps": 74.52419825540528, "per_request_avg_tps": 9.31552478192566, "ttft_p50_seconds": 0.5567328019997149, "itl_p50_seconds": 0.10802262378980915, "observed_output_tokens_per_stream_avg": 315.25, "completed_request_count": 0, "max_running_reqs": 8, "capacity_limited": false, "num_errors": 0},
+    {"concurrency": 16, "aggregate_tps": 148.48003640594777, "per_request_avg_tps": 9.280002275371736, "ttft_p50_seconds": 0.5828014259996053, "itl_p50_seconds": 0.10787508235031797, "observed_output_tokens_per_stream_avg": 314.875, "completed_request_count": 0, "max_running_reqs": 16, "capacity_limited": false, "num_errors": 0},
+    {"concurrency": 32, "aggregate_tps": 290.0588423068465, "per_request_avg_tps": 9.064338822088953, "ttft_p50_seconds": 0.6210164835001706, "itl_p50_seconds": 0.11142334541447278, "observed_output_tokens_per_stream_avg": 304.46875, "completed_request_count": 0, "max_running_reqs": 32, "capacity_limited": false, "num_errors": 0},
+    {"concurrency": 64, "aggregate_tps": 586.6908549104672, "per_request_avg_tps": 9.16704460797605, "ttft_p50_seconds": 0.9271272554997267, "itl_p50_seconds": 0.10990584163278744, "observed_output_tokens_per_stream_avg": 306.140625, "completed_request_count": 0, "max_running_reqs": 64, "capacity_limited": false, "num_errors": 0},
+    {"concurrency": 128, "aggregate_tps": 1186.4469005334165, "per_request_avg_tps": 9.269116410417316, "ttft_p50_seconds": 1.4423884765001276, "itl_p50_seconds": 0.10921170448392212, "observed_output_tokens_per_stream_avg": 312.2890625, "completed_request_count": 0, "max_running_reqs": 128, "capacity_limited": false, "num_errors": 0}
+  ],
+  "prefill": {
+    "8192": {"actual_prompt_tokens": 8194, "samples": 10, "ttft_seconds": 0.613, "tok_per_sec": 13371.0},
+    "65536": {"actual_prompt_tokens": 65538, "samples": 3, "ttft_seconds": 3.885, "tok_per_sec": 16870.0},
+    "131072": {"actual_prompt_tokens": 131073, "samples": 2, "ttft_seconds": 7.033, "tok_per_sec": 18637.0}
+  },
+  "control": {
+    "profile_id": "vllm-tp2-exact",
+    "evidence": "../2026-08-20-p0-cutedsl/benchmark.json",
+    "comparison_inputs": "comparison.csv",
+    "caveat": "P0 and P10 share checkpoint, image, benchmark commit, FP8 KV, context, and workload, but differ in topology, EP, memory utilization, CUDA-graph execution, and cache state."
+  },
+  "raw_benchmark_sha256": "3a06b1986510320ab66ef8ee61f08a38392a698b6e9e82cca2cef20cf36cc05a"
+}

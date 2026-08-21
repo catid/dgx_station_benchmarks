@@ -1,0 +1,21 @@
+{
+  "status": "healthy",
+  "forward_pp0_to_pp1": {
+    "rdma_bytes": 16531660610,
+    "window_seconds": 366.218603,
+    "average_gigabits_per_second": 0.3611320773893073
+  },
+  "reverse_pp1_to_pp0": {
+    "rdma_bytes": 47255664,
+    "window_seconds": 366.217416,
+    "average_gigabits_per_second": 0.0010322974699816024
+  },
+  "health_counter_deltas": {"node0": {}, "node1": {}},
+  "health_counter_scope": "Configured filtered health-counter set; other ethtool counters may change.",
+  "observed_non_health_ethtool_deltas": {
+    "node0": {"rx_corrected_bits_phy": 102, "rx_err_lane_0_phy": 30, "rx_err_lane_1_phy": 72},
+    "node1": {"rx_corrected_bits_phy": 14, "rx_err_lane_0_phy": 7, "rx_err_lane_1_phy": 7}
+  },
+  "interpretation": "The whole-window counters do not suggest sustained bulk-bandwidth saturation. They do not exclude brief bursts, small-message latency, synchronization, or pipeline bubbles.",
+  "raw_network_delta_sha256": "c586db1772e203fff885b0936509f658f103fc2dc3bc4ae2e27ff80a8de51e37"
+}
