@@ -1,0 +1,32 @@
+{
+  "status": "excluded_before_api",
+  "profile_id": "vllm-tp2-flashinfer-cutlass",
+  "attempt": "single_controlled_warm_compile_cache_validation",
+  "changed_variable_from_p0": {
+    "field": "moe_backend",
+    "p0": "FLASHINFER_CUTEDSL",
+    "p1": "FLASHINFER_CUTLASS"
+  },
+  "checkpoint_load_seconds_by_rank": [65.59, 72.40],
+  "torch_compile_seconds_by_rank": [1.46, 2.26],
+  "model_memory_gib_by_rank": [209.65, 209.65],
+  "cuda_graph_memory_gib_by_rank": [1.24, 1.24],
+  "available_kv_memory_gib_by_rank": [2.19, 10.39],
+  "required_kv_memory_gib": 6.0,
+  "configured_max_model_len": 135168,
+  "estimated_max_model_len_on_limiting_rank": 49280,
+  "benchmark_requests_issued": 0,
+  "further_retry_performed": false,
+  "teardown": {
+    "graceful": true,
+    "current_boot_kernel_danger_matches": 0,
+    "idle_hbm_mib_by_rank": [3, 3]
+  },
+  "raw_artifact_sha256": {
+    "resolved_plan": "5f06aabde2bdd013a199b00d183246889addeaf58164cc5a4bbd025db9388284",
+    "node0_server_log": "26186329f1967740d69a65cf1dabd15735d10595050552d4b48a235db357ca79",
+    "node1_server_log": "c1756e3717d77920708ae41d72f2ea35230d304a100a484238dbc3052a182c6a",
+    "kernel_danger_scan": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+    "idle_hbm_gate": "642e7d045b353005f3e138ff74fd2bf98cf4fd9b42069330e843ce5bdb3ebcd0"
+  }
+}

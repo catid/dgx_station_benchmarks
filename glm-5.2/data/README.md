@@ -10,5 +10,11 @@ runs.
 provenance extracted from the much larger retained runtime logs. Run
 `../recipes/publish_results.sh` to regenerate all of these files.
 
+[`deep-study/`](deep-study/) contains separately frozen, checksummed increments
+from the broader optimization matrix. Its first increment preserves the
+accepted TP2+EP2 CuTeDSL repeat and explicitly labels both FlashInfer-CUTLASS
+starts as capacity failures before API readiness. Those excluded starts contain
+no throughput values.
+
 When publishing new measurements, retain the source benchmark JSON, startup
 logs, and complete natural-output audit alongside the normalized tables.

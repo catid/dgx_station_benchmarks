@@ -1,0 +1,54 @@
+{
+  "status": "accepted",
+  "profile_id": "vllm-tp2-exact",
+  "topology": {
+    "nodes": 2,
+    "gpus": 2,
+    "tensor_parallel_size": 2,
+    "pipeline_parallel_size": 1,
+    "expert_parallel_size": 2
+  },
+  "backends": {
+    "moe": "FLASHINFER_CUTEDSL",
+    "attention": "FLASHINFER_MLA_SPARSE",
+    "prefill": "TRTLLM_RAGGED"
+  },
+  "startup": {
+    "checkpoint_load_seconds_by_rank": [923.64, 997.60],
+    "torch_compile_seconds_by_rank": [2.46, 2.73],
+    "model_memory_gib_by_rank": [209.65, 209.65],
+    "cuda_graph_memory_gib_by_rank": [1.85, 1.85],
+    "available_kv_memory_gib_by_rank": [15.61, 11.64],
+    "gpu_kv_cache_tokens": 261952,
+    "minimum_required_kv_tokens": 139264
+  },
+  "network_window": {
+    "elapsed_seconds": 372.422731,
+    "rdma_bytes_each_direction": 1235867134244,
+    "average_gigabits_per_second_each_direction": 26.548,
+    "health_counter_deltas": {
+      "node0": {},
+      "node1": {}
+    },
+    "interpretation": "Whole-matrix average only; not a peak-link or per-cell bottleneck measurement."
+  },
+  "quality": {
+    "outputs": 4,
+    "automatic_flags": 0,
+    "finish_reason_stop": 4,
+    "maximum_repeated_8gram_fraction": 0.07840236686390532
+  },
+  "teardown": {
+    "method": "simultaneous graceful SIGTERM followed by removal of stopped named containers",
+    "current_boot_kernel_danger_matches": 0,
+    "idle_hbm_mib_by_rank": [2, 2]
+  },
+  "source_raw_sha256": {
+    "benchmark": "d236cd4d10e8842a3c6c1e85a6ad995b26f4a3bc1e6087758c396961cd4b7dbf",
+    "quality_audit": "35938033293f557719508f48883d7048a9f83900a7994294aa1eda6f3a09325b",
+    "validation": "23a2286b5513b0ee95fecde2504876a81a1ac2b479ad8fd2eee768191bad9b70",
+    "resolved_plan": "c1587bd1d841040a3970285c4a25e6e16c3e85598a617e19d565296eeec9cea4",
+    "network_delta": "2d838b0c7d58677ab2cfe04c80e3233cf4e97f9ca200f51878eb1395ca1241c9"
+  }
+}
+
