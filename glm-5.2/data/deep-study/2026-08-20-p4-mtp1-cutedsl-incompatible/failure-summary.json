@@ -1,0 +1,36 @@
+{
+  "status": "excluded_during_drafter_construction",
+  "profile_id": "vllm-tp2-mtp1",
+  "target_backend": "FLASHINFER_CUTEDSL",
+  "speculation": {
+    "method": "mtp",
+    "num_speculative_tokens": 1
+  },
+  "failure_class": "unsupported_unquantized_draft_moe_backend",
+  "root_cause": "The NVFP4 target accepted FLASHINFER_CUTEDSL, but native MTP constructs an unquantized MoE draft layer and the pinned runtime cannot map CuTeDSL to an unquantized MoE backend.",
+  "exact_exception": "ValueError: moe_backend='flashinfer_cutedsl' is not supported for unquantized MoE. Expected one of ['triton', 'batched_triton', 'flashinfer_trtllm', 'flashinfer_cutlass', 'aiter'].",
+  "target_checkpoint_shards_loaded": 47,
+  "target_checkpoint_load_seconds_by_rank": [67.32, 70.46],
+  "draft_model_construction_started": true,
+  "draft_model_loaded": false,
+  "api_ready": false,
+  "benchmark_requests_issued": 0,
+  "acceptance_telemetry_available": false,
+  "quality_outputs": 0,
+  "retry_performed": false,
+  "teardown": {
+    "graceful": true,
+    "current_boot_kernel_danger_matches": 0,
+    "idle_hbm_mib_by_rank": [5, 4]
+  },
+  "raw_artifact_sha256": {
+    "resolved_plan": "6d14623d90ebb0d1541da1e4f4bc5314ad14c05c0cd96775ab564d434902a7b1",
+    "node0_server_log": "edcef397535051e2a71ccf9c0875e1b1a10291b3fb050f5c73684d8fa40418ad",
+    "node1_server_log": "0f584a1d2aa7825578f23013ec87729bb9025f24668dbd8fb677c107303bd3d7",
+    "launch_log": "3ca7295accdb5a274bd43b33c05c18a62c05d0249fd9d299b53b9e66b26fc75f",
+    "prelaunch_kernel_danger_scan": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+    "post_teardown_kernel_danger_scan": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+    "post_teardown_idle_hbm_gate": "0bf07831c3fd87fb57fc90ac06f1c3cf103f380dd515d38e0975ab081d0f5cb1",
+    "teardown_log": "0d711ea64049c30a84071e8e966ed6f04b216edca74f1d3aa924004a97802383"
+  }
+}
