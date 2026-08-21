@@ -14,10 +14,11 @@ See the [agent-ready recipes](recipes/) for pinned download and verification,
 the one-node capacity check, the accepted TP2 launch, failed-profile evidence,
 `llm-inference-bench`, output-quality checks, and WikiText-2 setup.
 
-The broader [deep optimization study](recipes/deep-study/) now has a first
-frozen increment: an accepted CuTeDSL reproduction and two excluded
-FlashInfer-CUTLASS capacity starts. The compact evidence and checksums are in
-[`data/deep-study/`](data/deep-study/).
+The broader [deep optimization study](recipes/deep-study/) now has frozen
+backend and autotune increments: an accepted CuTeDSL reproduction, two
+excluded FlashInfer-CUTLASS capacity starts, a vLLM-CUTLASS compatibility
+failure, and an accepted CuTeDSL autotune-on A/B. Compact evidence and
+checksums are in [`data/deep-study/`](data/deep-study/).
 
 ## Checkpoint provenance
 
@@ -45,7 +46,7 @@ checksummed measurement, so it has no throughput row. The optimization path and
 excluded starts are recorded in
 [`data/failure-attempts.json`](data/failure-attempts.json).
 
-## Deep-study increment: CuTeDSL baseline and CUTLASS capacity
+## Deep-study increments: backend and autotune A/B
 
 The existing canonical tables later in this README remain unchanged. P0 below
 is an independent, fully captured repeat using the deep-study runner: the same
@@ -54,14 +55,31 @@ length, 93% static HBM utilization, no speculation, and no CPU offload.
 
 | Frozen run | MoE backend | C1 | C2 | C4 | C8 | C16 | C32 | C64 | C128 | Result |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| P0 | FlashInfer CuTeDSL | 68.2 | 117.9 | 218.3 | 361.0 | 539.7 | 903.7 | 1,252.2 | 2,013.9 | Accepted |
+| P0 | FlashInfer CuTeDSL, autotune off | 68.2 | 117.9 | 218.3 | 361.0 | 539.7 | 903.7 | 1,252.2 | 2,013.9 | Accepted |
+| P3 | FlashInfer CuTeDSL, autotune on | 67.7 | 115.1 | 211.1 | 357.4 | 546.6 | 886.5 | 1,252.1 | 1,997.1 | Accepted |
 
 Aggregate output tok/s; exactly targeted 8K input, up to 1K output, temperature
 0, and a 30-second sustained window per cell.
 
 | Frozen run | 8K prefill | 64K prefill | 128K prefill | GPU KV capacity | Natural outputs |
 | --- | ---: | ---: | ---: | ---: | --- |
-| P0 | 6,223 tok/s | 7,461 tok/s | 7,179 tok/s | 261,952 tokens | 4/4 finish naturally; 0 flags |
+| P0, autotune off | 6,223 tok/s | 7,461 tok/s | 7,179 tok/s | 261,952 tokens | 4/4 finish naturally; 0 flags |
+| P3, autotune on | 6,359 tok/s | 7,624 tok/s | 7,318 tok/s | 147,264 tokens | 4/4 finish naturally; 0 flags |
+
+P3 changed only FlashInfer autotuning. Exact P3 deltas against P0 were:
+
+| Metric | C1 | C2 | C4 | C8 | C16 | C32 | C64 | C128 | Mean |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Decode tok/s delta | -0.615% | -2.401% | -3.290% | -0.994% | +1.295% | -1.899% | -0.013% | -0.832% | -1.094% |
+
+| Metric | 8K | 64K | 128K | Mean |
+| --- | ---: | ---: | ---: | ---: |
+| Prefill tok/s delta | +2.185% | +2.185% | +1.936% | +2.102% |
+
+This single pass supports a small prefill lift, not a decode win. P3's cold
+compile took 127.71 / 131.17 seconds by rank; FlashInfer then spent 28.087
+seconds autotuning and wrote 23 new configurations. Its fixed capacity gate
+passed with 147,264 GPU KV tokens, compared with P0's 261,952 tokens.
 
 The backend A/B held every declared profile field constant except the MoE
 backend. FlashInfer CUTLASS did not reach an API-ready state at the same
@@ -72,14 +90,23 @@ long-context envelope, so it has no throughput row.
 | P1 cold | First backend-specific compile | 0.43 / 0.43 | 6.0 GiB for 135,168 tokens | Excluded before API; 0 requests |
 | P1 warm | AOT cache hit, single controlled validation | 2.19 / 10.39 | 6.0 GiB for 135,168 tokens | Excluded before API; 0 requests; no further retry |
 
+vLLM's native `VLLM_CUTLASS` arm, P2, was excluded even earlier. The pinned
+kernel rejected the required EP2 `allgather_reducescatter` configuration during
+model construction, before weight load or API readiness; no request was issued
+and no smaller profile was substituted.
+
 P0's quiet before/after RoCE counters recorded 1.236 TB in each direction over
 372.4 seconds, or 26.55 Gb/s average, with no health-counter deltas. That is a
-whole-matrix average, not a peak-link or bottleneck claim. All three starts used
-graceful teardown, passed the current-boot kernel scan, and returned to 2–3 MiB
-idle HBM per rank. See the frozen
+whole-matrix average, not a peak-link or bottleneck claim. P3 recorded 1.233 TB
+in each direction over 370.5 seconds, or 26.62 Gb/s average, also with no
+health-counter deltas. Its four natural outputs finished normally with zero
+automatic flags. All starts used graceful teardown, passed the current-boot
+kernel scan, and returned to 2–7 MiB idle HBM per rank. See the frozen
 [`P0 evidence`](data/deep-study/2026-08-20-p0-cutedsl/),
 [`P1 cold-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-cold-cache/),
-and [`P1 warm-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-warm-cache/).
+[`P1 warm-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-warm-cache/),
+[`P2 incompatibility evidence`](data/deep-study/2026-08-20-p2-vllm-cutlass-incompatible/),
+and [`P3 autotune evidence`](data/deep-study/2026-08-20-p3-cutedsl-autotune-on/).
 
 ## One DGX Station: capacity result
 

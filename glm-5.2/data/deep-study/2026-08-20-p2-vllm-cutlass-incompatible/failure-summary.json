@@ -1,0 +1,30 @@
+{
+  "status": "excluded_before_weight_load",
+  "profile_id": "vllm-tp2-vllm-cutlass",
+  "backend": "VLLM_CUTLASS",
+  "failure_class": "unsupported_parallel_configuration",
+  "required_parallel_configuration": {
+    "tp_size_inside_expert_kernel": 1,
+    "ep_size": 2,
+    "use_ep": true,
+    "all2all_backend": "allgather_reducescatter"
+  },
+  "root_cause": "Pinned vLLM VLLM_CUTLASS NVFP4 MoE kernel does not support the required EP2 deployment configuration.",
+  "weights_loaded": false,
+  "api_ready": false,
+  "benchmark_requests_issued": 0,
+  "retry_performed": false,
+  "teardown": {
+    "graceful": true,
+    "current_boot_kernel_danger_matches": 0,
+    "idle_hbm_mib_by_rank": [7, 4]
+  },
+  "raw_artifact_sha256": {
+    "resolved_plan": "ee5f7158b120c140efc85164ea6b614b6b4d97a5254ea1d2b7302c6ee9f5d4cb",
+    "node0_server_log": "6b8360ed6bf812dc82bf84d4d288b4525fd391a3377ec4d2e485699fba395275",
+    "node1_server_log": "21cb6e7c6bad6ac28067846e651088f96ae8746aa72ae77559d82ed537746cce",
+    "kernel_danger_scan": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+    "idle_hbm_gate": "e65cc8c69c8fd2dbbfd2f545f37b77aac04719e0140d64164403b9e4e9561385"
+  }
+}
+

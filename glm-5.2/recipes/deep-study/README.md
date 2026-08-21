@@ -1,11 +1,11 @@
 # GLM-5.2 deep optimization study
 
 This directory stages and runs a pinned, fail-closed comparison of GLM-5.2
-NVFP4 on two one-GPU DGX Station GB300 systems. The first frozen increment is
-published under [`../../data/deep-study/`](../../data/deep-study/): P0 passed
-the structural, capacity, and natural-output gates; P1 FlashInfer CUTLASS did
-not fit the unchanged long-context envelope and is retained only as excluded
-startup evidence.
+NVFP4 on two one-GPU DGX Station GB300 systems. Frozen measured increments are
+published under [`../../data/deep-study/`](../../data/deep-study/): P0 and P3
+passed the structural, capacity, and natural-output gates; P1 FlashInfer
+CUTLASS did not fit the unchanged long-context envelope; and P2 vLLM CUTLASS
+was incompatible with the required EP2 configuration.
 
 The target is
 [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) at
@@ -13,29 +13,48 @@ revision `aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa`. The official BF16 and FP8
 checkpoints are too large for the combined HBM of two Stations. CPU offload is
 outside this study.
 
-## First measured increment
+## Measured backend and autotune increments
 
 P0 reproduced the exact TP2+EP2 CuTeDSL profile with 261,952 GPU KV-cache
 tokens. The full 8K-input/up-to-1K-output decode matrix was:
 
 | Backend | C1 | C2 | C4 | C8 | C16 | C32 | C64 | C128 | Status |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| FlashInfer CuTeDSL | 68.2 | 117.9 | 218.3 | 361.0 | 539.7 | 903.7 | 1,252.2 | 2,013.9 | Accepted |
+| FlashInfer CuTeDSL, autotune off (P0) | 68.2 | 117.9 | 218.3 | 361.0 | 539.7 | 903.7 | 1,252.2 | 2,013.9 | Accepted |
+| FlashInfer CuTeDSL, autotune on (P3) | 67.7 | 115.1 | 211.1 | 357.4 | 546.6 | 886.5 | 1,252.1 | 1,997.1 | Accepted |
 
 P0 standalone prefill measured 6,223 tok/s at 8K, 7,461 tok/s at 64K, and
-7,179 tok/s at 128K. All four natural outputs finished normally with zero
-automatic flags.
+7,179 tok/s at 128K. P3 measured 6,359, 7,624, and 7,318 tok/s respectively:
+an unweighted mean gain of 2.102%. P3's eight decode cells had an unweighted
+mean delta of -1.094%, so this single pass supports a small prefill lift, not a
+decode win. All four natural outputs in each accepted run finished normally
+with zero automatic flags.
+
+| Accepted run | Checkpoint load by rank | Compile by rank | Autotune cost | New configs | GPU KV tokens |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| P0, autotune off | 923.64 / 997.60 s | 2.46 / 2.73 s | Disabled | 0 | 261,952 |
+| P3, autotune on | 69.48 / 72.22 s | 127.71 / 131.17 s | 28.087 s | 23 | 147,264 |
+
+The load and compile timings reflect different cache states and are retained
+as startup costs, not compared as inference performance.
 
 | FlashInfer CUTLASS start | Available KV GiB by rank | Required per rank | Status |
 | --- | ---: | ---: | --- |
 | Cold backend compile | 0.43 / 0.43 | 6.0 | Excluded before API; no requests |
 | Warm AOT cache hit | 2.19 / 10.39 | 6.0 | Excluded before API; no requests; no further retry |
 
+P2 selected vLLM's native `VLLM_CUTLASS` backend while holding the P0
+checkpoint, image, topology, context, memory, and workload declarations fixed.
+The pinned kernel rejected the required EP2 `allgather_reducescatter`
+configuration before weight load; the API never became ready and no request
+was issued.
+
 These are capacity dispositions at the fixed 135,168-token profile, not
 throughput comparisons. The accepted and excluded records, source hashes, and
 per-directory checksums are in
-[`../../data/deep-study/`](../../data/deep-study/). The remaining matrix below
-is still pending and must pass the same gates before publication.
+[`../../data/deep-study/`](../../data/deep-study/). Native MTP, PP2, SGLang,
+and chunked-prefill experiments below remain pending and must pass the same
+gates before publication.
 
 ## What is pinned
 
