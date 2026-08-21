@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from resolve_plan import MANIFEST_DIR, PlanError, load_json, resolve, validate  # noqa: E402
 from pp2_correctness_smoke import analyze  # noqa: E402
 from postvalidate_pp2_correctness import validate_retained  # noqa: E402
-from validate_run import validate_correctness_smoke  # noqa: E402
+from validate_run import validate_correctness_smoke, validate_preheadline_gate  # noqa: E402
 
 
 def must_reject(plan: dict, message: str) -> None:
@@ -74,6 +74,27 @@ def main() -> None:
     assert smoke["max_model_len"] == 16384
     assert smoke["benchmark"]["minimum_kv_tokens"] == 12802
     assert smoke["reportable"] is False
+    full_pp = resolved["vllm-pp2-block64-inductor-no-graphs-full"]
+    assert full_pp["topology"] == "pp2"
+    assert full_pp["pp_layer_partition"] == "40,38"
+    assert full_pp["block_size"] == 64
+    assert full_pp["enforce_eager"] is False
+    assert full_pp["cudagraph_mode"] == "NONE"
+    assert full_pp["cudagraph_capture_sizes"] == []
+    assert full_pp["max_model_len"] == 135168
+    assert full_pp["max_num_seqs"] == 128
+    assert full_pp["max_num_batched_tokens"] == 32768
+    assert full_pp["gpu_memory_utilization"] == 0.93
+    assert full_pp["cache_profile_id"] == "vllm-pp2-block64-eager-smoke"
+    assert full_pp["preheadline_correctness_gate"] == {
+        "enabled": True,
+        "prompt_tokens": 8192,
+        "output_tokens": [512, 4097],
+    }
+    assert full_pp["benchmark"]["concurrencies"] == [1, 2, 4, 8, 16, 32, 64, 128]
+    assert full_pp["benchmark"]["prefill_context_tokens"] == [8192, 65536, 131072]
+    assert full_pp["benchmark"]["minimum_kv_tokens"] == 139264
+    assert full_pp["reportable"] is True
     assert resolved["sglang-pp2-balanced"]["speculation"]["method"] == "none"
 
     base = resolved["vllm-tp2-exact"]
@@ -130,12 +151,35 @@ def main() -> None:
     bad = copy.deepcopy(smoke)
     bad["gpu_memory_utilization"] = 0.91
     must_reject(bad, "PP correctness utilization drift")
+    bad = copy.deepcopy(full_pp)
+    bad["cudagraph_capture_sizes"] = [1]
+    must_reject(bad, "PP2 full profile with a CUDA graph")
+    bad = copy.deepcopy(full_pp)
+    bad["enforce_eager"] = True
+    must_reject(bad, "PP2 full profile forced eager")
+    bad = copy.deepcopy(full_pp)
+    bad["cudagraph_mode"] = "FULL_AND_PIECEWISE"
+    must_reject(bad, "PP2 full profile wrong graph mode")
+    bad = copy.deepcopy(full_pp)
+    bad["preheadline_correctness_gate"]["output_tokens"] = [512, 4096]
+    must_reject(bad, "PP2 full profile drifted long correctness output")
+    bad = copy.deepcopy(full_pp)
+    bad["max_model_len"] = 32768
+    must_reject(bad, "PP2 full profile reduced context envelope")
+    bad = copy.deepcopy(full_pp)
+    bad["gpu_memory_utilization"] = 0.94
+    must_reject(bad, "PP2 full profile utilization drift")
+    bad = copy.deepcopy(full_pp)
+    bad["cache_profile_id"] = "vllm-pp2-balanced"
+    must_reject(bad, "PP2 full profile cache provenance drift")
 
     good_text = " ".join(
         f"Section{i} explains a distinct mathematical idea with careful historical context."
         for i in range(180)
     )
     assert analyze(good_text, 1024)["flagged"] is False
+    assert analyze(good_text, 512)["flagged"] is False
+    assert analyze(good_text, 4097)["flagged"] is False
     assert analyze("A" * 100, 1024)["flagged"] is True
     settings = {
         "tokenize_target": 8192,
@@ -219,6 +263,75 @@ def main() -> None:
             pass
         else:
             raise AssertionError("correctness validator accepted a forged retained hash")
+
+    gate_messages = [{"role": "user", "content": "synthetic gate"}]
+    gate_outputs = []
+    for output_tokens in (512, 4097):
+        text = f"gate length{output_tokens} " + good_text
+        analysis = analyze(text, output_tokens)
+        assert analysis["flagged"] is False
+        gate_outputs.append(
+            {
+                "requested_output_tokens": output_tokens,
+                "repeat": 0,
+                "finish_reason": "length",
+                "usage": {
+                    "prompt_tokens": 8192,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": 8192 + output_tokens,
+                },
+                "exact_usage_checks": {
+                    "prompt_tokens": True,
+                    "completion_tokens": True,
+                    "total_tokens": True,
+                },
+                "reasoning_content": "",
+                "content": text,
+                "combined_text": text,
+                "sha256": hashlib.sha256(text.encode()).hexdigest(),
+                "analysis": analysis,
+                "passed": True,
+            }
+        )
+    synthetic_gate = {
+        "status": "passed",
+        "settings": {
+            "tokenize_target": 8192,
+            "expected_api_prompt_tokens": 8192,
+            "output_lengths": [512, 4097],
+            "repeats_per_length": 1,
+            "temperature": 0,
+            "seed": 0,
+            "ignore_eos": True,
+            "sequential": True,
+            "byte_identical_repeat_required": False,
+        },
+        "prompt_proof": {
+            "tokenize_target": 8192,
+            "tokenize_count": 8192,
+            "messages_sha256": hashlib.sha256(
+                json.dumps(gate_messages, ensure_ascii=False, sort_keys=True).encode()
+            ).hexdigest(),
+            "messages": gate_messages,
+        },
+        "outputs": gate_outputs,
+        "failures": [],
+    }
+    with tempfile.TemporaryDirectory() as temp_dir:
+        quality = Path(temp_dir) / "quality"
+        quality.mkdir()
+        (quality / "pp2-preheadline-gate.json").write_text(json.dumps(synthetic_gate))
+        gate_result = validate_preheadline_gate(Path(temp_dir), full_pp)
+        assert gate_result["enabled"] is True
+        assert [row["output_tokens"] for row in gate_result["outputs"]] == [512, 4097]
+        synthetic_gate["outputs"][-1]["sha256"] = "c" * 64
+        (quality / "pp2-preheadline-gate.json").write_text(json.dumps(synthetic_gate))
+        try:
+            validate_preheadline_gate(Path(temp_dir), full_pp)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("preheadline validator accepted a forged retained hash")
 
     gate_script = Path(__file__).resolve().parent / "verify_split_mtp_pair.sh"
     gate_env = os.environ.copy()
@@ -320,7 +433,7 @@ def main() -> None:
     summary = {
         "profiles_validated": len(resolved),
         "exclusions_validated": len(exclusions["exclusions"]),
-        "negative_rules_validated": 18,
+        "negative_rules_validated": 25,
     }
     print(json.dumps(summary, indent=2))
 

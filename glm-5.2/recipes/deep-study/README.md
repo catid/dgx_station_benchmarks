@@ -16,7 +16,9 @@ then exposed an incompatible 64/32 KV block-size pair before API readiness. P8
 used the stock block64 override with eager execution: the API served with
 402,688 KV tokens and all four retained exact-8K correctness outputs passed the
 text-corruption checks. The greedy pairs were coherent but not byte-identical;
-P8 has no performance row.
+P8 has no performance row. P9 enabled Inductor with CUDA graphs disabled at the
+full P0 envelope. Both stages compiled, but PP1 retained only 0.28 GiB for KV;
+the API failed capacity before the correctness gate or any benchmark request.
 
 The target is
 [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) at
@@ -96,7 +98,8 @@ per-directory checksums are in
 unmeasured; P6 proved only short-context startup capacity, not request-serving
 correctness or speed. P8 supersedes P7's vLLM PP2 startup diagnosis for the
 explicit block64 path, but validates only eager correctness; reportable
-inductor-without-CUDA-graphs performance remains pending. SGLang and
+Inductor-without-CUDA-graphs performance remains unmeasured because P9 failed
+the full-context capacity gate at 93% HBM utilization. SGLang and
 chunked-prefill experiments below remain pending and must pass the same gates
 before publication.
 
@@ -288,6 +291,14 @@ so the recipe records repeatability independently from text-quality gates.
 [`postvalidate_pp2_correctness.py`](postvalidate_pp2_correctness.py) validates
 the immutable P8 raw artifact without rewriting it. PP2 always has speculation
 and distributed FlashInfer autotuning disabled.
+
+P9 kept those topology/backend controls, enabled Inductor with
+`cudagraph_mode=NONE`, and restored the full 135,168-token P0 envelope. PP0/PP1
+completed compilation in 49.76 / 40.81 seconds and exposed 7.60 / 0.28 GiB of
+available KV memory. The limiting stage needed 2.9 GiB, estimated a 12,864-token
+maximum, and failed before API readiness. P9 issued zero requests and has no
+throughput, prefill, quality, or network row. Its immutable disposition is in
+[`../../data/deep-study/2026-08-21-p9-pp2-inductor-full-capacity/`](../../data/deep-study/2026-08-21-p9-pp2-inductor-full-capacity/).
 
 ### 5. SGLang 0.5.17
 

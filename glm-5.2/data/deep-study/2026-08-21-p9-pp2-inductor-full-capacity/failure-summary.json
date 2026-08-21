@@ -1,0 +1,157 @@
+{
+  "status": "excluded_before_api_for_pp2_inductor_kv_capacity",
+  "profile_id": "vllm-pp2-block64-inductor-no-graphs-full",
+  "result_kind": "full_context_capacity_only_no_performance",
+  "checkpoint": {
+    "repository": "nvidia/GLM-5.2-NVFP4",
+    "revision": "aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa"
+  },
+  "runtime": {
+    "name": "vllm",
+    "version": "0.27.1",
+    "commit": "6e448d0ea9bf3d88d898b65449ca6dc2aec170ac",
+    "image_digest": "sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967"
+  },
+  "topology": {
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 2,
+    "expert_parallel_size": 1,
+    "expert_parallel_flag_enabled": false,
+    "pipeline_layer_partition": [
+      40,
+      38
+    ]
+  },
+  "backend": "FLASHINFER_CUTEDSL",
+  "flashinfer_autotune": false,
+  "speculation": {
+    "method": "none",
+    "num_speculative_tokens": 0
+  },
+  "execution": {
+    "block_size_tokens": 64,
+    "enforce_eager": false,
+    "compilation_backend": "inductor",
+    "compilation_mode": "VLLM_COMPILE",
+    "cudagraph_mode": "NONE",
+    "cudagraph_capture_sizes": []
+  },
+  "full_envelope": {
+    "gpu_memory_utilization": 0.93,
+    "kv_cache_dtype": "fp8_e4m3",
+    "max_model_len": 135168,
+    "max_num_seqs": 128,
+    "max_num_batched_tokens": 32768,
+    "minimum_kv_tokens": 139264,
+    "planned_concurrencies": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128
+    ],
+    "planned_decode_context_tokens": 8192,
+    "planned_max_output_tokens": 1024,
+    "planned_prefill_contexts": [
+      8192,
+      65536,
+      131072
+    ],
+    "preheadline_correctness_gate": {
+      "prompt_tokens": 8192,
+      "output_tokens": [
+        512,
+        4097
+      ]
+    }
+  },
+  "stage_assignment": [
+    {
+      "rank": 0,
+      "pipeline_rank": 0,
+      "assigned_layers": 40
+    },
+    {
+      "rank": 1,
+      "pipeline_rank": 1,
+      "assigned_layers": 38
+    }
+  ],
+  "target_checkpoint_load_seconds_by_rank": [
+    58.51,
+    58.29
+  ],
+  "total_model_load_seconds_by_rank": [
+    72.358344,
+    72.037615
+  ],
+  "model_memory_gib_by_rank": [
+    206.54,
+    209.74
+  ],
+  "backbone_compile_seconds_by_rank": [
+    49.76,
+    40.81
+  ],
+  "initial_profile_warmup_seconds_by_rank": [
+    19.21,
+    18.35
+  ],
+  "available_kv_memory_gib_by_rank": [
+    7.60,
+    0.28
+  ],
+  "failure": {
+    "stage": "kv_cache_initialization_after_inductor_compile_and_profile_warmup",
+    "limiting_pipeline_rank": 1,
+    "required_kv_memory_gib_for_max_model_len": 2.9,
+    "available_kv_memory_gib": 0.28,
+    "declared_max_model_len": 135168,
+    "estimated_max_model_len": 12864,
+    "exception_type": "ValueError",
+    "coordinated_gpu_kv_tokens_available": false
+  },
+  "api_ready": false,
+  "preheadline_correctness_requests_issued": 0,
+  "benchmark_requests_issued": 0,
+  "throughput_rows": 0,
+  "prefill_rows": 0,
+  "quality_outputs": 0,
+  "request_bearing_network_measurement": false,
+  "retry_performed_within_increment": false,
+  "preflight": {
+    "current_boot_kernel_danger_matches": 0,
+    "idle_hbm_mib_by_rank": [
+      1,
+      5
+    ]
+  },
+  "teardown": {
+    "graceful": true,
+    "current_boot_kernel_danger_matches": 0,
+    "idle_hbm_mib_by_rank": [
+      5,
+      8
+    ]
+  },
+  "raw_artifact_sha256": {
+    "resolved_plan": "73ba8281373b82aa0e896e4e9b34e246bb4ea633f0550a0508d6f4bd40756a53",
+    "checkpoint_verification_rank0": "d7880d1a5440f4f60007ada4d91af05e2b4c1d1fc30d3c9496f60eb0f7c00a94",
+    "checkpoint_verification_rank1": "d7880d1a5440f4f60007ada4d91af05e2b4c1d1fc30d3c9496f60eb0f7c00a94",
+    "node0_server_log": "4cd6a5b28a933f1935440cb62a34837ab6a3c71da582cf01d8e172acbcb2ec12",
+    "node1_server_log": "996ddbace1d99fd08b6c035f703ff267274d1ef4bf3ecbf0b12d2592413c425b",
+    "launch_log": "36a98ae41f84e5bc351341a7c9f6a725aec0bd39eafa16189455daff3e6ed2e3",
+    "prelaunch_kernel_danger_scan": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+    "post_teardown_kernel_danger_scan": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+    "post_teardown_kernel_danger_scan_log": "d1a41fad650b7d4be68ee012a7a8e954f03463ee61f51eb26b4692ee222ad552",
+    "post_teardown_idle_hbm_gate": "618bdd9926d4433808188c14c3ef1bc87eb8678571e30791404c61aea1372732",
+    "teardown_log": "fcc285d578066222d567972bf999b590eb3918828f0d641e04fab326a75df1d6",
+    "before_memory_rank0": "3ae1d51288df281f5aa61bca586d1408bf1ffbdc4b5eeaaf1db6e46d4d6d9652",
+    "before_memory_rank1": "6ca2dd4c81e141196a6f4b4460f7909ce3b37124708b67d9c42259e4e9d6a5be",
+    "after_memory_rank0": "28fa53a81f8b448780fd6e8e62e3d31c29e7bc2752caea6e696b1f8223a4bbd4",
+    "after_memory_rank1": "673b8132835e2d48b07fda96d162ee25de2356395665123ba44a63d64ec05292"
+  }
+}
