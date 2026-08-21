@@ -281,6 +281,28 @@
       },
       "reportable": true
     },
+    "vllm-pp2-block64-inductor-no-graphs-warm095": {
+      "phase": "pp-full-block64-no-graphs",
+      "runtime": "vllm",
+      "topology": "pp2",
+      "tp_size": 1,
+      "pp_size": 2,
+      "expert_parallel_size": 1,
+      "moe_backend": "flashinfer_cutedsl",
+      "pp_layer_partition": "40,38",
+      "gpu_memory_utilization": 0.95,
+      "block_size": 64,
+      "enforce_eager": false,
+      "cudagraph_mode": "NONE",
+      "cudagraph_capture_sizes": [],
+      "cache_profile_id": "vllm-pp2-block64-eager-smoke",
+      "preheadline_correctness_gate": {
+        "enabled": true,
+        "prompt_tokens": 8192,
+        "output_tokens": [512, 4097]
+      },
+      "reportable": true
+    },
     "vllm-pp2-balanced": {
       "phase": "balanced-pp",
       "runtime": "vllm",

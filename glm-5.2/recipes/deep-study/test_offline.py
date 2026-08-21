@@ -95,6 +95,17 @@ def main() -> None:
     assert full_pp["benchmark"]["prefill_context_tokens"] == [8192, 65536, 131072]
     assert full_pp["benchmark"]["minimum_kv_tokens"] == 139264
     assert full_pp["reportable"] is True
+    warm_pp = resolved["vllm-pp2-block64-inductor-no-graphs-warm095"]
+    assert warm_pp["gpu_memory_utilization"] == 0.95
+    assert warm_pp["cache_profile_id"] == "vllm-pp2-block64-eager-smoke"
+    controlled_p9 = copy.deepcopy(full_pp)
+    controlled_p10 = copy.deepcopy(warm_pp)
+    for plan in (controlled_p9, controlled_p10):
+        plan.pop("profile_id")
+        plan.pop("container_name")
+    assert controlled_p9.pop("gpu_memory_utilization") == 0.93
+    assert controlled_p10.pop("gpu_memory_utilization") == 0.95
+    assert controlled_p9 == controlled_p10
     assert resolved["sglang-pp2-balanced"]["speculation"]["method"] == "none"
 
     base = resolved["vllm-tp2-exact"]
@@ -172,6 +183,9 @@ def main() -> None:
     bad = copy.deepcopy(full_pp)
     bad["cache_profile_id"] = "vllm-pp2-balanced"
     must_reject(bad, "PP2 full profile cache provenance drift")
+    bad = copy.deepcopy(warm_pp)
+    bad["gpu_memory_utilization"] = 0.94
+    must_reject(bad, "PP2 warm profile utilization drift")
 
     good_text = " ".join(
         f"Section{i} explains a distinct mathematical idea with careful historical context."
@@ -433,7 +447,7 @@ def main() -> None:
     summary = {
         "profiles_validated": len(resolved),
         "exclusions_validated": len(exclusions["exclusions"]),
-        "negative_rules_validated": 25,
+        "negative_rules_validated": 26,
     }
     print(json.dumps(summary, indent=2))
 

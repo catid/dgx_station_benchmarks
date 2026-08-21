@@ -55,4 +55,13 @@ fb67c00f7182a42753e88c69a593a55ded2362b65a307b6211ddc393dcdf4c05  ./2026-08-21-p
 9d1145a9c15c0d607b537a7b9c5503f5027a7a444b41492bb0facabf4763365b  ./2026-08-21-p9-pp2-inductor-full-capacity/SHA256SUMS
 96240bd489ad446b13d1831786b56ea0af07520b23ad7f304f7d06f003b82f67  ./2026-08-21-p9-pp2-inductor-full-capacity/failure-summary.json
 73ba8281373b82aa0e896e4e9b34e246bb4ea633f0550a0508d6f4bd40756a53  ./2026-08-21-p9-pp2-inductor-full-capacity/resolved-plan.json
-bf47fb04f9377a7394105ebb70892e0f9b8d0ac0fea8399f03fd179fdcde068d  ./README.md
+710fbfd2c97f26b9585f18db643b312c5ff605e89df60a6308520bbe183c107a  ./2026-08-21-p10-pp2-inductor-warm095/README.md
+cad21bb8fb663c2fb5100e604f58081541afbad0e5fe4095e907de2e03ea1e21  ./2026-08-21-p10-pp2-inductor-warm095/SHA256SUMS
+6670892d4e8baf9472d77e630edebb5cdf3bdfd0be159a0233e5058480060240  ./2026-08-21-p10-pp2-inductor-warm095/benchmark-summary.json
+f818ebcc0c242fd148976bdc0d3d1bf0898e9e2506557cc49508b96a4858644c  ./2026-08-21-p10-pp2-inductor-warm095/comparison.csv
+0f79e9f2d69211c3fa842cdfced14b71fa1f7b1406bc3e21096e57b0cd9523db  ./2026-08-21-p10-pp2-inductor-warm095/network-summary.json
+3483e761392d9b7e8cc5aa1626acca226c17b41e579c392699cbb1e312ddcd86  ./2026-08-21-p10-pp2-inductor-warm095/quality-summary.json
+4da1dfd479cd1388cbc2a78b9f1440597408d36b0c9c939e3277ac9657d9d23c  ./2026-08-21-p10-pp2-inductor-warm095/resolved-plan.json
+83b7646439ab044d7bc37b2482cabec7bad9281164caccad766c5aa6a446df27  ./2026-08-21-p10-pp2-inductor-warm095/runtime-summary.json
+f5557a7ac55ae30f1a86af80702878c8e8c8a36702887789d33df5cc9a5837c4  ./2026-08-21-p10-pp2-inductor-warm095/validation.json
+e149a5d24c62466a9964664a07e2bb885feedcedfc31b4ec2e5afaa1a4d017e2  ./README.md

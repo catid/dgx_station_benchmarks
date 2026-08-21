@@ -1,0 +1,43 @@
+{
+  "benchmark": {
+    "decode_rows": 8,
+    "prefill_rows": 3
+  },
+  "capacity_tokens_observed": [
+    494528
+  ],
+  "capacity_tokens_required": 139264,
+  "natural_quality": "passed",
+  "network_health_counter_deltas": {
+    "node0": {},
+    "node1": {}
+  },
+  "preheadline_correctness_gate": {
+    "enabled": true,
+    "outputs": [
+      {
+        "characters": 2436,
+        "max_identical_character_run": 3,
+        "max_identical_word_run": 1,
+        "output_tokens": 512,
+        "repeated_8gram_fraction": 0.010033444816053512,
+        "sha256": "7ca933ab039bef4047abcaa7924bbab6a03563451acc6017bac578b08ec32522",
+        "words": 306
+      },
+      {
+        "characters": 16948,
+        "max_identical_character_run": 3,
+        "max_identical_word_run": 2,
+        "output_tokens": 4097,
+        "repeated_8gram_fraction": 0.01,
+        "sha256": "ef4a5909066c9dea914030d39bd2960537c42b2ab97b7d669bf88e9744bb2645",
+        "words": 2207
+      }
+    ],
+    "status": "passed"
+  },
+  "profile_id": "vllm-pp2-block64-inductor-no-graphs-warm095",
+  "runtime": "vllm",
+  "status": "accepted-by-structural-validator",
+  "topology": "pp2"
+}

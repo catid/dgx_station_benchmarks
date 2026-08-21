@@ -306,8 +306,15 @@ def validate(plan: dict[str, Any]) -> None:
             raise PlanError("PP2 full profile requires block64 inductor with no CUDA graphs")
         if plan["moe_backend"] != "flashinfer_cutedsl" or plan["flashinfer_autotune"]:
             raise PlanError("PP2 full profile requires CuTeDSL with autotune off")
-        if float(plan["gpu_memory_utilization"]) != 0.93:
-            raise PlanError("PP2 full profile utilization must remain 0.93")
+        permitted_utilization = {
+            "vllm-pp2-block64-inductor-no-graphs-full": 0.93,
+            "vllm-pp2-block64-inductor-no-graphs-warm095": 0.95,
+        }
+        profile_id = plan.get("profile_id")
+        if profile_id not in permitted_utilization:
+            raise PlanError("unrecognized PP2 full no-graphs profile")
+        if float(plan["gpu_memory_utilization"]) != permitted_utilization[profile_id]:
+            raise PlanError("PP2 full profile utilization drifted from its audited arm")
         if plan.get("cache_profile_id") != "vllm-pp2-block64-eager-smoke":
             raise PlanError("PP2 full profile must reuse the accepted P8 kernel cache")
         if benchmark.get("mode") != "headline" or plan.get("reportable") is not True:
