@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="430" viewBox="0 0 760 430">
+<rect width="100%" height="100%" fill="white"/>
+<style>text{font-family:system-ui,sans-serif;fill:#202124}.axis{stroke:#444}.grid{stroke:#ddd}.c1{stroke:#2563eb;fill:none}.c64{stroke:#dc2626;fill:none}.dot1{fill:#2563eb}.dot64{fill:#dc2626}</style>
+<text x="380.0" y="22" text-anchor="middle" font-size="17">Qwen3.8-27B throughput retained vs 1300 W</text>
+<line class="grid" x1="72" y1="368.0" x2="736" y2="368.0"/>
+<text x="63" y="372.0" text-anchor="end" font-size="12">80%</text>
+<line class="grid" x1="72" y1="257.3" x2="736" y2="257.3"/>
+<text x="63" y="261.3" text-anchor="end" font-size="12">90%</text>
+<line class="grid" x1="72" y1="146.7" x2="736" y2="146.7"/>
+<text x="63" y="150.7" text-anchor="end" font-size="12">100%</text>
+<line class="grid" x1="72" y1="36.0" x2="736" y2="36.0"/>
+<text x="63" y="40.0" text-anchor="end" font-size="12">110%</text>
+<line class="grid" x1="72.0" y1="36" x2="72.0" y2="368"/>
+<text x="72.0" y="390" text-anchor="middle" font-size="12">800</text>
+<line class="grid" x1="337.6" y1="36" x2="337.6" y2="368"/>
+<text x="337.6" y="390" text-anchor="middle" font-size="12">1000</text>
+<line class="grid" x1="470.4" y1="36" x2="470.4" y2="368"/>
+<text x="470.4" y="390" text-anchor="middle" font-size="12">1100</text>
+<line class="grid" x1="736.0" y1="36" x2="736.0" y2="368"/>
+<text x="736.0" y="390" text-anchor="middle" font-size="12">1300</text>
+<line class="axis" x1="72" y1="368" x2="736" y2="368"/>
+<line class="axis" x1="72" y1="36" x2="72" y2="368"/>
+<text x="380.0" y="418" text-anchor="middle" font-size="13">GPU board power cap (W)</text>
+<polyline class="c1" stroke-width="3" points="72.0,130.4 337.6,134.9 470.4,163.5 736.0,146.7"/>
+<circle class="dot1" cx="72.0" cy="130.4" r="4"/>
+<circle class="dot1" cx="337.6" cy="134.9" r="4"/>
+<circle class="dot1" cx="470.4" cy="163.5" r="4"/>
+<circle class="dot1" cx="736.0" cy="146.7" r="4"/>
+<polyline class="c64" stroke-width="3" points="72.0,272.1 337.6,192.9 470.4,152.4 736.0,146.7"/>
+<circle class="dot64" cx="72.0" cy="272.1" r="4"/>
+<circle class="dot64" cx="337.6" cy="192.9" r="4"/>
+<circle class="dot64" cx="470.4" cy="152.4" r="4"/>
+<circle class="dot64" cx="736.0" cy="146.7" r="4"/>
+<line class="c1" stroke-width="3" x1="560" y1="48" x2="592" y2="48"/><text x="600" y="52" font-size="12">C1</text>
+<line class="c64" stroke-width="3" x1="640" y1="48" x2="672" y2="48"/><text x="680" y="52" font-size="12">C64</text>
+</svg>

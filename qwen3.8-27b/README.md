@@ -30,6 +30,21 @@ The Huginn tree counts, byte totals, and content hashes are retained in [`data/h
 - The natural-output repetition audit flagged **0/1,600 Qwen C64 outputs and 0/3,200 C128 outputs** across AR, DFlash1, DFlash2, DSpark, and MTP.
 - A separate retained-text natural xhigh audit of the unofficial quants did find loops: **20/965 FP8** and **12/965 NVFP4A16** outputs were flagged. Those rates do not apply to the fixed-length throughput rows, which did not retain text.
 
+## GB300 power scaling
+
+At C64, a 1,100 W cap retained **99.5%** of 1,300 W throughput while median GPU-board tok/J increased **8.4%**. At 800 W, it retained **88.7%** while tok/J increased **28.0%**.
+
+| GPU cap | C1 output tok/s | C1 board W · tok/J | C64 aggregate output tok/s | C64 board W · tok/J |
+| ---: | ---: | ---: | ---: | ---: |
+| 800 W | 213.2 (101.5%) | 778 W · 0.280 | 4,500.8 (88.7%) | 787 W · 6.247 |
+| 1,000 W | 213.5 (101.1%) | 779 W · 0.281 | 4,788.5 (95.8%) | 988 W · 5.499 |
+| 1,100 W | 208.1 (98.5%) | 779 W · 0.274 | 4,994.7 (99.5%) | 1,086 W · 5.290 |
+| 1,300 W | 211.3 (100.0%) | 779 W · 0.278 | 5,035.1 (100.0%) | 1,192 W · 4.880 |
+
+![Qwen3.8-27B throughput retained across GB300 power caps](charts/qwen-power-scaling.svg)
+
+Values are medians of four host×block cells. Percentages pair each cell with the 1,300 W result from the same host and block. The workload is the official BF16 checkpoint with native MTP, low thinking, an exact 8K input, and a forced 1K output. [Data](data/power-scaling.csv) · [provenance](data/power-scaling-provenance.json) · [recipe](recipes/power-scaling.md)
+
 ### Unofficial quantizations versus the official BF16 baseline
 
 The directly comparable decode workload is autoregressive xhigh thinking with
@@ -201,6 +216,8 @@ The best local DFlash1 configuration used four draft proposals and FlashAttentio
 
 ## Data files
 
+- [`data/power-scaling.csv`](data/power-scaling.csv) — C1/C64 throughput, paired retention, measured board power, and output tok/J at 800–1,300 W
+- [`data/power-scaling-provenance.json`](data/power-scaling-provenance.json) — balanced schedule, exact pins, descriptive ranges, quality gate, and completion evidence
 - [`data/throughput.csv`](data/throughput.csv) — 160 BF16-mode rows plus 16 Huginn quantized AR rows, with detailed latency/speculation fields
 - [`data/official-bf16-c128-provenance.json`](data/official-bf16-c128-provenance.json) — hashes and extraction invariants for the 20 retained official BF16 C128 sources
 - [`data/prefill.csv`](data/prefill.csv) — all Qwen prefill configurations through 128K

@@ -1,0 +1,250 @@
+{
+  "aggregate": [
+    {
+      "concurrency": 1,
+      "gpu_cap_w": 800,
+      "measured_board_power_w_median": 777.505,
+      "output_tok_per_board_joule_median": 0.2799536724962268,
+      "replicates": 4,
+      "retained_pct_max": 104.10947842905665,
+      "retained_pct_min": 97.93694808438514,
+      "retained_pct_p25": 99.54293814336529,
+      "retained_pct_p75": 103.17223703317022,
+      "retained_vs_paired_1300_pct_median": 101.46904569878338,
+      "throughput_tok_s_max": 216.99039164905074,
+      "throughput_tok_s_median": 213.17700836665028,
+      "throughput_tok_s_min": 207.9255734237034
+    },
+    {
+      "concurrency": 1,
+      "gpu_cap_w": 1000,
+      "measured_board_power_w_median": 779.1225,
+      "output_tok_per_board_joule_median": 0.2810576668292702,
+      "replicates": 4,
+      "retained_pct_max": 106.35588748183316,
+      "retained_pct_min": 97.95517568759085,
+      "retained_pct_p25": 99.50780976768607,
+      "retained_pct_p75": 103.16892445747236,
+      "retained_vs_paired_1300_pct_median": 101.06597895520162,
+      "throughput_tok_s_max": 214.6694781241186,
+      "throughput_tok_s_median": 213.51123630341817,
+      "throughput_tok_s_min": 212.35937600693129
+    },
+    {
+      "concurrency": 1,
+      "gpu_cap_w": 1100,
+      "measured_board_power_w_median": 778.87,
+      "output_tok_per_board_joule_median": 0.2744273960085031,
+      "replicates": 4,
+      "retained_pct_max": 101.0462668215397,
+      "retained_pct_min": 96.96740179819656,
+      "retained_pct_p25": 96.97195953848808,
+      "retained_pct_p75": 100.2462568418504,
+      "retained_vs_paired_1300_pct_median": 98.47653281693627,
+      "throughput_tok_s_max": 212.40648127046973,
+      "throughput_tok_s_median": 208.06273219333124,
+      "throughput_tok_s_min": 201.79950767205474
+    },
+    {
+      "concurrency": 1,
+      "gpu_cap_w": 1300,
+      "measured_board_power_w_median": 778.76,
+      "output_tok_per_board_joule_median": 0.27832151697781154,
+      "replicates": 4,
+      "retained_pct_max": 100.00000000000001,
+      "retained_pct_min": 100.0,
+      "retained_pct_p25": 100.0,
+      "retained_pct_p75": 100.0,
+      "retained_vs_paired_1300_pct_median": 100.0,
+      "throughput_tok_s_max": 216.8206900778679,
+      "throughput_tok_s_median": 211.25635032294554,
+      "throughput_tok_s_min": 201.84070972167544
+    },
+    {
+      "concurrency": 64,
+      "gpu_cap_w": 800,
+      "measured_board_power_w_median": 787.2375,
+      "output_tok_per_board_joule_median": 6.246845357683913,
+      "replicates": 4,
+      "retained_pct_max": 91.40808242609509,
+      "retained_pct_min": 87.62366255327758,
+      "retained_pct_p25": 88.24774393859317,
+      "retained_pct_p75": 89.50273705078229,
+      "retained_vs_paired_1300_pct_median": 88.66169649635486,
+      "throughput_tok_s_max": 4530.283508192421,
+      "throughput_tok_s_median": 4500.814835416604,
+      "throughput_tok_s_min": 4427.67258649631
+    },
+    {
+      "concurrency": 64,
+      "gpu_cap_w": 1000,
+      "measured_board_power_w_median": 987.76,
+      "output_tok_per_board_joule_median": 5.498844115022031,
+      "replicates": 4,
+      "retained_pct_max": 98.18520207460963,
+      "retained_pct_min": 92.97901524902807,
+      "retained_pct_p25": 94.3299969785536,
+      "retained_pct_p75": 97.19633835224226,
+      "retained_vs_paired_1300_pct_median": 95.82352066659095,
+      "throughput_tok_s_max": 4995.592780508357,
+      "throughput_tok_s_median": 4788.488579836535,
+      "throughput_tok_s_min": 4722.262554147657
+    },
+    {
+      "concurrency": 64,
+      "gpu_cap_w": 1100,
+      "measured_board_power_w_median": 1085.915,
+      "output_tok_per_board_joule_median": 5.289819560095914,
+      "replicates": 4,
+      "retained_pct_max": 103.73167769368905,
+      "retained_pct_min": 96.5604470251467,
+      "retained_pct_p25": 97.48992672362328,
+      "retained_pct_p75": 101.80131478851926,
+      "retained_vs_paired_1300_pct_median": 99.47880688828909,
+      "throughput_tok_s_max": 5168.247959416897,
+      "throughput_tok_s_median": 4994.737242342453,
+      "throughput_tok_s_min": 4960.12924803507
+    },
+    {
+      "concurrency": 64,
+      "gpu_cap_w": 1300,
+      "measured_board_power_w_median": 1191.9675000000002,
+      "output_tok_per_board_joule_median": 4.879837936875804,
+      "replicates": 4,
+      "retained_pct_max": 100.0,
+      "retained_pct_min": 100.0,
+      "retained_pct_p25": 100.0,
+      "retained_pct_p75": 100.0,
+      "retained_vs_paired_1300_pct_median": 100.0,
+      "throughput_tok_s_max": 5136.812640007074,
+      "throughput_tok_s_median": 5035.1260484616505,
+      "throughput_tok_s_min": 4956.1082433331085
+    }
+  ],
+  "completion": {
+    "containers_removed_before_resume": true,
+    "gpu_caps_restored_before_resume": true,
+    "mode": "authorized cleanup-audit-only resume after exact operator-watcher stop",
+    "resumed_current_boot_journals_clean": true,
+    "resumed_idle_hbm_mib": [
+      0,
+      0
+    ],
+    "scientific_cells_changed_after_initial_fail_closed_marker": false,
+    "scientific_cells_completed_before_initial_fail_closed_marker": 32
+  },
+  "design": {
+    "absolute_summary": "median of four station\u00d7block cells",
+    "caps_w": [
+      800,
+      1000,
+      1100,
+      1300
+    ],
+    "name": "four-sequence balanced Williams",
+    "paired_normalization": "each treatment divided by 1300 W in the same station and block",
+    "replicate_unit": "station_x_block",
+    "replicates_per_cap_concurrency": 4,
+    "sequences": {
+      "station_a_block_1": [
+        1300,
+        800,
+        1000,
+        1100
+      ],
+      "station_a_block_2": [
+        1100,
+        1000,
+        800,
+        1300
+      ],
+      "station_b_block_1": [
+        800,
+        1100,
+        1300,
+        1000
+      ],
+      "station_b_block_2": [
+        1000,
+        1300,
+        1100,
+        800
+      ]
+    },
+    "uncertainty": "absolute min/max and inclusive IQR of four paired retention ratios"
+  },
+  "energy": {
+    "boundary": "GPU board only",
+    "efficiency": "completed output tokens / integrated board joules",
+    "integration": "trapezoidal integration inside the measured benchmark window",
+    "telemetry_interval_ms": 500
+  },
+  "hardware": {
+    "accelerator_per_system": "1x NVIDIA GB300",
+    "execution": "independent TP1 servers; no cross-host model parallelism",
+    "system": "NVIDIA DGX Station",
+    "systems": 2
+  },
+  "model": {
+    "config_sha256": "191e0af232104ed8b65258cf3fb2b842e288008baca7633c11b82a1ac7203aab",
+    "dtype": "bfloat16",
+    "index_sha256": "77042094076611b69791a610065f28b7013b8c621795fa86ddccc8bac7d1b9df",
+    "index_shards": 18,
+    "index_tensors": 1199,
+    "mtp_hidden_layers": 1,
+    "revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+    "revision_tree_sha256": "5b8b30bdf9a39e0da8a5c9a4adca5385e0e1f4afd73e21a5f39b2dab443285be",
+    "source": "Qwen/Qwen3.8-27B",
+    "source_url": "https://huggingface.co/Qwen/Qwen3.8-27B"
+  },
+  "quality": {
+    "endpoint_cap_w": 800,
+    "matches_1300_w_reference_on_both_stations": true,
+    "maximum_consecutive_phrase_repeats": 1,
+    "maximum_repeated_8gram_fraction": 0.005221932114882507,
+    "reference_status": "dual-host-reference-passed",
+    "stations_passed": 2,
+    "text_sha256": [
+      "328f7b763800f1089c78130d5733ab98ae8cc1f4539be5a14980ef5f0e7f4405"
+    ]
+  },
+  "schema_version": 1,
+  "software": {
+    "benchmark": "llm-inference-bench 0.4.29",
+    "benchmark_commit": "0b4185b5b435e948b199c9077a00b084864aa963",
+    "benchmark_script_sha256": "bedff5f7d7039578a4c2aa9e2c1c6e76d58fb1e9d5bb2442f5e6bda6b1db39d3",
+    "reported_sglang_version": "0.0.0.dev1+gc0b6474b4",
+    "runtime": "SGLang",
+    "runtime_image_id": "sha256:c7c5da7c89b8aa73b6f6db5dd6b4587595e82b42759332227b55732549fb2545",
+    "sglang_commit": "4cdb1dcc7ff725e3b4965c3f688c1107098a007e"
+  },
+  "source_artifact_checksums": {
+    "aggregate_csv_sha256": "138fb0976c5aace19f6a4ba502881fa811ec18c9c976f5fb48f6027541bd77b6",
+    "aggregate_json_sha256": "e6731390ba776bb32c47d4da13a5763376489d53998307035427c04c56340c88",
+    "cell_csv_sha256": "c4bd797307c7d8b7aa38a5d2d8b78b93a165f825092a73b51c15979eaddd873f",
+    "chart_svg_sha256": "7a9acc0050a23d507b428153f9842afd5f8f66637be954d06a1c052357c2b73b",
+    "run_manifest_sha256": "159d6a369c26141d7c7ad9b7416470db57736278f3a0ab5112e5000f378247ea",
+    "schedule_json_sha256": "67e2ebe74556a43ffe4a8c968643202af4fc4b3c6ca511479517885d0b999ee1"
+  },
+  "status": "validated",
+  "workload": {
+    "concurrencies": [
+      1,
+      64
+    ],
+    "context_tokens": 8192,
+    "ignore_eos": true,
+    "lane": "official BF16 target with native MTP",
+    "measured_requests": {
+      "1": 5,
+      "64": 320
+    },
+    "output_tokens_per_request": 1024,
+    "temperature": 0,
+    "thinking": "low",
+    "warmup_requests": {
+      "1": 1,
+      "64": 64
+    }
+  }
+}
