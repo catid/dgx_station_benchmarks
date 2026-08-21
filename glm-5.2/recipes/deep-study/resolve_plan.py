@@ -169,6 +169,11 @@ def validate(plan: dict[str, Any]) -> None:
         or graph_sizes[-1] > int(plan["max_num_seqs"])
     ):
         raise PlanError("invalid or oversized CUDA graph capture grid")
+    cache_profile_id = plan.get("cache_profile_id")
+    if cache_profile_id is not None and not re.fullmatch(
+        r"[a-z0-9][a-z0-9-]{2,80}", str(cache_profile_id)
+    ):
+        raise PlanError("compiler-cache profile ID is unsafe")
     utilization = float(plan.get("gpu_memory_utilization", 0))
     if not 0.5 <= utilization <= 0.95:
         raise PlanError("GPU memory utilization must stay in [0.5, 0.95]")
@@ -197,6 +202,26 @@ def validate(plan: dict[str, Any]) -> None:
             raise PlanError("split-MTP bootstrap permits only the 8K prefill check")
         if int(benchmark.get("minimum_kv_tokens", 0)) != 24578:
             raise PlanError("split-MTP bootstrap capacity gate must cover 8,194 + 16x1,024")
+    if plan.get("phase") == "native-mtp-split-short-context":
+        expected = {
+            "max_model_len": 9216,
+            "max_num_seqs": 8,
+            "max_num_batched_tokens": 16384,
+        }
+        if any(int(plan[key]) != value for key, value in expected.items()):
+            raise PlanError("split-MTP short-context envelope must remain fixed")
+        if float(plan["gpu_memory_utilization"]) != 0.95:
+            raise PlanError("split-MTP short-context utilization must remain 0.95")
+        if graph_sizes != [1, 2, 4, 8]:
+            raise PlanError("split-MTP short-context CUDA graph grid must stop at 8")
+        if [int(value) for value in benchmark.get("concurrencies", [])] != [1, 2, 4, 8]:
+            raise PlanError("split-MTP short-context grid must be C1-C8")
+        if prefill != [8192]:
+            raise PlanError("split-MTP short-context permits only the 8K prefill check")
+        if int(benchmark.get("minimum_kv_tokens", 0)) != 16384:
+            raise PlanError("split-MTP short-context gate must cover 8K + 8x1K")
+        if cache_profile_id != "vllm-tp2-mtp1-split-bootstrap":
+            raise PlanError("split-MTP short-context must reuse the measured P5 cache")
     if plan.get("phase") == "prefill-chunk":
         chunk = int(plan.get("chunked_prefill_size", 0))
         if chunk not in ALLOWED_CHUNKS:
@@ -232,6 +257,7 @@ def shell_assignments(plan: dict[str, Any]) -> str:
             map(str, plan["cudagraph_capture_sizes"])
         ),
         "MAX_CUDAGRAPH_CAPTURE_SIZE": max(plan["cudagraph_capture_sizes"]),
+        "CACHE_PROFILE_ID": plan.get("cache_profile_id") or "",
         "KV_CACHE_DTYPE": plan["kv_cache_dtype"],
         "MAX_MODEL_LEN": plan["max_model_len"],
         "MAX_NUM_SEQS": plan["max_num_seqs"],

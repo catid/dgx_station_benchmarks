@@ -1,0 +1,201 @@
+{
+  "status": "excluded_before_requests_for_audit_harness_failures",
+  "profile_id": "vllm-tp2-mtp1-split-short-context",
+  "result_kind": "harness_only_no_performance",
+  "target_backend": "FLASHINFER_CUTEDSL",
+  "draft_backend": "FLASHINFER_CUTLASS_UNQUANTIZED",
+  "model_runner_environment": "VLLM_USE_V2_MODEL_RUNNER=0",
+  "speculation": {
+    "method": "mtp",
+    "num_speculative_tokens": 1,
+    "moe_backend": "flashinfer_cutlass"
+  },
+  "short_context_envelope": {
+    "gpu_memory_utilization": 0.95,
+    "max_model_len": 9216,
+    "max_num_seqs": 8,
+    "max_num_batched_tokens": 16384,
+    "cudagraph_capture_sizes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "planned_concurrencies": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "planned_decode_context_tokens": 8192,
+    "planned_max_output_tokens": 1024,
+    "planned_prefill_contexts": [
+      8192
+    ],
+    "minimum_kv_tokens": 16384
+  },
+  "attempts": [
+    {
+      "attempt_id": "p6-attempt1-cold-compile",
+      "api_ready": true,
+      "target_backend_proven_by_both_rank_logs": true,
+      "draft_backend_proven_by_both_rank_logs": true,
+      "target_checkpoint_load_seconds_by_rank": [
+        67.86,
+        71.34
+      ],
+      "draft_load_seconds_by_rank": [
+        5.23,
+        5.18
+      ],
+      "model_memory_gib_by_rank": [
+        219.01,
+        219.01
+      ],
+      "backbone_compile_seconds_by_rank": [
+        126.03,
+        129.03
+      ],
+      "draft_compile_seconds_by_rank": [
+        11.26,
+        11.60
+      ],
+      "initial_profile_warmup_seconds_by_rank": [
+        23.47,
+        20.49
+      ],
+      "draft_warmup_seconds_by_rank": [
+        0.79,
+        0.45
+      ],
+      "estimated_cudagraph_memory_gib_by_rank": [
+        2.78,
+        2.78
+      ],
+      "available_kv_memory_gib_by_rank": [
+        6.64,
+        5.25
+      ],
+      "coordinated_gpu_kv_tokens": 116416,
+      "maximum_concurrency_at_9216_tokens": 12.63,
+      "planned_capacity_requirement_passed": true,
+      "audit_failure": {
+        "stage": "remote_container_environment_inspection",
+        "cause": "SSH argument boundaries did not preserve Docker's Go-template as one format argument",
+        "observed_console_error": "template parsing error: unclosed action",
+        "console_error_retained_in_result_tree": false
+      },
+      "benchmark_requests_issued": 0,
+      "throughput_rows": 0,
+      "acceptance_telemetry_available": false,
+      "quality_outputs": 0,
+      "teardown": {
+        "graceful": true,
+        "current_boot_kernel_danger_matches": 0,
+        "idle_hbm_mib_by_rank": [
+          5,
+          6
+        ]
+      },
+      "raw_artifact_sha256": {
+        "resolved_plan": "0c5a78ed7cc629333d2feb981adb3e42e8d1bc1b840c123ec5f431ad8fcae7af",
+        "node0_server_log": "98bd4340b9155f97e052066edba4f38f3e53918bfee3d3ac2d02929d6fcd089c",
+        "node1_server_log": "2bbfeabb0b9d8fbda7e843f0a948bdc4beed2769f0c8e90bccb55ed19b3e3123",
+        "backend_gate_stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "launch_log": "4c74825800fe306b94fd2958dbf115aef7f649ccca71e3938b39df8be161250a",
+        "post_teardown_kernel_danger_scan": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+        "post_teardown_idle_hbm_gate": "359dacc7d9c08374333ea254e59a2b8e23fc90a3c5f21276493e0884b4bce2cc",
+        "teardown_log": "5ee702c949c4680560f9e26cd9acd8e4e637677b0c098cc1c6ef840027321dc9"
+      }
+    },
+    {
+      "attempt_id": "p6-attempt2-warm-compile-cache",
+      "authorized_change_from_attempt1": "fix remote Docker-inspect command quoting only",
+      "api_ready": true,
+      "target_backend_proven_by_both_rank_logs": true,
+      "draft_backend_proven_by_both_rank_logs": true,
+      "model_runner_environment_proven_by_both_rank_inspections": true,
+      "target_checkpoint_load_seconds_by_rank": [
+        65.71,
+        70.84
+      ],
+      "draft_load_seconds_by_rank": [
+        5.13,
+        5.48
+      ],
+      "model_memory_gib_by_rank": [
+        219.01,
+        219.01
+      ],
+      "backbone_compile_seconds_by_rank": [
+        2.10,
+        2.11
+      ],
+      "draft_compile_seconds_by_rank": [
+        8.97,
+        9.04
+      ],
+      "initial_profile_warmup_seconds_by_rank": [
+        21.76,
+        21.92
+      ],
+      "draft_warmup_seconds_by_rank": [
+        0.65,
+        0.43
+      ],
+      "estimated_cudagraph_memory_gib_by_rank": [
+        2.78,
+        2.78
+      ],
+      "available_kv_memory_gib_by_rank": [
+        8.08,
+        8.09
+      ],
+      "coordinated_gpu_kv_tokens": 179264,
+      "maximum_concurrency_at_9216_tokens": 19.45,
+      "planned_capacity_requirement_passed": true,
+      "audit_failure": {
+        "stage": "paired_capacity_verification_after_backend_and_environment_checks",
+        "cause": "the verifier incorrectly required the coordinated EngineCore GPU KV-token marker in each worker-rank log",
+        "observed_gate_stdout": "rank0 target=FLASHINFER_CUTEDSL draft=FLASHINFER_CUTLASS kv_tokens=179264 mr_v1=yes",
+        "expected_logging_scope": "the coordinated token count appears once in the API-rank EngineCore log; each worker log contains only local available-KV memory"
+      },
+      "benchmark_requests_issued": 0,
+      "throughput_rows": 0,
+      "acceptance_telemetry_available": false,
+      "quality_outputs": 0,
+      "retry_after_this_attempt": false,
+      "teardown": {
+        "graceful": true,
+        "current_boot_kernel_danger_matches": 0,
+        "idle_hbm_mib_by_rank": [
+          4,
+          8
+        ]
+      },
+      "raw_artifact_sha256": {
+        "resolved_plan": "0c5a78ed7cc629333d2feb981adb3e42e8d1bc1b840c123ec5f431ad8fcae7af",
+        "node0_server_log": "2527d4ead267ab741f9e50d103be05b633807ed1364f9abf1d3816061d334d5e",
+        "node1_server_log": "6d99907da764e2c991259218e9405c75b7d166d01d0297a75093661d9cc3964d",
+        "backend_gate_stdout": "bfaf5e4407cbcb0b9156da70239b0df20c5ad7cb3d5a9358f583643c2979476c",
+        "launch_log": "7d493bdc3a4c4df3544c000985aa2e94f764145f593d54c119d2b636dc7abf10",
+        "post_teardown_kernel_danger_scan": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+        "post_teardown_idle_hbm_gate": "2cf6ed471ee60b64c06f30c1f604b312d71be582e7ddec31cf9bb3b957436dd2",
+        "teardown_log": "5ee702c949c4680560f9e26cd9acd8e4e637677b0c098cc1c6ef840027321dc9"
+      }
+    }
+  ],
+  "corrected_verifier_lesson": {
+    "rank_local_checks": [
+      "target backend marker",
+      "draft backend marker",
+      "absence of fatal server markers",
+      "VLLM_USE_V2_MODEL_RUNNER=0",
+      "available KV memory"
+    ],
+    "coordinated_check": "read GPU KV cache size once from EngineCore on the API rank and compare it with the workload minimum",
+    "offline_regression_test_added": true,
+    "third_attempt_performed": false
+  },
+  "published_performance_rows": 0
+}

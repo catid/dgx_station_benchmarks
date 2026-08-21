@@ -103,6 +103,14 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
                 raise ValueError(f"node{rank}: PP layer split is not 40,38")
         if any(flag in command for flag in ("--cpu-offload-gb", "--cpu-offload")):
             raise ValueError(f"node{rank}: CPU offload appeared in the command")
+        cache_profile_id = plan.get("cache_profile_id")
+        if cache_profile_id is not None:
+            cache_mounts = [
+                mount for mount in item.get("Mounts", [])
+                if mount.get("Destination") == "/root/.cache"
+            ]
+            if len(cache_mounts) != 1 or Path(cache_mounts[0].get("Source", "")).name != cache_profile_id:
+                raise ValueError(f"node{rank}: compiler-cache reuse is not proven")
 
         expected = {
             "--served-model-name": plan["target"]["served_model_name"],
@@ -250,7 +258,10 @@ def validate_benchmark(run: Path, plan: dict) -> dict:
         value = float(cell.get("tok_per_sec") or cell.get("client_tok_per_sec") or 0)
         if not math.isfinite(value) or value <= 0:
             raise ValueError(f"prefill {context} lacks a finite positive measurement")
-    if plan.get("phase") == "native-mtp-split-bootstrap":
+    if plan.get("phase") in {
+        "native-mtp-split-bootstrap",
+        "native-mtp-split-short-context",
+    }:
         if int(prefill["8192"].get("prompt_tokens", 0)) != 8194:
             raise ValueError("split-MTP bootstrap did not admit the exact 8,194-token API prompt")
 
