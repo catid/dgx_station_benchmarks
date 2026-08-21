@@ -16,6 +16,7 @@ failed start is never represented as zero throughput.
 | [`2026-08-20-p6-mtp1-short-context-harness-only/`](2026-08-20-p6-mtp1-short-context-harness-only/) | CuTeDSL target + FlashInfer CUTLASS MTP1 draft | Yes | Not run | Capacity passed at 116,416 / 179,264 coordinated KV tokens; two fail-closed audit-harness stops; 0 requests |
 | [`2026-08-20-p7-pp2-kv-block-incompatible/`](2026-08-20-p7-pp2-kv-block-incompatible/) | FlashInfer CuTeDSL, TP1/PP2 40/38 | No | Not run | Balanced stages loaded at 206.32 / 209.52 GiB; excluded when 64/32 KV block sizes had no common layout |
 | [`2026-08-21-p8-pp2-block64-eager-correctness/`](2026-08-21-p8-pp2-block64-eager-correctness/) | FlashInfer CuTeDSL, TP1/PP2 40/38, block64 eager | Yes | 4 retained correctness outputs; no performance rows | Accepted correctness smoke; 402,688 KV tokens, exact 8K direct API prompts, no corruption flags; greedy pairs not byte-identical |
+| [`2026-08-21-p9-pp2-inductor-full-capacity/`](2026-08-21-p9-pp2-inductor-full-capacity/) | FlashInfer CuTeDSL, TP1/PP2 40/38, block64 Inductor, CUDA graphs off | No | Not run | Excluded at full 135,168-token envelope: 7.60 / 0.28 GiB KV available, 2.9 GiB required on the limiting stage |
 
 The accepted benchmark artifacts remove only private machine labels and
 generic driver-reconfiguration suggestion fields. Measurement values are
@@ -29,3 +30,7 @@ compatibility-only and has no throughput row. P3 also retains the exact
 harness failure unchanged beside a corrected result: direct API accounting was
 8,192 rather than the harness's path-specific 8,194 expectation, and coherent
 greedy hash mismatches are retained as nondeterminism rather than corruption.
+P9 preserves the first full-envelope Inductor/no-CUDA-graphs capacity result:
+both stages compiled, but the limiting rank exposed only 0.28 GiB KV and the
+API rejected startup before the retained correctness gate or any benchmark
+request.

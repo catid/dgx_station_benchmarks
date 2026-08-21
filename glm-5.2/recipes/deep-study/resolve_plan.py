@@ -26,6 +26,7 @@ SGLANG_BACKENDS = {
 ALLOWED_MTP = {0, 1, 2, 3, 5}
 ALLOWED_CHUNKS = {4096, 8192, 16384, 32768}
 ALLOWED_CUDAGRAPH_SIZES = {1, 2, 4, 8, 16, 32, 64, 128}
+ALLOWED_CUDAGRAPH_MODES = {"FULL_AND_PIECEWISE", "NONE"}
 ALLOWED_DRAFT_MOE_BACKENDS = {"flashinfer_cutlass"}
 
 
@@ -168,18 +169,24 @@ def validate(plan: dict[str, Any]) -> None:
     if block_size is not None and int(block_size) != 64:
         raise PlanError("only the source-audited 64-token block override is permitted")
     graph_sizes = [int(value) for value in plan.get("cudagraph_capture_sizes", [])]
+    cudagraph_mode = plan.get("cudagraph_mode")
+    if cudagraph_mode not in ALLOWED_CUDAGRAPH_MODES:
+        raise PlanError("unsupported CUDA graph mode")
     if enforce_eager:
-        if runtime != "vllm" or graph_sizes:
+        if runtime != "vllm" or graph_sizes or cudagraph_mode != "NONE":
             raise PlanError("eager correctness profiles must use vLLM with no CUDA graphs")
         if plan.get("phase") != "pp-correctness-smoke":
             raise PlanError("eager execution is restricted to the PP correctness smoke")
-    elif (
-        not graph_sizes
-        or graph_sizes != sorted(set(graph_sizes))
-        or any(value not in ALLOWED_CUDAGRAPH_SIZES for value in graph_sizes)
-        or graph_sizes[-1] > int(plan["max_num_seqs"])
-    ):
-        raise PlanError("invalid or oversized CUDA graph capture grid")
+    elif cudagraph_mode == "FULL_AND_PIECEWISE":
+        if (
+            not graph_sizes
+            or graph_sizes != sorted(set(graph_sizes))
+            or any(value not in ALLOWED_CUDAGRAPH_SIZES for value in graph_sizes)
+            or graph_sizes[-1] > int(plan["max_num_seqs"])
+        ):
+            raise PlanError("invalid or oversized CUDA graph capture grid")
+    elif runtime != "vllm" or graph_sizes or plan.get("phase") != "pp-full-block64-no-graphs":
+        raise PlanError("inductor without CUDA graphs is restricted to the audited PP2 profile")
     cache_profile_id = plan.get("cache_profile_id")
     if cache_profile_id is not None and not re.fullmatch(
         r"[a-z0-9][a-z0-9-]{2,80}", str(cache_profile_id)
@@ -199,6 +206,14 @@ def validate(plan: dict[str, Any]) -> None:
         raise PlanError("correctness-smoke mode is restricted to its audited PP profile")
     if int(benchmark.get("minimum_kv_tokens", 0)) <= 0:
         raise PlanError("capacity gate requires a positive minimum_kv_tokens")
+    gate = plan.get("preheadline_correctness_gate", {})
+    if not isinstance(gate, dict) or not isinstance(gate.get("enabled"), bool):
+        raise PlanError("preheadline correctness gate must be a declared object")
+    if gate["enabled"]:
+        if plan.get("phase") != "pp-full-block64-no-graphs":
+            raise PlanError("preheadline correctness gate is restricted to the PP2 full profile")
+        if gate.get("prompt_tokens") != 8192 or gate.get("output_tokens") != [512, 4097]:
+            raise PlanError("PP2 preheadline correctness grid must remain 8K + 512/4,097")
     prefill = [int(value) for value in benchmark.get("prefill_context_tokens", [])]
     if not prefill or max(prefill) >= int(plan["max_model_len"]):
         raise PlanError("prefill target must fit below max_model_len")
@@ -270,7 +285,43 @@ def validate(plan: dict[str, Any]) -> None:
         ):
             raise PlanError("PP correctness smoke workload controls must remain deterministic")
         if prefill != [8192] or int(benchmark.get("minimum_kv_tokens", 0)) != 12802:
-            raise PlanError("PP correctness smoke capacity must cover 8,194 + 4,608 tokens")
+            raise PlanError("PP correctness smoke conservative capacity gate must remain 12,802 tokens")
+    if plan.get("phase") == "pp-full-block64-no-graphs":
+        expected = {
+            "max_model_len": 135168,
+            "max_num_seqs": 128,
+            "max_num_batched_tokens": 32768,
+            "chunked_prefill_size": 32768,
+        }
+        if runtime != "vllm" or topology != "pp2":
+            raise PlanError("PP2 full no-graphs profile must use vLLM PP2")
+        if any(int(plan[key]) != value for key, value in expected.items()):
+            raise PlanError("PP2 full no-graphs envelope must match P0")
+        if (
+            block_size != 64
+            or enforce_eager
+            or cudagraph_mode != "NONE"
+            or graph_sizes
+        ):
+            raise PlanError("PP2 full profile requires block64 inductor with no CUDA graphs")
+        if plan["moe_backend"] != "flashinfer_cutedsl" or plan["flashinfer_autotune"]:
+            raise PlanError("PP2 full profile requires CuTeDSL with autotune off")
+        if float(plan["gpu_memory_utilization"]) != 0.93:
+            raise PlanError("PP2 full profile utilization must remain 0.93")
+        if plan.get("cache_profile_id") != "vllm-pp2-block64-eager-smoke":
+            raise PlanError("PP2 full profile must reuse the accepted P8 kernel cache")
+        if benchmark.get("mode") != "headline" or plan.get("reportable") is not True:
+            raise PlanError("PP2 full profile must retain the reportable headline workload")
+        if [int(value) for value in benchmark.get("concurrencies", [])] != [1, 2, 4, 8, 16, 32, 64, 128]:
+            raise PlanError("PP2 full concurrency grid must remain C1-C128")
+        if (
+            int(benchmark.get("decode_context_tokens", 0)) != 8192
+            or int(benchmark.get("max_output_tokens", 0)) != 1024
+            or int(benchmark.get("duration_seconds", 0)) != 30
+            or prefill != [8192, 65536, 131072]
+            or int(benchmark.get("minimum_kv_tokens", 0)) != 139264
+        ):
+            raise PlanError("PP2 full benchmark envelope must match P0")
     if plan.get("phase") == "prefill-chunk":
         chunk = int(plan.get("chunked_prefill_size", 0))
         if chunk not in ALLOWED_CHUNKS:
@@ -305,12 +356,20 @@ def shell_assignments(plan: dict[str, Any]) -> str:
         "CUDAGRAPH_CAPTURE_SIZES": " ".join(
             map(str, plan["cudagraph_capture_sizes"])
         ),
+        "CUDAGRAPH_MODE": plan["cudagraph_mode"],
         "MAX_CUDAGRAPH_CAPTURE_SIZE": (
             max(plan["cudagraph_capture_sizes"])
             if plan["cudagraph_capture_sizes"] else 0
         ),
         "BLOCK_SIZE": plan.get("block_size") or "",
         "ENFORCE_EAGER": "yes" if plan.get("enforce_eager") else "no",
+        "PREHEADLINE_CORRECTNESS_GATE": (
+            "yes" if plan["preheadline_correctness_gate"]["enabled"] else "no"
+        ),
+        "GATE_PROMPT_TOKENS": plan["preheadline_correctness_gate"].get("prompt_tokens", ""),
+        "GATE_OUTPUT_TOKENS": ",".join(
+            map(str, plan["preheadline_correctness_gate"].get("output_tokens", []))
+        ),
         "CACHE_PROFILE_ID": plan.get("cache_profile_id") or "",
         "KV_CACHE_DTYPE": plan["kv_cache_dtype"],
         "MAX_MODEL_LEN": plan["max_model_len"],

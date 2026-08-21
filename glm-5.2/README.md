@@ -26,8 +26,11 @@ split then loaded with only 3.20 GiB stage-memory spread, but pinned vLLM could
 not reconcile the stages' 64/32 KV block sizes. P8 applied the stock block64
 override with eager execution: both stages served, exposed 402,688 KV tokens,
 and produced four coherent retained outputs with no corruption flags. P8 is
-correctness evidence, not a performance row. Compact evidence and checksums are
-in [`data/deep-study/`](data/deep-study/).
+correctness evidence, not a performance row. P9 then enabled Inductor with
+CUDA graphs disabled at the full P0 context envelope. Both stages compiled,
+but PP1 retained only 0.28 GiB for KV and the API failed capacity before any
+request. Compact evidence and checksums are in
+[`data/deep-study/`](data/deep-study/).
 
 ## Checkpoint provenance
 
@@ -42,7 +45,7 @@ The shard count and byte total come from the pinned checkpoint's `model.safetens
 <!-- BEGIN GENERATED:STATUS -->
 - Checkpoint download and integrity verification: complete
 - One-station capacity test: complete; no fit
-- Accepted two-station performance: TP2 / PP1 + expert parallel; PP2 block64 correctness smoke: accepted, performance pending
+- Accepted two-station performance: TP2 / PP1 + expert parallel; PP2 block64 eager correctness: accepted; full-context Inductor at 93% HBM: capacity-excluded
 - Natural-output audits: TP2 / PP1 + expert parallel; WikiText-2: TP2 / PP1 + expert parallel
 <!-- END GENERATED:STATUS -->
 
@@ -52,7 +55,8 @@ An earlier PP2 attempt had no retained logs; its operator-observed stage
 imbalance remains in [`data/failure-attempts.json`](data/failure-attempts.json)
 as provenance only. P7 supersedes that anecdote with a checksummed 40/38
 bootstrap disposition, and P8 supersedes P7's block-layout failure with a
-checksummed eager block64 correctness pass. Neither is a throughput row.
+checksummed eager block64 correctness pass. P9 is the checksummed full-context
+Inductor capacity disposition. None of P7–P9 is a throughput row.
 
 ## Deep-study increments: backend, autotune, native MTP, and PP2
 
@@ -145,6 +149,15 @@ standalone-prefill path, while direct chat usage and `/tokenize` both measured
 exactly 8,192. A separate corrected validator accepts the unchanged raw
 outputs. P8 has four correctness requests and zero performance rows.
 
+P9 kept P8's block64/40,38/CuTeDSL controls, returned to the full 135,168-token
+P0 envelope, enabled Inductor, and explicitly disabled CUDA graphs. Both stages
+completed weight load, compilation, and profiling warmup. PP0 then exposed
+7.60 GiB of available KV memory, while PP1 exposed only 0.28 GiB; that limiting
+stage needed 2.9 GiB and estimated a maximum model length of 12,864 tokens.
+vLLM rejected the declared envelope before API readiness. The planned retained
+correctness gate and all benchmark/quality/network requests therefore remained
+unrun, and P9 has zero performance rows.
+
 P0's quiet before/after RoCE counters recorded 1.236 TB in each direction over
 372.4 seconds, or 26.55 Gb/s average, with no health-counter deltas. That is a
 whole-matrix average, not a peak-link or bottleneck claim. P3 recorded 1.233 TB
@@ -161,7 +174,8 @@ kernel scan, and returned to 2–8 MiB idle HBM per rank. See the frozen
 [`P5 split-backend capacity evidence`](data/deep-study/2026-08-20-p5-mtp1-split-bootstrap-capacity/),
 [`P6 short-context harness evidence`](data/deep-study/2026-08-20-p6-mtp1-short-context-harness-only/),
 [`P7 PP2 incompatibility evidence`](data/deep-study/2026-08-20-p7-pp2-kv-block-incompatible/),
-and [`P8 PP2 block64 correctness evidence`](data/deep-study/2026-08-21-p8-pp2-block64-eager-correctness/).
+[`P8 PP2 block64 correctness evidence`](data/deep-study/2026-08-21-p8-pp2-block64-eager-correctness/),
+and [`P9 PP2 Inductor capacity evidence`](data/deep-study/2026-08-21-p9-pp2-inductor-full-capacity/).
 
 ## One DGX Station: capacity result
 

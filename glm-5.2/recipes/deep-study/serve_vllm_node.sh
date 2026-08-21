@@ -66,18 +66,34 @@ fi
 read -r -a cudagraph_sizes <<<"${CUDAGRAPH_CAPTURE_SIZES:-}"
 case "${ENFORCE_EAGER:?}" in
   yes)
-    [[ "${#cudagraph_sizes[@]}" -eq 0 && "${MAX_CUDAGRAPH_CAPTURE_SIZE:?}" == 0 ]] || {
+    [[ "${CUDAGRAPH_MODE:?}" == NONE \
+       && "${#cudagraph_sizes[@]}" -eq 0 \
+       && "${MAX_CUDAGRAPH_CAPTURE_SIZE:?}" == 0 ]] || {
       echo "Eager mode must not declare CUDA graph captures" >&2
       exit 2
     }
     [[ "${BLOCK_SIZE:?}" == 64 ]] || { echo "Eager PP smoke requires block64" >&2; exit 2; }
     ;;
   no)
-    [[ "${#cudagraph_sizes[@]}" -gt 0 ]] || { echo "Empty CUDA graph grid" >&2; exit 2; }
-    [[ "${cudagraph_sizes[-1]}" == "${MAX_CUDAGRAPH_CAPTURE_SIZE:?}" ]] || {
-      echo "CUDA graph maximum does not match capture grid" >&2
-      exit 2
-    }
+    case "${CUDAGRAPH_MODE:?}" in
+      FULL_AND_PIECEWISE)
+        [[ "${#cudagraph_sizes[@]}" -gt 0 ]] || { echo "Empty CUDA graph grid" >&2; exit 2; }
+        [[ "${cudagraph_sizes[-1]}" == "${MAX_CUDAGRAPH_CAPTURE_SIZE:?}" ]] || {
+          echo "CUDA graph maximum does not match capture grid" >&2
+          exit 2
+        }
+        ;;
+      NONE)
+        [[ "${#cudagraph_sizes[@]}" -eq 0 \
+           && "${MAX_CUDAGRAPH_CAPTURE_SIZE:?}" == 0 \
+           && "${BLOCK_SIZE:?}" == 64 \
+           && "${PP_SIZE:?}" == 2 ]] || {
+          echo "No-graphs inductor mode is restricted to PP2 block64" >&2
+          exit 2
+        }
+        ;;
+      *) echo "Unsupported CUDAGRAPH_MODE" >&2; exit 2 ;;
+    esac
     ;;
   *) echo "ENFORCE_EAGER must be yes or no" >&2; exit 2 ;;
 esac
@@ -112,11 +128,20 @@ fi
 if [[ "$ENFORCE_EAGER" == yes ]]; then
   vllm_args+=(--enforce-eager)
 else
-  vllm_args+=(
-    --cudagraph-capture-sizes "${cudagraph_sizes[@]}"
-    --max-cudagraph-capture-size "$MAX_CUDAGRAPH_CAPTURE_SIZE"
-    --compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE","custom_ops":["all"]}'
-  )
+  case "$CUDAGRAPH_MODE" in
+    FULL_AND_PIECEWISE)
+      vllm_args+=(
+        --cudagraph-capture-sizes "${cudagraph_sizes[@]}"
+        --max-cudagraph-capture-size "$MAX_CUDAGRAPH_CAPTURE_SIZE"
+        --compilation-config '{"cudagraph_mode":"FULL_AND_PIECEWISE","custom_ops":["all"]}'
+      )
+      ;;
+    NONE)
+      vllm_args+=(
+        --compilation-config '{"cudagraph_mode":"NONE","custom_ops":["all"]}'
+      )
+      ;;
+  esac
 fi
 if [[ "${TP_SIZE:?}" == 2 ]]; then
   vllm_args+=(--enable-expert-parallel)

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
@@ -153,11 +154,30 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
             else:
                 if "--enforce-eager" in command:
                     raise ValueError(f"node{rank}: unexpected eager execution")
+                compilation_value = option(command, "--compilation-config")
+                try:
+                    compilation_config = json.loads(compilation_value or "")
+                except json.JSONDecodeError as exc:
+                    raise ValueError(f"node{rank}: invalid compilation configuration") from exc
+                expected_compilation = {
+                    "cudagraph_mode": plan["cudagraph_mode"],
+                    "custom_ops": ["all"],
+                }
+                if compilation_config != expected_compilation:
+                    raise ValueError(f"node{rank}: wrong compilation/CUDA-graph mode")
                 expected_graphs = [str(value) for value in plan["cudagraph_capture_sizes"]]
-                if option_values(command, "--cudagraph-capture-sizes") != expected_graphs:
-                    raise ValueError(f"node{rank}: wrong CUDA graph capture grid")
-                if option(command, "--max-cudagraph-capture-size") != expected_graphs[-1]:
-                    raise ValueError(f"node{rank}: wrong maximum CUDA graph capture size")
+                if plan["cudagraph_mode"] == "FULL_AND_PIECEWISE":
+                    if option_values(command, "--cudagraph-capture-sizes") != expected_graphs:
+                        raise ValueError(f"node{rank}: wrong CUDA graph capture grid")
+                    if option(command, "--max-cudagraph-capture-size") != expected_graphs[-1]:
+                        raise ValueError(f"node{rank}: wrong maximum CUDA graph capture size")
+                else:
+                    for forbidden in (
+                        "--cudagraph-capture-sizes",
+                        "--max-cudagraph-capture-size",
+                    ):
+                        if forbidden in command:
+                            raise ValueError(f"node{rank}: no-graphs run declared {forbidden}")
             mr_v2 = plan.get("vllm_use_v2_model_runner")
             if mr_v2 == 0 and environment.get("VLLM_USE_V2_MODEL_RUNNER") != "0":
                 raise ValueError(f"node{rank}: MRv1 environment pin is absent")
@@ -242,7 +262,6 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
             # usual "Setting kv cache block size" selector message.  Both
             # container commands were already checked above; the API-rank
             # parsed-argument record plus successful KV initialization proves
-            # that the shared override was admitted by the engine.
             if "'block_size': 64" not in joined_logs:
                 raise ValueError("server logs do not prove the parsed block64 override")
             if "No common block size" in joined_logs:
@@ -251,6 +270,19 @@ def validate_runtime(run: Path, plan: dict) -> tuple[list[str], list[str]]:
                 raise ValueError("server logs do not prove eager engine configuration")
             if "capturing cuda graphs" in joined_logs.casefold():
                 raise ValueError("eager correctness smoke unexpectedly captured CUDA graphs")
+        if plan.get("phase") == "pp-full-block64-no-graphs":
+            if "'block_size': 64" not in joined_logs:
+                raise ValueError("server logs do not prove the parsed block64 override")
+            if "No common block size" in joined_logs:
+                raise ValueError("PP2 did not find a common KV block size")
+            if "enforce_eager=False" not in joined_logs:
+                raise ValueError("server logs do not prove inductor execution")
+            if "<CompilationMode.VLLM_COMPILE:" not in joined_logs:
+                raise ValueError("server logs do not prove vLLM inductor compilation")
+            if "<CUDAGraphMode.NONE:" not in joined_logs:
+                raise ValueError("server logs do not prove CUDA graph mode NONE")
+            if "capturing cuda graphs" in joined_logs.casefold():
+                raise ValueError("PP2 no-graphs profile unexpectedly captured CUDA graphs")
     elif plan["moe_backend"].casefold() not in joined_logs.casefold():
         raise ValueError("SGLang logs do not mention the requested MoE runner")
 
@@ -307,6 +339,90 @@ def validate_correctness_smoke(run: Path) -> dict:
         "byte_identical_pairs": repeatability.get("byte_identical_pairs"),
         "non_byte_identical_pairs": repeatability.get("non_byte_identical_pairs"),
     }
+
+
+def validate_preheadline_gate(run: Path, plan: dict) -> dict:
+    if not plan.get("preheadline_correctness_gate", {}).get("enabled"):
+        return {"enabled": False}
+    data = load_object(run / "quality" / "pp2-preheadline-gate.json")
+    if data.get("status") != "passed" or data.get("failures") != []:
+        raise ValueError("PP2 preheadline correctness gate did not pass")
+    settings = data.get("settings", {})
+    if settings != {
+        "tokenize_target": 8192,
+        "expected_api_prompt_tokens": 8192,
+        "output_lengths": [512, 4097],
+        "repeats_per_length": 1,
+        "temperature": 0,
+        "seed": 0,
+        "ignore_eos": True,
+        "sequential": True,
+        "byte_identical_repeat_required": False,
+    }:
+        raise ValueError("PP2 preheadline gate settings drifted")
+    proof = data.get("prompt_proof", {})
+    messages = proof.get("messages")
+    if (
+        proof.get("tokenize_target") != 8192
+        or proof.get("tokenize_count") != 8192
+        or not isinstance(messages, list)
+        or not messages
+    ):
+        raise ValueError("PP2 preheadline gate lacks exact prompt proof")
+    message_hash = hashlib.sha256(
+        json.dumps(messages, ensure_ascii=False, sort_keys=True).encode()
+    ).hexdigest()
+    if message_hash != proof.get("messages_sha256"):
+        raise ValueError("PP2 preheadline prompt hash does not verify")
+    outputs = data.get("outputs", [])
+    if not isinstance(outputs, list) or len(outputs) != 2:
+        raise ValueError("PP2 preheadline gate must retain two outputs")
+    expected = {(512, 0), (4097, 0)}
+    actual = {
+        (int(output.get("requested_output_tokens", -1)), int(output.get("repeat", -1)))
+        for output in outputs
+    }
+    if actual != expected:
+        raise ValueError("PP2 preheadline output grid is incomplete")
+    summaries = []
+    for output in outputs:
+        length = int(output["requested_output_tokens"])
+        usage = output.get("usage", {})
+        if (
+            int(usage.get("prompt_tokens", -1)) != 8192
+            or int(usage.get("completion_tokens", -1)) != length
+            or int(usage.get("total_tokens", -1)) != 8192 + length
+        ):
+            raise ValueError(f"P9 gate {length}: token usage is not exact")
+        reasoning = output.get("reasoning_content") or ""
+        content = output.get("content") or ""
+        combined = "\n".join(part for part in (reasoning, content) if part)
+        if combined != output.get("combined_text") or not combined:
+            raise ValueError(f"P9 gate {length}: retained text is inconsistent")
+        if hashlib.sha256(combined.encode()).hexdigest() != output.get("sha256"):
+            raise ValueError(f"P9 gate {length}: output hash does not verify")
+        analysis = output.get("analysis", {})
+        if (
+            output.get("finish_reason") != "length"
+            or output.get("passed") is not True
+            or analysis.get("flagged") is not False
+            or not analysis.get("checks")
+            or not all(analysis["checks"].values())
+            or not all(output.get("exact_usage_checks", {}).values())
+        ):
+            raise ValueError(f"P9 gate {length}: coherence/degeneration gate failed")
+        summaries.append(
+            {
+                "output_tokens": length,
+                "sha256": output["sha256"],
+                "characters": analysis.get("characters"),
+                "words": analysis.get("words"),
+                "repeated_8gram_fraction": analysis.get("repeated_8gram_fraction"),
+                "max_identical_character_run": analysis.get("max_identical_character_run"),
+                "max_identical_word_run": analysis.get("max_identical_word_run"),
+            }
+        )
+    return {"enabled": True, "status": "passed", "outputs": summaries}
 
 
 def validate_benchmark(run: Path, plan: dict) -> dict:
@@ -388,6 +504,7 @@ def main() -> None:
     if (run / "runtime" / "llm-inference-bench-commit.txt").read_text().strip() != expected_bench:
         raise ValueError("runtime benchmark checkout does not match the pin")
     capacities, _ = validate_runtime(run, plan)
+    preheadline = validate_preheadline_gate(run, plan)
     benchmark = validate_benchmark(run, plan)
     quality = run / "quality" / "quality-audit.json"
     if plan["benchmark"]["mode"] not in {"prefill-only", "correctness-smoke"}:
@@ -399,6 +516,7 @@ def main() -> None:
         "topology": plan["topology"],
         "capacity_tokens_observed": [int(value) for value in capacities],
         "capacity_tokens_required": plan["benchmark"]["minimum_kv_tokens"],
+        "preheadline_correctness_gate": preheadline,
         "benchmark": benchmark,
         "natural_quality": (
             "pp2-correctness-smoke-passed"

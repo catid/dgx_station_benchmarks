@@ -91,6 +91,23 @@ if [[ -n "${MTP_DRAFT_MOE_BACKEND:-}" ]]; then
 fi
 CONTAINER_NAME="$CONTAINER_NAME" REMOTE_HOST="${REMOTE_HOST:?}" \
   bash "$here/capture_host_memory_pair.sh" during "$result_dir/memory"
+case "${PREHEADLINE_CORRECTNESS_GATE:?}" in
+  yes)
+    [[ "$BENCHMARK_MODE" == headline ]] || {
+      echo "Preheadline correctness gate requires headline benchmark mode." >&2
+      exit 3
+    }
+    "${BENCH_PYTHON:-python3}" "$here/pp2_preheadline_gate.py" \
+      --model "$SERVED_MODEL_NAME" \
+      --bench-dir "${BENCH_DIR:?}" \
+      --prompt-tokens "${GATE_PROMPT_TOKENS:?}" \
+      --output-tokens "${GATE_OUTPUT_TOKENS:?}" \
+      --output "$result_dir/quality/pp2-preheadline-gate.json" \
+      2>&1 | tee "$result_dir/quality/pp2-preheadline-gate.log"
+    ;;
+  no) ;;
+  *) echo "PREHEADLINE_CORRECTNESS_GATE must be yes or no" >&2; exit 3 ;;
+esac
 curl --fail --silent http://127.0.0.1:30000/metrics >"$result_dir/runtime/metrics-before.txt" || true
 REMOTE_HOST="${REMOTE_HOST:?}" FABRIC_IFACE="${FABRIC_IFACE:?}" FABRIC_HCA="${FABRIC_HCA:?}" \
   bash "$here/capture_roce_pair.sh" before "$result_dir/network"

@@ -166,7 +166,7 @@ def analyze(text: str, expected_tokens: int) -> dict[str, Any]:
     printable_fraction = sum(
         character.isprintable() or character in "\n\r\t" for character in text
     ) / max(1, len(text))
-    minimum_words = 100 if expected_tokens == 1024 else 400
+    minimum_words = min(400, max(50, expected_tokens // 10))
     checks = {
         "nonempty": bool(text.strip()),
         "minimum_words": len(words) >= minimum_words,

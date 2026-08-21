@@ -7,8 +7,10 @@
     "max_num_seqs": 128,
     "max_num_batched_tokens": 32768,
     "cudagraph_capture_sizes": [1, 2, 4, 8, 16, 32, 64, 128],
+    "cudagraph_mode": "FULL_AND_PIECEWISE",
     "block_size": null,
     "enforce_eager": false,
+    "preheadline_correctness_gate": {"enabled": false},
     "vllm_use_v2_model_runner": null,
     "cache_profile_id": null,
     "gpu_memory_utilization": 0.93,
@@ -243,6 +245,7 @@
       "chunked_prefill_size": 16384,
       "block_size": 64,
       "enforce_eager": true,
+      "cudagraph_mode": "NONE",
       "cudagraph_capture_sizes": [],
       "benchmark": {
         "mode": "correctness-smoke",
@@ -256,6 +259,27 @@
         "minimum_kv_tokens": 12802
       },
       "reportable": false
+    },
+    "vllm-pp2-block64-inductor-no-graphs-full": {
+      "phase": "pp-full-block64-no-graphs",
+      "runtime": "vllm",
+      "topology": "pp2",
+      "tp_size": 1,
+      "pp_size": 2,
+      "expert_parallel_size": 1,
+      "moe_backend": "flashinfer_cutedsl",
+      "pp_layer_partition": "40,38",
+      "block_size": 64,
+      "enforce_eager": false,
+      "cudagraph_mode": "NONE",
+      "cudagraph_capture_sizes": [],
+      "cache_profile_id": "vllm-pp2-block64-eager-smoke",
+      "preheadline_correctness_gate": {
+        "enabled": true,
+        "prompt_tokens": 8192,
+        "output_tokens": [512, 4097]
+      },
+      "reportable": true
     },
     "vllm-pp2-balanced": {
       "phase": "balanced-pp",
