@@ -5,7 +5,9 @@ NVFP4 on two one-GPU DGX Station GB300 systems. Frozen measured increments are
 published under [`../../data/deep-study/`](../../data/deep-study/): P0 and P3
 passed the structural, capacity, and natural-output gates; P1 FlashInfer
 CUTLASS did not fit the unchanged long-context envelope; and P2 vLLM CUTLASS
-was incompatible with the required EP2 configuration.
+was incompatible with the required EP2 configuration. P4 showed that native
+MTP's unquantized draft MoE cannot use the P0 CuTeDSL backend in the pinned
+stock runtime.
 
 The target is
 [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) at
@@ -49,12 +51,19 @@ The pinned kernel rejected the required EP2 `allgather_reducescatter`
 configuration before weight load; the API never became ready and no request
 was issued.
 
+P4 held the P0 profile fixed and enabled one native MTP draft token. Both ranks
+loaded the target checkpoint, then draft construction failed because its
+unquantized MoE does not support `flashinfer_cutedsl`. The API never became
+ready and no request was issued, so this is compatibility evidence rather than
+a performance or acceptance-rate result.
+
 These are capacity dispositions at the fixed 135,168-token profile, not
 throughput comparisons. The accepted and excluded records, source hashes, and
 per-directory checksums are in
-[`../../data/deep-study/`](../../data/deep-study/). Native MTP, PP2, SGLang,
-and chunked-prefill experiments below remain pending and must pass the same
-gates before publication.
+[`../../data/deep-study/`](../../data/deep-study/). Additional MTP depths are
+blocked pending a compatible stock backend path; PP2, SGLang, and
+chunked-prefill experiments below remain pending and must pass the same gates
+before publication.
 
 ## What is pinned
 
@@ -76,8 +85,7 @@ profile without touching hardware:
 ```bash
 python3 resolve_plan.py --list
 python3 resolve_plan.py vllm-tp2-exact
-python3 resolve_plan.py vllm-tp2-mtp5 \
-  --winner-backend flashinfer_cutedsl
+python3 resolve_plan.py vllm-pp2-balanced
 python3 resolve_plan.py --validate-all
 python3 test_offline.py
 ```
@@ -181,15 +189,24 @@ applicable instead of running the on arm; the resolver rejects that pairing.
 
 ### 3. Native MTP
 
+The measured P4 start establishes that `flashinfer_cutedsl` is not a valid
+stock-runtime choice for the unquantized MTP draft MoE. The failed plan can be
+inspected without touching hardware:
+
 ```bash
-bash run_matrix.sh mtp \
-  --winner-backend flashinfer_cutedsl --execute
+python3 resolve_plan.py vllm-tp2-mtp1 \
+  --winner-backend flashinfer_cutedsl
 ```
 
-This runs native vLLM MTP at N=0,1,2,3,5 on TP2. It records the benchmark's
-acceptance length, draft count, position acceptance, and target-step metrics.
-The validator rejects an MTP run with missing acceptance telemetry. Compare
-the four deterministic natural-output hashes exactly with MTP0:
+Do not execute further MTP depths with that winner until the runtime exposes a
+separately compatible draft backend. Any alternative global backend must first
+pass the same target capacity and full-workload gates; it is a new backend
+experiment, not a retry of P4.
+
+Once a compatible path exists, run native vLLM MTP at N=0,1,2,3,5 on TP2 and
+record acceptance length, draft count, position acceptance, and target-step
+metrics. The validator rejects an MTP run with missing acceptance telemetry.
+Compare the four deterministic natural-output hashes exactly with MTP0:
 
 ```bash
 python3 validate_quality.py \

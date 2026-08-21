@@ -17,8 +17,9 @@ the one-node capacity check, the accepted TP2 launch, failed-profile evidence,
 The broader [deep optimization study](recipes/deep-study/) now has frozen
 backend and autotune increments: an accepted CuTeDSL reproduction, two
 excluded FlashInfer-CUTLASS capacity starts, a vLLM-CUTLASS compatibility
-failure, and an accepted CuTeDSL autotune-on A/B. Compact evidence and
-checksums are in [`data/deep-study/`](data/deep-study/).
+failure, an accepted CuTeDSL autotune-on A/B, and a native-MTP/CuTeDSL
+compatibility failure. Compact evidence and checksums are in
+[`data/deep-study/`](data/deep-study/).
 
 ## Checkpoint provenance
 
@@ -46,7 +47,7 @@ checksummed measurement, so it has no throughput row. The optimization path and
 excluded starts are recorded in
 [`data/failure-attempts.json`](data/failure-attempts.json).
 
-## Deep-study increments: backend and autotune A/B
+## Deep-study increments: backend, autotune, and native MTP
 
 The existing canonical tables later in this README remain unchanged. P0 below
 is an independent, fully captured repeat using the deep-study runner: the same
@@ -95,6 +96,13 @@ kernel rejected the required EP2 `allgather_reducescatter` configuration during
 model construction, before weight load or API readiness; no request was issued
 and no smaller profile was substituted.
 
+P4 enabled one native MTP draft token on the P0 CuTeDSL profile. Both ranks
+loaded all target weights in 67.32 / 70.46 seconds, then rejected the draft
+model: its unquantized MoE does not support the globally selected CuTeDSL
+backend in the pinned runtime. The API never became ready, so P4 has no
+throughput, acceptance, quality, capacity, or network row and issued zero
+requests.
+
 P0's quiet before/after RoCE counters recorded 1.236 TB in each direction over
 372.4 seconds, or 26.55 Gb/s average, with no health-counter deltas. That is a
 whole-matrix average, not a peak-link or bottleneck claim. P3 recorded 1.233 TB
@@ -106,7 +114,8 @@ kernel scan, and returned to 2–7 MiB idle HBM per rank. See the frozen
 [`P1 cold-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-cold-cache/),
 [`P1 warm-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-warm-cache/),
 [`P2 incompatibility evidence`](data/deep-study/2026-08-20-p2-vllm-cutlass-incompatible/),
-and [`P3 autotune evidence`](data/deep-study/2026-08-20-p3-cutedsl-autotune-on/).
+[`P3 autotune evidence`](data/deep-study/2026-08-20-p3-cutedsl-autotune-on/),
+and [`P4 MTP1 incompatibility evidence`](data/deep-study/2026-08-20-p4-mtp1-cutedsl-incompatible/).
 
 ## One DGX Station: capacity result
 

@@ -11,6 +11,7 @@ failed start is never represented as zero throughput.
 | [`2026-08-20-p1-flashinfer-cutlass-warm-cache/`](2026-08-20-p1-flashinfer-cutlass-warm-cache/) | FlashInfer CUTLASS | No | Not run | Excluded: 2.19 / 10.39 GiB KV available, 6.0 GiB required per rank |
 | [`2026-08-20-p2-vllm-cutlass-incompatible/`](2026-08-20-p2-vllm-cutlass-incompatible/) | vLLM CUTLASS | No | Not run | Excluded: pinned kernel does not support the required EP2 configuration |
 | [`2026-08-20-p3-cutedsl-autotune-on/`](2026-08-20-p3-cutedsl-autotune-on/) | FlashInfer CuTeDSL + autotune | Yes | 3 prefill + 8 decode rows; 4 natural outputs | Accepted; +2.102% mean prefill, -1.094% mean decode vs P0 |
+| [`2026-08-20-p4-mtp1-cutedsl-incompatible/`](2026-08-20-p4-mtp1-cutedsl-incompatible/) | CuTeDSL target + native MTP1 | No | Not run | Excluded: unquantized MTP draft MoE does not support CuTeDSL |
 
 The accepted benchmark artifacts remove only private machine labels and
 generic driver-reconfiguration suggestion fields. Measurement values are

@@ -27,4 +27,8 @@ aa99b3cf78192c61e9bbcd14bf2abaa8438d3ae53a0f2dedcc16992dca4f271b  ./2026-08-20-p
 c034bd195f747548d2197dd87a00815751db45eb1e69f8adde8b24fee7428cec  ./2026-08-20-p3-cutedsl-autotune-on/resolved-plan.json
 d89d485586b791ff88f2762488ea1f865c95a1c7a10ab9353362bd16bc6eacd0  ./2026-08-20-p3-cutedsl-autotune-on/runtime-summary.json
 02b52b26cee5dd70e0a2ffe104917ecbcc65cbf18877938bc940b14e1a1f78af  ./2026-08-20-p3-cutedsl-autotune-on/validation.json
-1e0148f191ddcf64a8a040227b2b29e19dcf9cea922c880e8d8aed04358ca75d  ./README.md
+ddf4d0c3f07ec84b9e949caa4e9c71aea5fe14b089ffaf2e0d0ba9bc0bd886e5  ./2026-08-20-p4-mtp1-cutedsl-incompatible/README.md
+cbd3a36dbc029bc7b227675a0b4dfb17c9141b27732785b7f0751ef33ef86a80  ./2026-08-20-p4-mtp1-cutedsl-incompatible/SHA256SUMS
+a48a3939c99bb3350f91c667049e145d735918f41f14fd457d7ac726c59ee434  ./2026-08-20-p4-mtp1-cutedsl-incompatible/failure-summary.json
+6d14623d90ebb0d1541da1e4f4bc5314ad14c05c0cd96775ab564d434902a7b1  ./2026-08-20-p4-mtp1-cutedsl-incompatible/resolved-plan.json
+30b518c240140e1569f13c266c634479330237d411503399c10dc9bf1afda121  ./README.md
