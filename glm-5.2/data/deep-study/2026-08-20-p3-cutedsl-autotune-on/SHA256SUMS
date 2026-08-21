@@ -1,0 +1,8 @@
+e8df0aeaa34c8a5e9209aba53269c5541e9180ed7865e341192100fa5153475e  ./README.md
+8705973b52c7c6c5a1b61da4a9d14aad2111e0f26aa0aa67c6c5bdbbf4e4a7fb  ./autotune-configs.json
+79115636e78aab42d3e0f4ae55c802653bf9b8672c6f1dcf50302a5bfd6c02e1  ./benchmark.json
+aa99b3cf78192c61e9bbcd14bf2abaa8438d3ae53a0f2dedcc16992dca4f271b  ./network-delta.json
+097fb9d7971982b427761a950a1bdca2a3dab93b8e40502b20ca0e00fef1aee2  ./quality-audit.json
+c034bd195f747548d2197dd87a00815751db45eb1e69f8adde8b24fee7428cec  ./resolved-plan.json
+d89d485586b791ff88f2762488ea1f865c95a1c7a10ab9353362bd16bc6eacd0  ./runtime-summary.json
+02b52b26cee5dd70e0a2ffe104917ecbcc65cbf18877938bc940b14e1a1f78af  ./validation.json

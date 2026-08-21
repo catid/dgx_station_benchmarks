@@ -1,0 +1,90 @@
+{
+  "status": "accepted",
+  "profile_id": "vllm-tp2-winner-autotune-on",
+  "control_profile_id": "vllm-tp2-exact",
+  "single_changed_variable": {
+    "field": "flashinfer_autotune",
+    "control": false,
+    "candidate": true
+  },
+  "topology": {
+    "nodes": 2,
+    "gpus": 2,
+    "tensor_parallel_size": 2,
+    "pipeline_parallel_size": 1,
+    "expert_parallel_size": 2
+  },
+  "backends": {
+    "moe": "FLASHINFER_CUTEDSL",
+    "attention": "FLASHINFER_MLA_SPARSE",
+    "prefill": "TRTLLM_RAGGED"
+  },
+  "startup": {
+    "checkpoint_load_seconds_by_rank": [69.48, 72.22],
+    "torch_compile_seconds_by_rank": [127.71, 131.17],
+    "initial_profile_warmup_seconds_by_rank": [25.62, 22.07],
+    "flashinfer_autotune_seconds_by_rank": [28.087, 28.087],
+    "flashinfer_autotune_configs_new": 23,
+    "flashinfer_autotune_configs_reused": 0,
+    "flashinfer_autotune_cache_sha256": "8705973b52c7c6c5a1b61da4a9d14aad2111e0f26aa0aa67c6c5bdbbf4e4a7fb",
+    "model_memory_gib_by_rank": [209.65, 209.65],
+    "cuda_graph_memory_gib_by_rank": [1.85, 1.85],
+    "available_kv_memory_gib_by_rank": [6.54, 6.54],
+    "gpu_kv_cache_tokens": 147264,
+    "minimum_required_kv_tokens": 139264
+  },
+  "decode_tps": {
+    "1": 67.74515059642621,
+    "2": 115.10981066784439,
+    "4": 211.10721157995206,
+    "8": 357.3868752789295,
+    "16": 546.6415448908908,
+    "32": 886.5298321422969,
+    "64": 1252.0788122388667,
+    "128": 1997.0987576043829
+  },
+  "decode_percent_delta_vs_p0": {
+    "1": -0.6149810316768423,
+    "2": -2.401143619001056,
+    "4": -3.2901929091040283,
+    "8": -0.993951799017645,
+    "16": 1.2951523333056825,
+    "32": -1.8987242721968611,
+    "64": -0.012535361128584999,
+    "128": -0.8318500221341174,
+    "unweighted_mean": -1.0935283351191816
+  },
+  "prefill": {
+    "8192": {"tok_per_sec": 6359.0, "ttft_seconds": 1.288, "percent_delta_vs_p0": 2.1854411055760803},
+    "65536": {"tok_per_sec": 7624.0, "ttft_seconds": 8.597, "percent_delta_vs_p0": 2.184693740785426},
+    "131072": {"tok_per_sec": 7318.0, "ttft_seconds": 17.912, "percent_delta_vs_p0": 1.9362028137623666},
+    "unweighted_mean_percent_delta_vs_p0": 2.1021125533746243
+  },
+  "quality": {
+    "outputs": 4,
+    "automatic_flags": 0,
+    "finish_reason_stop": 4,
+    "maximum_repeated_8gram_fraction": 0.04723346828609987
+  },
+  "network_window": {
+    "elapsed_seconds_node0": 370.538457,
+    "rdma_bytes_each_direction": 1233021695576,
+    "average_gigabits_per_second_each_direction": 26.62,
+    "health_counter_deltas": {"node0": {}, "node1": {}},
+    "interpretation": "Whole-matrix average only; not a peak-link or per-cell bottleneck measurement."
+  },
+  "teardown": {
+    "method": "simultaneous graceful SIGTERM followed by removal of stopped named containers",
+    "current_boot_kernel_danger_matches": 0,
+    "idle_hbm_mib_by_rank": [2, 4]
+  },
+  "source_raw_sha256": {
+    "benchmark": "2fa20ffeb6134fa3e30602a34b1795e2c91a3bfd96d3f8eb9134b7f045d685f6",
+    "quality_audit": "097fb9d7971982b427761a950a1bdca2a3dab93b8e40502b20ca0e00fef1aee2",
+    "validation": "02b52b26cee5dd70e0a2ffe104917ecbcc65cbf18877938bc940b14e1a1f78af",
+    "resolved_plan": "c034bd195f747548d2197dd87a00815751db45eb1e69f8adde8b24fee7428cec",
+    "network_delta": "aa99b3cf78192c61e9bbcd14bf2abaa8438d3ae53a0f2dedcc16992dca4f271b",
+    "node0_server_log": "36e783e537159e3e369a223f8ec569e38fb97a4e99c002b90dfa88d4e261d697",
+    "node1_server_log": "88c8ff3c0b3f892241196f2d813497d138f3282d64fbe8694a3348bf01d8b585"
+  }
+}
