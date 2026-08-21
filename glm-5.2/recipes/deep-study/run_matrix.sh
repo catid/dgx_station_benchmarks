@@ -32,7 +32,7 @@ case "$stage" in
   prefill-sglang) profiles=(sglang-pp2-prefill-4096 sglang-pp2-prefill-8192 sglang-pp2-prefill-16384 sglang-pp2-prefill-32768) ;;
   *) usage; exit 2 ;;
 esac
-if [[ "$stage" =~ ^(autotune|mtp|prefill-vllm)$ && -z "$winner_backend" ]]; then
+if [[ "$stage" =~ ^(autotune|mtp)$ && -z "$winner_backend" ]]; then
   echo "$stage requires --winner-backend selected from the completed backend comparison." >&2
   exit 2
 fi

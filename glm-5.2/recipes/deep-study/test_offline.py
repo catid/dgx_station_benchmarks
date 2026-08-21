@@ -45,6 +45,21 @@ def main() -> None:
         resolved[profile_id] = resolve(profile_id, winner)
 
     assert resolved["vllm-tp2-exact"]["moe_backend"] == "flashinfer_cutedsl"
+    prefill_control = copy.deepcopy(resolved["vllm-tp2-exact"])
+    for key in ("profile_id", "container_name", "phase"):
+        prefill_control.pop(key)
+    prefill_control["benchmark"]["mode"] = "prefill-only"
+    for chunk in (4096, 8192, 16384, 32768):
+        profile_id = f"vllm-tp2-prefill-{chunk}"
+        candidate = copy.deepcopy(resolved[profile_id])
+        assert candidate["phase"] == "prefill-chunk"
+        assert candidate["max_num_batched_tokens"] == chunk
+        assert candidate["chunked_prefill_size"] == chunk
+        for key in ("profile_id", "container_name", "phase"):
+            candidate.pop(key)
+        candidate["max_num_batched_tokens"] = 32768
+        candidate["chunked_prefill_size"] = 32768
+        assert candidate == prefill_control
     assert resolved["vllm-pp2-balanced"]["pp_layer_partition"] == "40,38"
     assert resolved["vllm-tp2-mtp5"]["speculation"]["num_speculative_tokens"] == 5
     assert resolved["vllm-tp2-mtp5"]["speculation"]["moe_backend"] == "flashinfer_cutlass"

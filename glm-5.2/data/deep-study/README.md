@@ -18,6 +18,7 @@ failed start is never represented as zero throughput.
 | [`2026-08-21-p8-pp2-block64-eager-correctness/`](2026-08-21-p8-pp2-block64-eager-correctness/) | FlashInfer CuTeDSL, TP1/PP2 40/38, block64 eager | Yes | 4 retained correctness outputs; no performance rows | Accepted correctness smoke; 402,688 KV tokens, exact 8K direct API prompts, no corruption flags; greedy pairs not byte-identical |
 | [`2026-08-21-p9-pp2-inductor-full-capacity/`](2026-08-21-p9-pp2-inductor-full-capacity/) | FlashInfer CuTeDSL, TP1/PP2 40/38, block64 Inductor, CUDA graphs off | No | Not run | Excluded at full 135,168-token envelope: 7.60 / 0.28 GiB KV available, 2.9 GiB required on the limiting stage |
 | [`2026-08-21-p10-pp2-inductor-warm095/`](2026-08-21-p10-pp2-inductor-warm095/) | FlashInfer CuTeDSL, TP1/PP2 40/38, block64 Inductor, CUDA graphs off, 95% HBM | Yes | 3 prefill + 8 decode rows; 2 forced gate + 4 natural outputs | Accepted; 494,528 KV tokens; warm PP-specific AOT and page caches |
+| [`2026-08-21-p11-p13-tp2-prefill-chunk-sweep/`](2026-08-21-p11-p13-tp2-prefill-chunk-sweep/) | FlashInfer CuTeDSL, TP2/EP2, fixed 4K/8K/16K prefill chunks + P0 32K control | Yes | 3 prefill rows per new arm; no new decode or retained-quality rows | Accepted directional sweep; 8K chunk leads at 8K input, P0 32K leads at 64K/128K |
 
 The accepted benchmark artifacts remove only private machine labels and
 generic driver-reconfiguration suggestion fields. Measurement values are
@@ -40,4 +41,8 @@ and all request-bearing gates. Its P0 comparison is explicitly
 configuration-level, because topology, EP, HBM utilization, CUDA-graph mode,
 and cache state are not held constant. P10's long-prefill requests completed
 despite nine recovered 2.25-GiB allocation failures on its limiting stage; the
-result is not a memory-headroom claim.
+result is not a memory-headroom claim. P11–P13 hold the P0 TP2 server settings
+fixed while varying only vLLM's maximum batched-token/prefill-chunk knob. Their
+fixed 10-second standalone-prefill windows yield duration-dependent sample
+counts, and each arm includes one measured long-context runtime-JIT event, so
+the single-run differences are directional rather than warmed-repeat claims.

@@ -1,0 +1,506 @@
+{
+  "benchmark_commit": "0b4185b5b435e948b199c9077a00b084864aa963",
+  "checkpoint": {
+    "quantization": "NVFP4",
+    "repository": "nvidia/GLM-5.2-NVFP4",
+    "revision": "aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa"
+  },
+  "comparison_caveats": [
+    "Each run used a separately generated padding seed. Token targets match, but prompt contents are not bit-identical and 128K API accounting differs by one token in some arms.",
+    "Standalone prefill uses a fixed 10-second window checked between requests, so sample count depends on request duration; 128K has N=1 in every arm and chunk4096 also has N=1 at 64K.",
+    "Runtime JIT occurred inside one measured long-context sample in every arm, and individual sample latencies were not retained.",
+    "These are directional single-run comparisons, not repeated warm steady-state estimates.",
+    "Observed KV capacity includes profiler/reservation variance and is not a guaranteed monotonic function of chunk size."
+  ],
+  "comparison_proof": {
+    "manifest_alias_of_same_knob": "chunked_prefill_size",
+    "semantic_server_argument_difference_vs_p0": [
+      "--max-num-batched-tokens"
+    ],
+    "workload_scope_difference_vs_p0": "prefill-only rather than prefill plus decode"
+  },
+  "control": {
+    "also_included_decode_after_prefill": true,
+    "chunk_tokens": 32768,
+    "gpu_kv_cache_tokens": 261952,
+    "natural_quality": "4 retained outputs, 0 automatic flags",
+    "profile_id": "vllm-tp2-exact",
+    "public_artifact_sha256": {
+      "benchmark": "669df01490a3c241be42114de8137c9c992ba5520d0f77323579f9f946a67a28",
+      "quality_audit": "35938033293f557719508f48883d7048a9f83900a7994294aa1eda6f3a09325b",
+      "resolved_plan": "c1587bd1d841040a3970285c4a25e6e16c3e85598a617e19d565296eeec9cea4",
+      "validation": "23a2286b5513b0ee95fecde2504876a81a1ac2b479ad8fd2eee768191bad9b70"
+    },
+    "runtime_caveats": "P0's sole 128K sample included runtime JIT and its 64K phase logged two recovered 1.125-GiB allocator failures. Startup/page-cache state also differed from the new arms.",
+    "same_standalone_prefill_method": true,
+    "source": "../2026-08-20-p0-cutedsl/benchmark.json"
+  },
+  "fixed_settings": {
+    "cpu_offload_gb": 0,
+    "cudagraph_capture_sizes": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128
+    ],
+    "cudagraph_mode": "FULL_AND_PIECEWISE",
+    "expert_parallel_size": 2,
+    "flashinfer_autotune": false,
+    "gpu_memory_utilization": 0.93,
+    "gpus": 2,
+    "kv_cache_dtype": "fp8_e4m3",
+    "max_model_len": 135168,
+    "max_num_seqs": 128,
+    "moe_backend": "flashinfer_cutedsl",
+    "nodes": 2,
+    "pipeline_parallel_size": 1,
+    "prefix_caching": true,
+    "speculation": false,
+    "tensor_parallel_size": 2
+  },
+  "method": {
+    "duration_seconds_per_context": 10,
+    "formula": "actual API prompt_tokens / client TTFT",
+    "maximum_samples": 7,
+    "minimum_samples": 1,
+    "mode": "standalone_cold_client_ttft",
+    "sample_counts_are_duration_dependent": true,
+    "server_computed_token_rate_available": false,
+    "target_context_tokens": [
+      8192,
+      65536,
+      131072
+    ],
+    "unique_prefix_per_sample": true
+  },
+  "quality_scope": {
+    "claim": "Request/counter sanity only; no semantic quality or non-degeneracy claim is made for the new prefill-only arms.",
+    "natural_quality_audit_per_new_arm": false,
+    "retained_outputs_per_new_arm": 0
+  },
+  "result_kind": "single_run_directional_prefill_chunk_comparison",
+  "runs": {
+    "16384": {
+      "decode_rows": 0,
+      "gpu_kv_cache_tokens": 218624,
+      "max_num_batched_tokens": 16384,
+      "natural_quality": "not_run_no_outputs_retained",
+      "network": {
+        "configured_health_counter_deltas": {
+          "node0": {},
+          "node1": {}
+        },
+        "interpretation": "Quiet whole-window counters only. They do not establish peak-link headroom or exclude burst, latency, synchronization, or routing effects.",
+        "nodes": {
+          "node0": {
+            "elapsed_seconds": 62.809269,
+            "raw_corrected_phy_bits": 24,
+            "raw_pci_signal_integrity_events": 0,
+            "rdma_recv_average_gigabits_per_second": 81.96281181619865,
+            "rdma_recv_bytes": 643503036920,
+            "rdma_xmit_average_gigabits_per_second": 81.96285862916189,
+            "rdma_xmit_bytes": 643503404456
+          },
+          "node1": {
+            "elapsed_seconds": 62.81278,
+            "raw_corrected_phy_bits": 4,
+            "raw_pci_signal_integrity_events": 0,
+            "rdma_recv_average_gigabits_per_second": 81.95827721122996,
+            "rdma_recv_bytes": 643503404456,
+            "rdma_xmit_average_gigabits_per_second": 81.9582304008834,
+            "rdma_xmit_bytes": 643503036920
+          }
+        }
+      },
+      "prefill": [
+        {
+          "actual_prompt_tokens": 8194,
+          "chunk_tokens": 16384,
+          "client_tok_per_s": 6345.0,
+          "context_target_tokens": 8192,
+          "delta_vs_chunk32768_pct": 1.9604692270609014,
+          "profile_id": "vllm-tp2-prefill-16384",
+          "samples": 7,
+          "source": "prefill_only_sweep",
+          "ttft_seconds": 1.291
+        },
+        {
+          "actual_prompt_tokens": 65538,
+          "chunk_tokens": 16384,
+          "client_tok_per_s": 7294.0,
+          "context_target_tokens": 65536,
+          "delta_vs_chunk32768_pct": -2.2383058571237124,
+          "profile_id": "vllm-tp2-prefill-16384",
+          "samples": 2,
+          "source": "prefill_only_sweep",
+          "ttft_seconds": 8.985
+        },
+        {
+          "actual_prompt_tokens": 131074,
+          "chunk_tokens": 16384,
+          "client_tok_per_s": 7118.0,
+          "context_target_tokens": 131072,
+          "delta_vs_chunk32768_pct": -0.8497005153921156,
+          "profile_id": "vllm-tp2-prefill-16384",
+          "samples": 1,
+          "source": "prefill_only_sweep",
+          "ttft_seconds": 18.414
+        }
+      ],
+      "profile_id": "vllm-tp2-prefill-16384",
+      "public_artifact_sha256": {
+        "benchmark": "ee0c99d6dcd0c38acd82965b19a306aca1a7b0715285a7dfd936f6b567277016",
+        "resolved_plan": "bd9c493e20b0984e813e6ab2058ceae2c76b9564702fe288dc0ee887969ebae8",
+        "validation": "79bda7d82d97b2b130c758889c25ccc22bc4b0a04e97232f4bffabfc91133046"
+      },
+      "raw_artifact_sha256": {
+        "benchmark": "87f479d49c1fd922f92ff1e975c47767044fd9259d700dc585df0d3f02ddd1d6",
+        "metrics_after": "8ba7b052a7d77a936cf57e5fb8ea74d073a3cbe5b5a84c1e621c515f6364f5ba",
+        "metrics_before": "e1f431e225ae5748c272fc6f34e67b79a420f6a5a4a27cd4af81e465bea15459",
+        "network_delta": "c4f49620cbcf372e0920fdee00fe09ee73d1b5d6ac7a142b9ba8cc21f77053f2",
+        "node0_inspect": "9dd008b0bb249ebce894b6a27bb1afaf84e7f8aff9316175e31d8dd258e7c313",
+        "node0_server_log": "7e4ebfb8e94771b96670f2bd08746d4bb197e6101c872952b707f5b1caecd04d",
+        "node1_inspect": "a852a8d1149aa609bd22cd226a563d5267d3633e80a186dd6ab1eb78dc0213b5",
+        "node1_server_log": "9c51954fcf2d1dce492fdd9cc29ddf5ef4c914ac4951a098e918a0e30ac2e993",
+        "post_idle_hbm": "fa5b5ea613cfc8a3bdd36544b0218ac7222f94ffdd4e3305f8138ea19f6ae0af",
+        "post_kernel_danger": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+        "resolved_plan": "bd9c493e20b0984e813e6ab2058ceae2c76b9564702fe288dc0ee887969ebae8",
+        "validation": "79bda7d82d97b2b130c758889c25ccc22bc4b0a04e97232f4bffabfc91133046"
+      },
+      "request_counters": {
+        "preemptions": 0,
+        "prefix_cache_hits": 0,
+        "prefix_cache_queries": 327716,
+        "prompt_tokens": 327716,
+        "prompt_tokens_cached": 0,
+        "prompt_tokens_local_cache_hit": 0,
+        "prompt_tokens_local_compute": 327716,
+        "requests_finished_by_abort": 0,
+        "requests_finished_by_error": 0,
+        "requests_finished_by_length": 12,
+        "requests_finished_by_repetition": 0
+      },
+      "required_kv_tokens": 139264,
+      "runtime_by_rank": [
+        {
+          "allocator_failure_warnings": 0,
+          "available_kv_memory_gib": 12.57,
+          "model_load_seconds": 83.157991,
+          "model_memory_gib": 209.52,
+          "peak_activation_gib": 6.11,
+          "runtime_jit_warnings": 1,
+          "torch_compile_seconds": 131.07,
+          "weights_plus_non_torch_gib": 213.36
+        },
+        {
+          "allocator_failure_warnings": 0,
+          "available_kv_memory_gib": 9.71,
+          "model_load_seconds": 89.182131,
+          "model_memory_gib": 209.52,
+          "peak_activation_gib": 8.1,
+          "runtime_jit_warnings": 1,
+          "torch_compile_seconds": 130.09,
+          "weights_plus_non_torch_gib": 214.23
+        }
+      ],
+      "runtime_jit_measurement_context": "second_64k_sample",
+      "status": "accepted_prefill_only",
+      "teardown": {
+        "current_boot_kernel_danger_matches": 0,
+        "graceful": true,
+        "idle_hbm_mib_by_rank": [
+          2,
+          7
+        ]
+      }
+    },
+    "4096": {
+      "decode_rows": 0,
+      "gpu_kv_cache_tokens": 329408,
+      "max_num_batched_tokens": 4096,
+      "natural_quality": "not_run_no_outputs_retained",
+      "network": {
+        "configured_health_counter_deltas": {
+          "node0": {},
+          "node1": {}
+        },
+        "interpretation": "Quiet whole-window counters only. They do not establish peak-link headroom or exclude burst, latency, synchronization, or routing effects.",
+        "nodes": {
+          "node0": {
+            "elapsed_seconds": 56.975085,
+            "raw_corrected_phy_bits": 18,
+            "raw_pci_signal_integrity_events": 0,
+            "rdma_recv_average_gigabits_per_second": 72.3153254655083,
+            "rdma_recv_bytes": 515021476900,
+            "rdma_xmit_average_gigabits_per_second": 72.31534439139494,
+            "rdma_xmit_bytes": 515021611688
+          },
+          "node1": {
+            "elapsed_seconds": 56.977514,
+            "raw_corrected_phy_bits": 2,
+            "raw_pci_signal_integrity_events": 0,
+            "rdma_recv_average_gigabits_per_second": 72.31226152660855,
+            "rdma_recv_bytes": 515021611688,
+            "rdma_xmit_average_gigabits_per_second": 72.31224260152874,
+            "rdma_xmit_bytes": 515021476900
+          }
+        }
+      },
+      "prefill": [
+        {
+          "actual_prompt_tokens": 8194,
+          "chunk_tokens": 4096,
+          "client_tok_per_s": 6661.0,
+          "context_target_tokens": 8192,
+          "delta_vs_chunk32768_pct": 7.038405913546519,
+          "profile_id": "vllm-tp2-prefill-4096",
+          "samples": 7,
+          "source": "prefill_only_sweep",
+          "ttft_seconds": 1.23
+        },
+        {
+          "actual_prompt_tokens": 65538,
+          "chunk_tokens": 4096,
+          "client_tok_per_s": 6584.0,
+          "context_target_tokens": 65536,
+          "delta_vs_chunk32768_pct": -11.75445650717062,
+          "profile_id": "vllm-tp2-prefill-4096",
+          "samples": 1,
+          "source": "prefill_only_sweep",
+          "ttft_seconds": 9.954
+        },
+        {
+          "actual_prompt_tokens": 131074,
+          "chunk_tokens": 4096,
+          "client_tok_per_s": 6372.0,
+          "context_target_tokens": 131072,
+          "delta_vs_chunk32768_pct": -11.241119933138322,
+          "profile_id": "vllm-tp2-prefill-4096",
+          "samples": 1,
+          "source": "prefill_only_sweep",
+          "ttft_seconds": 20.57
+        }
+      ],
+      "profile_id": "vllm-tp2-prefill-4096",
+      "public_artifact_sha256": {
+        "benchmark": "8636fe4e36f6aa764899c21031da912ac17300981ed71913e681ef47db12af0e",
+        "resolved_plan": "5091e9b4dbe824701bfef72a607cbed5a3346cc23e2eae082f444f76ac773234",
+        "validation": "80040ffd321fdcd5f56ecb720692cd3ca1f1ce231b9562c7ce42197e988d122b"
+      },
+      "raw_artifact_sha256": {
+        "benchmark": "c2a9b6d5730bba91735eddef4efcc832b806d7d89cdec470957714f129c77a40",
+        "metrics_after": "e57afb69b1a7fbb369fc88a3455a3906869c6e7cdbddeb435c246a12e5623165",
+        "metrics_before": "85a3cd093dc7e7fe712c9651b88fffb3df86cbb4f351c252193d5d6899fd084a",
+        "network_delta": "89c1032deccda54953757d5c954c32ca058d53860c8c8b4fdb0dd501c0598dfc",
+        "node0_inspect": "a059bc0da81ba2581272b56d792f5e253ed55c3b84a0e1016f0b35fdcf80997d",
+        "node0_server_log": "a37ecbdb4a727734f516ded47c1774f110db2894191a2b0e398c676e1addfae5",
+        "node1_inspect": "8774ea0b1d82ee9843e6ae374064a96c8fc2a41bcbf23dc899b48ba94a80b5ef",
+        "node1_server_log": "fba3343cfe3f266b75e37c847c504b83b0efb315993a6ba4ee8a26c2dcd9fecd",
+        "post_idle_hbm": "96c8c059ead3907705a855b6943a36acba664b4e45fdfa6a3a998bfbb2a6d92b",
+        "post_kernel_danger": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+        "resolved_plan": "5091e9b4dbe824701bfef72a607cbed5a3346cc23e2eae082f444f76ac773234",
+        "validation": "80040ffd321fdcd5f56ecb720692cd3ca1f1ce231b9562c7ce42197e988d122b"
+      },
+      "request_counters": {
+        "preemptions": 0,
+        "prefix_cache_hits": 0,
+        "prefix_cache_queries": 262178,
+        "prompt_tokens": 262178,
+        "prompt_tokens_cached": 0,
+        "prompt_tokens_local_cache_hit": 0,
+        "prompt_tokens_local_compute": 262178,
+        "requests_finished_by_abort": 0,
+        "requests_finished_by_error": 0,
+        "requests_finished_by_length": 11,
+        "requests_finished_by_repetition": 0
+      },
+      "required_kv_tokens": 139264,
+      "runtime_by_rank": [
+        {
+          "allocator_failure_warnings": 0,
+          "available_kv_memory_gib": 14.64,
+          "model_load_seconds": 84.749931,
+          "model_memory_gib": 209.43,
+          "peak_activation_gib": 4.57,
+          "runtime_jit_warnings": 1,
+          "torch_compile_seconds": 76.02,
+          "weights_plus_non_torch_gib": 212.83
+        },
+        {
+          "allocator_failure_warnings": 0,
+          "available_kv_memory_gib": 14.64,
+          "model_load_seconds": 89.128827,
+          "model_memory_gib": 209.43,
+          "peak_activation_gib": 4.57,
+          "runtime_jit_warnings": 1,
+          "torch_compile_seconds": 77.44,
+          "weights_plus_non_torch_gib": 212.83
+        }
+      ],
+      "runtime_jit_measurement_context": "sole_128k_sample",
+      "status": "accepted_prefill_only",
+      "teardown": {
+        "current_boot_kernel_danger_matches": 0,
+        "graceful": true,
+        "idle_hbm_mib_by_rank": [
+          2,
+          6
+        ]
+      }
+    },
+    "8192": {
+      "decode_rows": 0,
+      "gpu_kv_cache_tokens": 310784,
+      "max_num_batched_tokens": 8192,
+      "natural_quality": "not_run_no_outputs_retained",
+      "network": {
+        "configured_health_counter_deltas": {
+          "node0": {},
+          "node1": {}
+        },
+        "interpretation": "Quiet whole-window counters only. They do not establish peak-link headroom or exclude burst, latency, synchronization, or routing effects.",
+        "nodes": {
+          "node0": {
+            "elapsed_seconds": 62.881415,
+            "raw_corrected_phy_bits": 8,
+            "raw_pci_signal_integrity_events": 0,
+            "rdma_recv_average_gigabits_per_second": 81.86672165542076,
+            "rdma_recv_bytes": 643486912388,
+            "rdma_xmit_average_gigabits_per_second": 81.86674266868836,
+            "rdma_xmit_bytes": 643487077556
+          },
+          "node1": {
+            "elapsed_seconds": 62.886169,
+            "raw_corrected_phy_bits": 0,
+            "raw_pci_signal_integrity_events": 1,
+            "rdma_recv_average_gigabits_per_second": 81.86055379598653,
+            "rdma_recv_bytes": 643487077556,
+            "rdma_xmit_average_gigabits_per_second": 81.86053278430747,
+            "rdma_xmit_bytes": 643486912388
+          }
+        }
+      },
+      "prefill": [
+        {
+          "actual_prompt_tokens": 8194,
+          "chunk_tokens": 8192,
+          "client_tok_per_s": 7317.0,
+          "context_target_tokens": 8192,
+          "delta_vs_chunk32768_pct": 17.57994536397236,
+          "profile_id": "vllm-tp2-prefill-8192",
+          "samples": 7,
+          "source": "prefill_only_sweep",
+          "ttft_seconds": 1.12
+        },
+        {
+          "actual_prompt_tokens": 65538,
+          "chunk_tokens": 8192,
+          "client_tok_per_s": 7260.0,
+          "context_target_tokens": 65536,
+          "delta_vs_chunk32768_pct": -2.694008845999196,
+          "profile_id": "vllm-tp2-prefill-8192",
+          "samples": 2,
+          "source": "prefill_only_sweep",
+          "ttft_seconds": 9.028
+        },
+        {
+          "actual_prompt_tokens": 131073,
+          "chunk_tokens": 8192,
+          "client_tok_per_s": 7069.0,
+          "context_target_tokens": 131072,
+          "delta_vs_chunk32768_pct": -1.5322468310349668,
+          "profile_id": "vllm-tp2-prefill-8192",
+          "samples": 1,
+          "source": "prefill_only_sweep",
+          "ttft_seconds": 18.542
+        }
+      ],
+      "profile_id": "vllm-tp2-prefill-8192",
+      "public_artifact_sha256": {
+        "benchmark": "d68cd3ee5dfbacd303f826cdfd912cfbc5afb5f40320860fa4d713059b9a8412",
+        "resolved_plan": "7837f22ca34bd94159ee596351e3d4dae1d2dc406f6f19b1af116bf24b3cc6f6",
+        "validation": "907563eea4d9f8005be93858d563cb30ff546f77a491663f5028f9fc36e1af4b"
+      },
+      "raw_artifact_sha256": {
+        "benchmark": "a6114a24daff1fd10e0e6be5a1fd5e118eec157b093d5e4635ac98fcdd7d9ac8",
+        "metrics_after": "e3804184ed4e010ae8c7c6007e79e7d0456f279623196d4a824e73f1277dd170",
+        "metrics_before": "7509b62ab5f3d21dee0caa764f6ef163778fab872a98b00fdf314b2a24cbf7dd",
+        "network_delta": "ce8237376640a58ea29b2872bb47f912bd238d0c584a7f7a930cede5d19355fa",
+        "node0_inspect": "2f21f8de090ccec7f72afe7e727d530f0b4426780c5822f9b4cd8c858bfb721d",
+        "node0_server_log": "501aa21882d94d7aee9664b4b55131db2db844fe7acf977c914213c19608ee8e",
+        "node1_inspect": "88cec80786e2d25ae0d9373a23d992a62ffc7ca188ba3efc17145ef9d99df21b",
+        "node1_server_log": "26d30379534552ca3b03d6c254ceb3878a2fe03367e5d344d545d68e197f0bc9",
+        "post_idle_hbm": "02ace50bc31e40f60cb1250195fda7ce062393f1a3c9b37042d197f5b760bb8d",
+        "post_kernel_danger": "af3ac87396a6977494c47e6a312f7c6915a3703bddb81718d1c10b6ab598f980",
+        "resolved_plan": "7837f22ca34bd94159ee596351e3d4dae1d2dc406f6f19b1af116bf24b3cc6f6",
+        "validation": "907563eea4d9f8005be93858d563cb30ff546f77a491663f5028f9fc36e1af4b"
+      },
+      "request_counters": {
+        "preemptions": 0,
+        "prefix_cache_hits": 0,
+        "prefix_cache_queries": 327715,
+        "prompt_tokens": 327715,
+        "prompt_tokens_cached": 0,
+        "prompt_tokens_local_cache_hit": 0,
+        "prompt_tokens_local_compute": 327715,
+        "requests_finished_by_abort": 0,
+        "requests_finished_by_error": 0,
+        "requests_finished_by_length": 12,
+        "requests_finished_by_repetition": 0
+      },
+      "required_kv_tokens": 139264,
+      "runtime_by_rank": [
+        {
+          "allocator_failure_warnings": 0,
+          "available_kv_memory_gib": 14.8,
+          "model_load_seconds": 85.046816,
+          "model_memory_gib": 209.46,
+          "peak_activation_gib": 4.82,
+          "runtime_jit_warnings": 1,
+          "torch_compile_seconds": 115.99,
+          "weights_plus_non_torch_gib": 212.42
+        },
+        {
+          "allocator_failure_warnings": 0,
+          "available_kv_memory_gib": 13.81,
+          "model_load_seconds": 86.583569,
+          "model_memory_gib": 209.46,
+          "peak_activation_gib": 5.81,
+          "runtime_jit_warnings": 1,
+          "torch_compile_seconds": 121.4,
+          "weights_plus_non_torch_gib": 212.42
+        }
+      ],
+      "runtime_jit_measurement_context": "second_64k_sample",
+      "status": "accepted_prefill_only",
+      "teardown": {
+        "current_boot_kernel_danger_matches": 0,
+        "graceful": true,
+        "idle_hbm_mib_by_rank": [
+          3,
+          7
+        ]
+      }
+    }
+  },
+  "runtime": {
+    "cutlass_dsl_version": "4.6.0",
+    "flashinfer_commit": "9dc1b2495b40314dec8a8cde8cd7faf5c5206702",
+    "flashinfer_version": "0.6.16.post3",
+    "git_commit": "6e448d0ea9bf3d88d898b65449ca6dc2aec170ac",
+    "glm_mtp_fix": {
+      "merge_commit": "d039c171144bdc6e19d14d3dd9b0625f84f16d1c",
+      "pull_request": 47448
+    },
+    "image": "vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+    "image_digest": "sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967",
+    "nccl_version_observed": "2.30.7+cuda13.3",
+    "version": "0.27.1"
+  },
+  "schema_version": 1,
+  "status": "accepted_prefill_only_sweep"
+}
