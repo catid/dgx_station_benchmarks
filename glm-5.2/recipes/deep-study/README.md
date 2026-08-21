@@ -12,7 +12,11 @@ but its conservative 32K bootstrap failed KV capacity before API readiness.
 P6 reached API readiness and sufficient capacity at a shorter 9,216-token
 envelope, but two pre-request audit-harness failures produced zero benchmark
 requests and no performance result. P7 validated balanced 40/38 PP2 loading,
-then exposed an incompatible 64/32 KV block-size pair before API readiness.
+then exposed an incompatible 64/32 KV block-size pair before API readiness. P8
+used the stock block64 override with eager execution: the API served with
+402,688 KV tokens and all four retained exact-8K correctness outputs passed the
+text-corruption checks. The greedy pairs were coherent but not byte-identical;
+P8 has no performance row.
 
 The target is
 [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) at
@@ -90,9 +94,11 @@ comparisons. The accepted and excluded records, source hashes, and
 per-directory checksums are in
 [`../../data/deep-study/`](../../data/deep-study/). Additional MTP depths remain
 unmeasured; P6 proved only short-context startup capacity, not request-serving
-correctness or speed. Pinned vLLM PP2 is blocked by P7's KV-layout
-incompatibility; SGLang and chunked-prefill experiments below remain pending
-and must pass the same gates before publication.
+correctness or speed. P8 supersedes P7's vLLM PP2 startup diagnosis for the
+explicit block64 path, but validates only eager correctness; reportable
+inductor-without-CUDA-graphs performance remains pending. SGLang and
+chunked-prefill experiments below remain pending and must pass the same gates
+before publication.
 
 ## What is pinned
 
@@ -269,17 +275,19 @@ layers. The staged 40/38 split is approximately 205.58 GiB versus 208.75 GiB
 after embedding/head assignment, before runtime buffers and repacking.
 
 ```bash
-bash run_headline.sh vllm-pp2-balanced-bootstrap --execute
-bash run_headline.sh vllm-pp2-balanced --execute
+bash run_headline.sh vllm-pp2-block64-eager-smoke --execute
 ```
 
-The bootstrap is explicitly nonreportable and proves only that partitioning
-and startup work. P7 showed that 40/38 loads at 206.32 / 209.52 GiB, but pinned
-vLLM 0.27.1 fails before API readiness: the indexer stage selects a 64-token KV
-block, the MLA stage selects 32, and `select_common_block_size` raises
-`No common block size for 32`. Do not launch the reportable profile against
-this pinned runtime pending a source-level compatibility fix. PP2 always has
-speculation and distributed FlashInfer autotuning disabled.
+P7 showed that the implicit layout fails because the indexer stage selects a
+64-token KV block while the MLA stage selects 32. P8 proved the stock
+`--block-size 64` override reaches a healthy API on both stages. Its eager
+profile is explicitly nonreportable and retains two 1,024-token plus two
+4,608-token completions for corruption review. Direct chat usage and
+`/tokenize` both measured exactly 8,192 prompt tokens. Greedy hashes differed,
+so the recipe records repeatability independently from text-quality gates.
+[`postvalidate_pp2_correctness.py`](postvalidate_pp2_correctness.py) validates
+the immutable P8 raw artifact without rewriting it. PP2 always has speculation
+and distributed FlashInfer autotuning disabled.
 
 ### 5. SGLang 0.5.17
 

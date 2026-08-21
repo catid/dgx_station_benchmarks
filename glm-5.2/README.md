@@ -23,8 +23,11 @@ correctly but failed KV capacity before API readiness. A shorter MTP1 profile
 later reached API readiness and sufficient KV capacity, but two fail-closed
 audit-harness errors stopped it before the first request. An audited 40/38 PP2
 split then loaded with only 3.20 GiB stage-memory spread, but pinned vLLM could
-not reconcile the stages' 64/32 KV block sizes. Compact evidence and checksums
-are in [`data/deep-study/`](data/deep-study/).
+not reconcile the stages' 64/32 KV block sizes. P8 applied the stock block64
+override with eager execution: both stages served, exposed 402,688 KV tokens,
+and produced four coherent retained outputs with no corruption flags. P8 is
+correctness evidence, not a performance row. Compact evidence and checksums are
+in [`data/deep-study/`](data/deep-study/).
 
 ## Checkpoint provenance
 
@@ -39,7 +42,7 @@ The shard count and byte total come from the pinned checkpoint's `model.safetens
 <!-- BEGIN GENERATED:STATUS -->
 - Checkpoint download and integrity verification: complete
 - One-station capacity test: complete; no fit
-- Accepted two-station performance: TP2 / PP1 + expert parallel; checksummed vLLM incompatibility before API: TP1 / PP2
+- Accepted two-station performance: TP2 / PP1 + expert parallel; PP2 block64 correctness smoke: accepted, performance pending
 - Natural-output audits: TP2 / PP1 + expert parallel; WikiText-2: TP2 / PP1 + expert parallel
 <!-- END GENERATED:STATUS -->
 
@@ -48,7 +51,8 @@ No pending field below should be interpreted as a zero.
 An earlier PP2 attempt had no retained logs; its operator-observed stage
 imbalance remains in [`data/failure-attempts.json`](data/failure-attempts.json)
 as provenance only. P7 supersedes that anecdote with a checksummed 40/38
-bootstrap disposition, described below. It is still not a throughput row.
+bootstrap disposition, and P8 supersedes P7's block-layout failure with a
+checksummed eager block64 correctness pass. Neither is a throughput row.
 
 ## Deep-study increments: backend, autotune, native MTP, and PP2
 
@@ -129,6 +133,18 @@ the indexer stage selected a 64-token KV block and the MLA stage selected 32,
 and pinned vLLM raised `No common block size for 32`. No request or full
 P0-envelope PP2 run followed, so P7 has no performance or network row.
 
+P8 held the 40/38 topology, CuTeDSL backend, FP8 E4M3 KV, speculation-off and
+autotune-off settings, then added the stock `--block-size 64` workaround and
+`--enforce-eager`. Both ranks reached a healthy API with 402,688 coordinated KV
+tokens. Two exact 8K+1K and two exact 8K+4,608-token outputs all passed the
+retained degeneration and character-quality checks. The greedy pairs were
+coherent but not byte-identical, so their hash mismatches are recorded as
+nondeterminism rather than corruption. The raw harness's failure status is
+preserved: it expected the 8,194-token accounting seen in a different
+standalone-prefill path, while direct chat usage and `/tokenize` both measured
+exactly 8,192. A separate corrected validator accepts the unchanged raw
+outputs. P8 has four correctness requests and zero performance rows.
+
 P0's quiet before/after RoCE counters recorded 1.236 TB in each direction over
 372.4 seconds, or 26.55 Gb/s average, with no health-counter deltas. That is a
 whole-matrix average, not a peak-link or bottleneck claim. P3 recorded 1.233 TB
@@ -144,7 +160,8 @@ kernel scan, and returned to 2–8 MiB idle HBM per rank. See the frozen
 [`P4 MTP1 incompatibility evidence`](data/deep-study/2026-08-20-p4-mtp1-cutedsl-incompatible/),
 [`P5 split-backend capacity evidence`](data/deep-study/2026-08-20-p5-mtp1-split-bootstrap-capacity/),
 [`P6 short-context harness evidence`](data/deep-study/2026-08-20-p6-mtp1-short-context-harness-only/),
-and [`P7 PP2 incompatibility evidence`](data/deep-study/2026-08-20-p7-pp2-kv-block-incompatible/).
+[`P7 PP2 incompatibility evidence`](data/deep-study/2026-08-20-p7-pp2-kv-block-incompatible/),
+and [`P8 PP2 block64 correctness evidence`](data/deep-study/2026-08-21-p8-pp2-block64-eager-correctness/).
 
 ## One DGX Station: capacity result
 

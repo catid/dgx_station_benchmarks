@@ -1,0 +1,22 @@
+{
+  "benchmark": {
+    "byte_identical_pairs": 0,
+    "correctness_outputs": 4,
+    "decode_rows": 0,
+    "non_byte_identical_pairs": 2,
+    "prefill_rows": 0
+  },
+  "capacity_tokens_observed": [
+    402688
+  ],
+  "capacity_tokens_required": 12802,
+  "natural_quality": "pp2-correctness-smoke-passed",
+  "network_health_counter_deltas": {
+    "node0": {},
+    "node1": {}
+  },
+  "profile_id": "vllm-pp2-block64-eager-smoke",
+  "runtime": "vllm",
+  "status": "accepted-by-structural-validator",
+  "topology": "pp2"
+}

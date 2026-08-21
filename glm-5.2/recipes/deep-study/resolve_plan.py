@@ -161,8 +161,19 @@ def validate(plan: dict[str, Any]) -> None:
     for field in ("max_model_len", "max_num_seqs", "max_num_batched_tokens"):
         if int(plan.get(field, 0)) <= 0:
             raise PlanError(f"{field} must be positive")
+    enforce_eager = plan.get("enforce_eager")
+    if not isinstance(enforce_eager, bool):
+        raise PlanError("enforce_eager must be boolean")
+    block_size = plan.get("block_size")
+    if block_size is not None and int(block_size) != 64:
+        raise PlanError("only the source-audited 64-token block override is permitted")
     graph_sizes = [int(value) for value in plan.get("cudagraph_capture_sizes", [])]
-    if (
+    if enforce_eager:
+        if runtime != "vllm" or graph_sizes:
+            raise PlanError("eager correctness profiles must use vLLM with no CUDA graphs")
+        if plan.get("phase") != "pp-correctness-smoke":
+            raise PlanError("eager execution is restricted to the PP correctness smoke")
+    elif (
         not graph_sizes
         or graph_sizes != sorted(set(graph_sizes))
         or any(value not in ALLOWED_CUDAGRAPH_SIZES for value in graph_sizes)
@@ -179,8 +190,13 @@ def validate(plan: dict[str, Any]) -> None:
         raise PlanError("GPU memory utilization must stay in [0.5, 0.95]")
 
     benchmark = plan.get("benchmark", {})
-    if benchmark.get("mode") not in {"headline", "prefill-only", "bootstrap"}:
+    if benchmark.get("mode") not in {"headline", "prefill-only", "bootstrap", "correctness-smoke"}:
         raise PlanError("unsupported benchmark mode")
+    if (
+        benchmark.get("mode") == "correctness-smoke"
+        and plan.get("phase") != "pp-correctness-smoke"
+    ):
+        raise PlanError("correctness-smoke mode is restricted to its audited PP profile")
     if int(benchmark.get("minimum_kv_tokens", 0)) <= 0:
         raise PlanError("capacity gate requires a positive minimum_kv_tokens")
     prefill = [int(value) for value in benchmark.get("prefill_context_tokens", [])]
@@ -222,6 +238,39 @@ def validate(plan: dict[str, Any]) -> None:
             raise PlanError("split-MTP short-context gate must cover 8K + 8x1K")
         if cache_profile_id != "vllm-tp2-mtp1-split-bootstrap":
             raise PlanError("split-MTP short-context must reuse the measured P5 cache")
+    if plan.get("phase") == "pp-correctness-smoke":
+        expected = {
+            "max_model_len": 16384,
+            "max_num_seqs": 4,
+            "max_num_batched_tokens": 16384,
+            "chunked_prefill_size": 16384,
+        }
+        if runtime != "vllm" or topology != "pp2":
+            raise PlanError("PP correctness smoke must use vLLM PP2")
+        if any(int(plan[key]) != value for key, value in expected.items()):
+            raise PlanError("PP correctness-smoke envelope must remain fixed")
+        if block_size != 64 or not enforce_eager or graph_sizes:
+            raise PlanError("PP correctness smoke requires block64, eager mode, and no graphs")
+        if plan["moe_backend"] != "flashinfer_cutedsl" or plan["flashinfer_autotune"]:
+            raise PlanError("PP correctness smoke requires CuTeDSL with autotune off")
+        if float(plan["gpu_memory_utilization"]) != 0.9:
+            raise PlanError("PP correctness smoke utilization must remain 0.9")
+        if benchmark.get("mode") != "correctness-smoke" or plan.get("reportable") is not False:
+            raise PlanError("PP correctness smoke is nonreportable correctness evidence")
+        if [int(value) for value in benchmark.get("concurrencies", [])] != [1]:
+            raise PlanError("PP correctness smoke permits only C1")
+        if int(benchmark.get("decode_context_tokens", 0)) != 8192:
+            raise PlanError("PP correctness smoke requires the exact 8K prompt target")
+        if int(benchmark.get("max_output_tokens", 0)) != 4608:
+            raise PlanError("PP correctness smoke requires the retained 4,608-token audit")
+        if (
+            int(benchmark.get("duration_seconds", -1)) != 0
+            or float(benchmark.get("temperature", -1)) != 0
+            or benchmark.get("shared_prefix") is not True
+        ):
+            raise PlanError("PP correctness smoke workload controls must remain deterministic")
+        if prefill != [8192] or int(benchmark.get("minimum_kv_tokens", 0)) != 12802:
+            raise PlanError("PP correctness smoke capacity must cover 8,194 + 4,608 tokens")
     if plan.get("phase") == "prefill-chunk":
         chunk = int(plan.get("chunked_prefill_size", 0))
         if chunk not in ALLOWED_CHUNKS:
@@ -256,7 +305,12 @@ def shell_assignments(plan: dict[str, Any]) -> str:
         "CUDAGRAPH_CAPTURE_SIZES": " ".join(
             map(str, plan["cudagraph_capture_sizes"])
         ),
-        "MAX_CUDAGRAPH_CAPTURE_SIZE": max(plan["cudagraph_capture_sizes"]),
+        "MAX_CUDAGRAPH_CAPTURE_SIZE": (
+            max(plan["cudagraph_capture_sizes"])
+            if plan["cudagraph_capture_sizes"] else 0
+        ),
+        "BLOCK_SIZE": plan.get("block_size") or "",
+        "ENFORCE_EAGER": "yes" if plan.get("enforce_eager") else "no",
         "CACHE_PROFILE_ID": plan.get("cache_profile_id") or "",
         "KV_CACHE_DTYPE": plan["kv_cache_dtype"],
         "MAX_MODEL_LEN": plan["max_model_len"],

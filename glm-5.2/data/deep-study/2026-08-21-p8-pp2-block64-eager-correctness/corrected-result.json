@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "status": "passed_no_corruption_detected",
+  "result_kind": "correctness_only_no_performance",
+  "raw_harness_status": "failed",
+  "raw_harness_sha256": "a7a62878e0d07602a95288d5d074811c2349e5f6120a72ebe7842f3712188847",
+  "accounting_correction": {
+    "raw_expected_api_prompt_tokens": 8194,
+    "tokenize_target": 8192,
+    "tokenize_observed": 8192,
+    "direct_api_prompt_tokens_observed_all_requests": 8192,
+    "disposition": "the direct API and /tokenize endpoint agree at exactly 8,192; the raw 8,194 assertion came from a different standalone-prefill path"
+  },
+  "automated_quality": {
+    "outputs_retained": 4,
+    "outputs_passing_all_text_checks": 4,
+    "corruption_or_degeneration_flags": 0
+  },
+  "repeatability": {
+    "byte_identical_pairs": 0,
+    "non_byte_identical_pairs": 2,
+    "disposition": "greedy PP2 outputs were coherent but not byte-identical; hash mismatch is retained as nondeterminism, not classified as text corruption",
+    "comparisons": [
+      {
+        "requested_output_tokens": 1024,
+        "byte_identical": false,
+        "sha256": [
+          "a6b63c691e9ed1995a02683b0484b8ef59d03137da1b91d6b96f23d387672cc5",
+          "3e1774657bb95d8a5cfdd7c2e87006c3ff98314326b50398253e1d2537bf0e87"
+        ],
+        "common_prefix_characters": 326,
+        "common_prefix_words": 34,
+        "eightgram_jaccard": 0.055055055055055056
+      },
+      {
+        "requested_output_tokens": 4608,
+        "byte_identical": false,
+        "sha256": [
+          "f107abad1d219d57fefc22adc45ce247795c1bf25d08b59d4d9962951a65d5d4",
+          "af7b02880305482d112c5c01b7433c1d8e0b4645a74d408c378f95443cdff6cd"
+        ],
+        "common_prefix_characters": 636,
+        "common_prefix_words": 75,
+        "eightgram_jaccard": 0.029756191207525436
+      }
+    ]
+  },
+  "outputs": [
+    {
+      "requested_output_tokens": 1024,
+      "repeat": 0,
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 8192,
+        "completion_tokens": 1024,
+        "total_tokens": 9216
+      },
+      "sha256": "a6b63c691e9ed1995a02683b0484b8ef59d03137da1b91d6b96f23d387672cc5",
+      "analysis": {
+        "characters": 4398,
+        "words": 558,
+        "unique_word_ratio": 0.5448028673835126,
+        "printable_fraction": 1.0,
+        "ascii_fraction": 0.999458434876794,
+        "alphanumeric_fraction": 0.917682101272678,
+        "invalid_control_count": 0,
+        "max_identical_character_run": 3,
+        "max_identical_word_run": 1,
+        "repeated_8gram_fraction": 0.023593466424682397,
+        "checks": {
+          "nonempty": true,
+          "minimum_words": true,
+          "printable_fraction": true,
+          "ascii_fraction": true,
+          "alphanumeric_fraction": true,
+          "no_replacement_character": true,
+          "no_invalid_controls": true,
+          "max_identical_character_run": true,
+          "max_identical_word_run": true,
+          "repeated_8gram_fraction": true
+        },
+        "flagged": false
+      }
+    },
+    {
+      "requested_output_tokens": 1024,
+      "repeat": 1,
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 8192,
+        "completion_tokens": 1024,
+        "total_tokens": 9216
+      },
+      "sha256": "3e1774657bb95d8a5cfdd7c2e87006c3ff98314326b50398253e1d2537bf0e87",
+      "analysis": {
+        "characters": 4443,
+        "words": 528,
+        "unique_word_ratio": 0.5814393939393939,
+        "printable_fraction": 1.0,
+        "ascii_fraction": 0.998608017817372,
+        "alphanumeric_fraction": 0.905902004454343,
+        "invalid_control_count": 0,
+        "max_identical_character_run": 3,
+        "max_identical_word_run": 2,
+        "repeated_8gram_fraction": 0.009596928982725527,
+        "checks": {
+          "nonempty": true,
+          "minimum_words": true,
+          "printable_fraction": true,
+          "ascii_fraction": true,
+          "alphanumeric_fraction": true,
+          "no_replacement_character": true,
+          "no_invalid_controls": true,
+          "max_identical_character_run": true,
+          "max_identical_word_run": true,
+          "repeated_8gram_fraction": true
+        },
+        "flagged": false
+      }
+    },
+    {
+      "requested_output_tokens": 4608,
+      "repeat": 0,
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 8192,
+        "completion_tokens": 4608,
+        "total_tokens": 12800
+      },
+      "sha256": "f107abad1d219d57fefc22adc45ce247795c1bf25d08b59d4d9962951a65d5d4",
+      "analysis": {
+        "characters": 18953,
+        "words": 2667,
+        "unique_word_ratio": 0.3910761154855643,
+        "printable_fraction": 1.0,
+        "ascii_fraction": 0.9989747533000128,
+        "alphanumeric_fraction": 0.9129181084198386,
+        "invalid_control_count": 0,
+        "max_identical_character_run": 4,
+        "max_identical_word_run": 2,
+        "repeated_8gram_fraction": 0.0033834586466165413,
+        "checks": {
+          "nonempty": true,
+          "minimum_words": true,
+          "printable_fraction": true,
+          "ascii_fraction": true,
+          "alphanumeric_fraction": true,
+          "no_replacement_character": true,
+          "no_invalid_controls": true,
+          "max_identical_character_run": true,
+          "max_identical_word_run": true,
+          "repeated_8gram_fraction": true
+        },
+        "flagged": false
+      }
+    },
+    {
+      "requested_output_tokens": 4608,
+      "repeat": 1,
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 8192,
+        "completion_tokens": 4608,
+        "total_tokens": 12800
+      },
+      "sha256": "af7b02880305482d112c5c01b7433c1d8e0b4645a74d408c378f95443cdff6cd",
+      "analysis": {
+        "characters": 19169,
+        "words": 2738,
+        "unique_word_ratio": 0.3951789627465303,
+        "printable_fraction": 1.0,
+        "ascii_fraction": 0.9984979346601577,
+        "alphanumeric_fraction": 0.9197020903742646,
+        "invalid_control_count": 0,
+        "max_identical_character_run": 3,
+        "max_identical_word_run": 2,
+        "repeated_8gram_fraction": 0.006590992310508971,
+        "checks": {
+          "nonempty": true,
+          "minimum_words": true,
+          "printable_fraction": true,
+          "ascii_fraction": true,
+          "alphanumeric_fraction": true,
+          "no_replacement_character": true,
+          "no_invalid_controls": true,
+          "max_identical_character_run": true,
+          "max_identical_word_run": true,
+          "repeated_8gram_fraction": true
+        },
+        "flagged": false
+      }
+    }
+  ]
+}
