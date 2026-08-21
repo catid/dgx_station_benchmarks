@@ -39,4 +39,8 @@ af5c64c93633246fac1b4c526c9ded54a44124b51012c174fce9f8a5e9b34b43  ./2026-08-20-p
 d3341de0ff80248566e73df034f3f4b0ca85d2adec1abba426ba19271be3c453  ./2026-08-20-p6-mtp1-short-context-harness-only/SHA256SUMS
 79c3cce0f5ff6a9d9f992c582e24dcc71f29886257cc028762bc8f6739f0a7fa  ./2026-08-20-p6-mtp1-short-context-harness-only/failure-summary.json
 0c5a78ed7cc629333d2feb981adb3e42e8d1bc1b840c123ec5f431ad8fcae7af  ./2026-08-20-p6-mtp1-short-context-harness-only/resolved-plan.json
-ee67e04be25f6d089a992d0c7c47364aa73d0911296b84dd4f0a602f423aad84  ./README.md
+663e4cb5a33a1595c0a1aac65f990c34807706283442629756fbef4e97005e73  ./2026-08-20-p7-pp2-kv-block-incompatible/README.md
+8b53c6805deb7cbf6037c1173cfd11c99b8d31bd90bdc526f00949f913d79e95  ./2026-08-20-p7-pp2-kv-block-incompatible/SHA256SUMS
+0c0a1520a9ced631940d845c9b5d73ae510731a1ad6234645c97940c67a9f353  ./2026-08-20-p7-pp2-kv-block-incompatible/failure-summary.json
+9bc66943e0a956d4e9cbd3967517ad528dd9639a1d4e1ea3e348148e81654095  ./2026-08-20-p7-pp2-kv-block-incompatible/resolved-plan.json
+db64676ed663e125ac42227f19a3e70571737e7857cea06019defb2ccce210d0  ./README.md
