@@ -1,0 +1,19 @@
+{
+  "benchmark": {
+    "decode_rows": 8,
+    "prefill_rows": 3
+  },
+  "capacity_tokens_observed": [
+    261952
+  ],
+  "capacity_tokens_required": 139264,
+  "natural_quality": "passed",
+  "network_health_counter_deltas": {
+    "node0": {},
+    "node1": {}
+  },
+  "profile_id": "vllm-tp2-exact",
+  "runtime": "vllm",
+  "status": "accepted-by-structural-validator",
+  "topology": "tp2"
+}

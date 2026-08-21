@@ -1,15 +1,41 @@
-# Pending GLM-5.2 deep optimization study
+# GLM-5.2 deep optimization study
 
-This directory stages a pinned, fail-closed comparison of GLM-5.2 NVFP4 on
-two one-GPU DGX Station GB300 systems. It contains no new benchmark results.
-Only a completed run that passes the structural, capacity, natural-output, and
-manual review gates should be added to the model README.
+This directory stages and runs a pinned, fail-closed comparison of GLM-5.2
+NVFP4 on two one-GPU DGX Station GB300 systems. The first frozen increment is
+published under [`../../data/deep-study/`](../../data/deep-study/): P0 passed
+the structural, capacity, and natural-output gates; P1 FlashInfer CUTLASS did
+not fit the unchanged long-context envelope and is retained only as excluded
+startup evidence.
 
 The target is
 [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) at
 revision `aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa`. The official BF16 and FP8
 checkpoints are too large for the combined HBM of two Stations. CPU offload is
 outside this study.
+
+## First measured increment
+
+P0 reproduced the exact TP2+EP2 CuTeDSL profile with 261,952 GPU KV-cache
+tokens. The full 8K-input/up-to-1K-output decode matrix was:
+
+| Backend | C1 | C2 | C4 | C8 | C16 | C32 | C64 | C128 | Status |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| FlashInfer CuTeDSL | 68.2 | 117.9 | 218.3 | 361.0 | 539.7 | 903.7 | 1,252.2 | 2,013.9 | Accepted |
+
+P0 standalone prefill measured 6,223 tok/s at 8K, 7,461 tok/s at 64K, and
+7,179 tok/s at 128K. All four natural outputs finished normally with zero
+automatic flags.
+
+| FlashInfer CUTLASS start | Available KV GiB by rank | Required per rank | Status |
+| --- | ---: | ---: | --- |
+| Cold backend compile | 0.43 / 0.43 | 6.0 | Excluded before API; no requests |
+| Warm AOT cache hit | 2.19 / 10.39 | 6.0 | Excluded before API; no requests; no further retry |
+
+These are capacity dispositions at the fixed 135,168-token profile, not
+throughput comparisons. The accepted and excluded records, source hashes, and
+per-directory checksums are in
+[`../../data/deep-study/`](../../data/deep-study/). The remaining matrix below
+is still pending and must pass the same gates before publication.
 
 ## What is pinned
 
@@ -87,6 +113,27 @@ The headline workload is exact 8K input/up-to-1K output at C1–C128 plus cold
 8K/64K/128K prefill. Its minimum 139,264-token KV gate is the workload's
 shared-prefix requirement: 8,192 shared prompt tokens plus 128 × 1,024 output
 tokens. It is not a claim about 128 unrelated 8K prompts.
+
+An empty profile cache can make the first launch a nonreportable compiler-cache
+priming pass. A cold AOT/CuTeDSL/Triton build may temporarily consume more
+device memory than the subsequent cache-hit launch. Never relax the capacity
+gate or raise utilization to rescue that attempt. Preserve its logs; after the
+named containers exit, run the kernel and idle-HBM gates. If ownerless HBM is
+above the clean-idle ceiling, stop GPU work and coordinate a normal reboot.
+The generated on-disk compiler cache can be retained, but the next attempt is
+still accepted only if the unchanged profile passes every capacity and quality
+gate from a clean post-reboot baseline.
+
+Record the driver and coherent-memory mode with every run. NVIDIA documents
+that R610 and later default DGX Station GB300 to driver-managed coherent GPU
+memory (CDMM), while older/legacy NUMA mode can place ordinary allocations in
+HBM and is not recommended. A driver or memory-mode change is a platform A/B,
+not a silent optimization inside a backend comparison. The memory snapshots
+record `CoherentGPUMemoryMode`, memory-tier node lists, per-node `FilePages`,
+and the boot ID so HBM accounting changes can be separated from kernel/backend
+effects. See NVIDIA's
+[mixed-coherency guide](https://docs.nvidia.com/dgx/dgx-station-development-guide/coherency.html)
+and [optimization guide](https://docs.nvidia.com/dgx/dgx-station-development-guide/optimization.html).
 
 ### 2. CuTeDSL versus CUTLASS
 
@@ -191,7 +238,10 @@ SGLang chunking is a later experiment after a fixed-size winner is known.
 [`run_headline.sh`](run_headline.sh) saves the resolved plan before launch,
 captures low-overhead RoCE counters immediately before and after the workload,
 runs the benchmark and natural-output audit, preserves both container commands
-and logs, removes only the profile's named containers, and then calls
+and logs, sends SIGTERM to both ranks concurrently, waits for clean exits, and
+then removes only the stopped named containers. It also records host
+NUMA/cgroup/page-cache snapshots before, during, and after the run, repeats the
+kernel-danger scan, enforces the post-teardown idle-HBM gate, and calls
 [`validate_run.py`](validate_run.py). The validator rejects:
 
 - a different checkpoint revision, image, topology, backend, KV type, or

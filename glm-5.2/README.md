@@ -14,8 +14,10 @@ See the [agent-ready recipes](recipes/) for pinned download and verification,
 the one-node capacity check, the accepted TP2 launch, failed-profile evidence,
 `llm-inference-bench`, output-quality checks, and WikiText-2 setup.
 
-A broader [deep optimization study](recipes/deep-study/) is staged but still
-pending measurement; its profiles contain no unpublished performance claims.
+The broader [deep optimization study](recipes/deep-study/) now has a first
+frozen increment: an accepted CuTeDSL reproduction and two excluded
+FlashInfer-CUTLASS capacity starts. The compact evidence and checksums are in
+[`data/deep-study/`](data/deep-study/).
 
 ## Checkpoint provenance
 
@@ -42,6 +44,42 @@ allocation failures. This is an operator-observed startup-failure note, not a
 checksummed measurement, so it has no throughput row. The optimization path and
 excluded starts are recorded in
 [`data/failure-attempts.json`](data/failure-attempts.json).
+
+## Deep-study increment: CuTeDSL baseline and CUTLASS capacity
+
+The existing canonical tables later in this README remain unchanged. P0 below
+is an independent, fully captured repeat using the deep-study runner: the same
+pinned checkpoint and image, TP2/PP1 + EP2, FP8 E4M3 KV, 135,168 maximum model
+length, 93% static HBM utilization, no speculation, and no CPU offload.
+
+| Frozen run | MoE backend | C1 | C2 | C4 | C8 | C16 | C32 | C64 | C128 | Result |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| P0 | FlashInfer CuTeDSL | 68.2 | 117.9 | 218.3 | 361.0 | 539.7 | 903.7 | 1,252.2 | 2,013.9 | Accepted |
+
+Aggregate output tok/s; exactly targeted 8K input, up to 1K output, temperature
+0, and a 30-second sustained window per cell.
+
+| Frozen run | 8K prefill | 64K prefill | 128K prefill | GPU KV capacity | Natural outputs |
+| --- | ---: | ---: | ---: | ---: | --- |
+| P0 | 6,223 tok/s | 7,461 tok/s | 7,179 tok/s | 261,952 tokens | 4/4 finish naturally; 0 flags |
+
+The backend A/B held every declared profile field constant except the MoE
+backend. FlashInfer CUTLASS did not reach an API-ready state at the same
+long-context envelope, so it has no throughput row.
+
+| FlashInfer CUTLASS start | Compile state | Available KV GiB by rank | Required per rank | Disposition |
+| --- | --- | ---: | ---: | --- |
+| P1 cold | First backend-specific compile | 0.43 / 0.43 | 6.0 GiB for 135,168 tokens | Excluded before API; 0 requests |
+| P1 warm | AOT cache hit, single controlled validation | 2.19 / 10.39 | 6.0 GiB for 135,168 tokens | Excluded before API; 0 requests; no further retry |
+
+P0's quiet before/after RoCE counters recorded 1.236 TB in each direction over
+372.4 seconds, or 26.55 Gb/s average, with no health-counter deltas. That is a
+whole-matrix average, not a peak-link or bottleneck claim. All three starts used
+graceful teardown, passed the current-boot kernel scan, and returned to 2–3 MiB
+idle HBM per rank. See the frozen
+[`P0 evidence`](data/deep-study/2026-08-20-p0-cutedsl/),
+[`P1 cold-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-cold-cache/),
+and [`P1 warm-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-warm-cache/).
 
 ## One DGX Station: capacity result
 
