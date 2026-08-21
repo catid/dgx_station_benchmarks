@@ -22,7 +22,9 @@ the API failed capacity before the correctness gate or any benchmark request.
 P10 retained P9's declared profile except for 95% rather than 93% HBM
 utilization and started from the PP-specific AOT and checkpoint page caches
 populated by P9. It reached a healthy API with 494,528 KV tokens and completed
-the full performance, correctness, natural-output, and network matrix.
+the full performance, correctness, natural-output, and network matrix, but its
+decode result is a performance failure: it delivered only 13.5–58.9% of P0
+across C1–C128 and is not recommended for serving.
 P11–P13 then swept vLLM's fixed maximum batched-token/prefill chunk at 8K,
 16K, and 4K, in that measured order, against P0's 32K control. All three
 prefill-only arms passed capacity, request/cache, network, and teardown gates.
@@ -320,6 +322,12 @@ prefill; all measured calls completed, but this is not a memory-headroom claim.
 Every P10 decode stream remained in flight at the 30-second boundary, so its
 reported aggregate values are continuous-usage in-flight token rates rather
 than completed-request throughput. Decode uses the declared shared 8K prefix.
+
+For serving, P10 is a decode-performance failure and is not recommended. Its
+throughput was only 13.5%, 15.8%, 17.0%, 20.6%, 27.5%, 32.1%, 46.9%, and 58.9%
+of P0 from C1 through C128. The higher standalone-prefill numbers are retained
+as a separate workload result; they do not outweigh the decode regression for
+an autoregressive serving recommendation.
 
 Resolve the two PP2 profiles offline with:
 

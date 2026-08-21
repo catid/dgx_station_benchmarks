@@ -229,14 +229,16 @@ class PublicationToolsTest(unittest.TestCase):
         first = (self.package / "README.md").read_text()
         UPDATE.update(self.package)
         self.assertEqual(first, (self.package / "README.md").read_text())
-        self.assertIn("| TP2 / PP1 + expert parallel | 100.0", first)
-        self.assertNotIn("| TP2 / PP1 + expert parallel | pending", first)
         self.assertIn(
-            "operator-observed startup failure (original logs not retained): "
-            "TP1 / PP2",
+            "| **100.0** | **6,400.0** | **12,800.0** | "
+            "**8,192 / 0.500s** | **65,536 / 0.500s** | "
+            "**131,072 / 0.500s** |",
             first,
         )
-        self.assertNotIn("measured startup failure", first)
+        self.assertIn("| bfloat16 | — | — | — | 4/4 finished naturally | 0 | clean |", first)
+        self.assertNotIn("operator-observed startup failure", first)
+        self.assertNotIn("no fit", first.lower())
+        self.assertNotIn("P10", first)
         manifest = json.loads(
             (self.package / "data" / "publication-manifest.json").read_text()
         )

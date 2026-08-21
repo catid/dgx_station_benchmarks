@@ -1,379 +1,74 @@
-# GLM-5.2 NVFP4 on NVIDIA GB300
+# GLM-5.2 NVFP4 on 2× NVIDIA GB300
 
-This experiment evaluates NVIDIA's NVFP4 quantization of GLM-5.2 on DGX
-Station GB300 hardware. The checkpoint is a 753B-total/40B-active MoE model,
-with a documented context ceiling of 1M tokens. Its expert linear layers use
-NVFP4; the shared expert and several other tensors remain at higher precision.
+**753B parameters · 40B active · two DGX Stations · 400 GbE RoCE · no CPU offload**
 
-The checkpoint does **not** fit in one DGX Station's GB300. The reproducible
-one-station result is therefore a capacity measurement, not a throughput row.
-Performance collection uses two identically configured DGX Stations connected
-by a dedicated 400 GbE RoCE link, with no CPU or disk weight offload.
+The recommended serving profile reaches **2,012 aggregate output tok/s at
+C128** and **7,244 prompt tok/s at 128K** with NVIDIA's NVFP4 checkpoint.
 
-See the [agent-ready recipes](recipes/) for pinned download and verification,
-the one-node capacity check, the accepted TP2 launch, failed-profile evidence,
-`llm-inference-bench`, output-quality checks, and WikiText-2 setup.
+## Headline results
 
-The broader [deep optimization study](recipes/deep-study/) now has frozen
-backend and autotune increments: an accepted CuTeDSL reproduction, two
-excluded FlashInfer-CUTLASS capacity starts, a vLLM-CUTLASS compatibility
-failure, an accepted CuTeDSL autotune-on A/B, and a native-MTP/CuTeDSL
-compatibility failure. A subsequent stock split-backend MTP start mapped
-correctly but failed KV capacity before API readiness. A shorter MTP1 profile
-later reached API readiness and sufficient KV capacity, but two fail-closed
-audit-harness errors stopped it before the first request. An audited 40/38 PP2
-split then loaded with only 3.20 GiB stage-memory spread, but pinned vLLM could
-not reconcile the stages' 64/32 KV block sizes. P8 applied the stock block64
-override with eager execution: both stages served, exposed 402,688 KV tokens,
-and produced four coherent retained outputs with no corruption flags. P8 is
-correctness evidence, not a performance row. P9 then enabled Inductor with
-CUDA graphs disabled at the full P0 context envelope. Both stages compiled,
-but PP1 retained only 0.28 GiB for KV and the API failed capacity before any
-request. P10 repeated that declared profile at 95% rather than 93% HBM
-utilization after P9 had populated the PP-specific AOT and checkpoint page
-caches. It passed full-context
-capacity, correctness, quality, network, and C1–C128/8K–128K performance
-gates. Compact evidence and checksums are in
-[`data/deep-study/`](data/deep-study/).
-P11–P13 then held the accepted P0 TP2 server profile fixed and swept vLLM's
-maximum batched-token/prefill-chunk setting at 4K, 8K, and 16K against the
-frozen 32K control.
+<!-- BEGIN GENERATED:HEADLINES -->
+| Decode C1<br><sub>output tok/s</sub> | Decode C64<br><sub>output tok/s</sub> | Decode C128<br><sub>output tok/s</sub> | Prefill 8K<br><sub>prompt tok/s / TTFT</sub> | Prefill 64K<br><sub>prompt tok/s / TTFT</sub> | Prefill 128K<br><sub>prompt tok/s / TTFT</sub> |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| **68.0** | **1,261.0** | **2,012.4** | **6,262 / 1.309s** | **7,444 / 8.804s** | **7,244 / 18.095s** |
+<!-- END GENERATED:HEADLINES -->
 
-## Checkpoint provenance
+Decode uses an exact 8K input, up to 1K output, and a 30-second sustained
+window. Prefill is single-request and client-timed.
 
-| Role | Hugging Face source | Exact revision | Status | Weight format | Retained size evidence |
-| --- | --- | --- | --- | --- | --- |
-| Target | [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) | `aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa` | NVIDIA-produced quantization of GLM-5.2; not the upstream BF16 checkpoint | NVFP4 expert linear layers; shared expert and several tensors remain at higher precision | 47 indexed weight files, 464,823,042,096 bytes |
+![GLM-5.2 TP2 sustained decode throughput](charts/decode-throughput.png)
 
-The shard count and byte total come from the pinned checkpoint's `model.safetensors.index.json` and are retained in [`data/capacity.csv`](data/capacity.csv).
+## Recommended configuration
 
-## Status
+| Setting | Recommendation |
+| --- | --- |
+| Hardware | 2× DGX Station, one GB300 each, dedicated 400 GbE RoCE |
+| Runtime | vLLM 0.27.1, TP2 / PP1 with expert parallelism |
+| MoE backend | FlashInfer CuTeDSL |
+| FlashInfer autotuning | Off |
+| KV cache | FP8 E4M3 with prefix caching |
+| Serving envelope | 135,168 max model length, 128 sequences, 32,768 batched tokens |
+| HBM / offload | 93% static utilization; no CPU or disk weight offload |
 
-<!-- BEGIN GENERATED:STATUS -->
-- Checkpoint download and integrity verification: complete
-- One-station capacity test: complete; no fit
-- Accepted two-station performance: TP2 / PP1 + expert parallel; PP2 40/38 block64/Inductor/no-graphs at 95% HBM; PP2 eager correctness: accepted; the 93% PP2 full-context start remains capacity-excluded
-- Natural-output audits: TP2 / PP1 + expert parallel and accepted P10 PP2; WikiText-2: TP2 / PP1 + expert parallel
-<!-- END GENERATED:STATUS -->
-
-No pending field below should be interpreted as a zero.
-
-An earlier PP2 attempt had no retained logs; its operator-observed stage
-imbalance remains in [`data/failure-attempts.json`](data/failure-attempts.json)
-as provenance only. P7 supersedes that anecdote with a checksummed 40/38
-bootstrap disposition, and P8 supersedes P7's block-layout failure with a
-checksummed eager block64 correctness pass. P9 is the checksummed full-context
-Inductor capacity disposition. None of P7–P9 is a throughput row; P10 is the
-first accepted request-bearing PP2 performance run in this study.
-
-## Deep-study increments: backend, autotune, native MTP, and PP2
-
-The existing canonical tables later in this README remain unchanged. P0 below
-is an independent, fully captured repeat using the deep-study runner: the same
-pinned checkpoint and image, TP2/PP1 + EP2, FP8 E4M3 KV, 135,168 maximum model
-length, 93% static HBM utilization, no speculation, and no CPU offload.
-
-| Frozen run | MoE backend | C1 | C2 | C4 | C8 | C16 | C32 | C64 | C128 | Result |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| P0 | FlashInfer CuTeDSL, autotune off | 68.2 | 117.9 | 218.3 | 361.0 | 539.7 | 903.7 | 1,252.2 | 2,013.9 | Accepted |
-| P3 | FlashInfer CuTeDSL, autotune on | 67.7 | 115.1 | 211.1 | 357.4 | 546.6 | 886.5 | 1,252.1 | 1,997.1 | Accepted |
-| P10, PP2 40/38 | FlashInfer CuTeDSL, autotune off | 9.2 | 18.6 | 37.0 | 74.5 | 148.5 | 290.1 | 586.7 | 1,186.4 | Accepted |
-
-Aggregate output tok/s; exactly targeted 8K input, up to 1K output, temperature
-0, and a 30-second sustained window per cell.
-
-| Frozen run | 8K prefill | 64K prefill | 128K prefill | GPU KV capacity | Natural outputs |
-| --- | ---: | ---: | ---: | ---: | --- |
-| P0, autotune off | 6,223 tok/s | 7,461 tok/s | 7,179 tok/s | 261,952 tokens | 4/4 finish naturally; 0 flags |
-| P3, autotune on | 6,359 tok/s | 7,624 tok/s | 7,318 tok/s | 147,264 tokens | 4/4 finish naturally; 0 flags |
-| P10, PP2 40/38 | 13,371 tok/s | 16,870 tok/s | 18,637 tok/s | 494,528 tokens | 4/4 finish naturally; 0 flags |
-
-P3 changed only FlashInfer autotuning. Exact P3 deltas against P0 were:
-
-| Metric | C1 | C2 | C4 | C8 | C16 | C32 | C64 | C128 | Mean |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Decode tok/s delta | -0.615% | -2.401% | -3.290% | -0.994% | +1.295% | -1.899% | -0.013% | -0.832% | -1.094% |
-
-| Metric | 8K | 64K | 128K | Mean |
-| --- | ---: | ---: | ---: | ---: |
-| Prefill tok/s delta | +2.185% | +2.185% | +1.936% | +2.102% |
-
-This single pass supports a small prefill lift, not a decode win. P3's cold
-compile took 127.71 / 131.17 seconds by rank; FlashInfer then spent 28.087
-seconds autotuning and wrote 23 new configurations. Its fixed capacity gate
-passed with 147,264 GPU KV tokens, compared with P0's 261,952 tokens.
-
-The backend A/B held every declared profile field constant except the MoE
-backend. FlashInfer CUTLASS did not reach an API-ready state at the same
-long-context envelope, so it has no throughput row.
-
-| FlashInfer CUTLASS start | Compile state | Available KV GiB by rank | Required per rank | Disposition |
-| --- | --- | ---: | ---: | --- |
-| P1 cold | First backend-specific compile | 0.43 / 0.43 | 6.0 GiB for 135,168 tokens | Excluded before API; 0 requests |
-| P1 warm | AOT cache hit, single controlled validation | 2.19 / 10.39 | 6.0 GiB for 135,168 tokens | Excluded before API; 0 requests; no further retry |
-
-vLLM's native `VLLM_CUTLASS` arm, P2, was excluded even earlier. The pinned
-kernel rejected the required EP2 `allgather_reducescatter` configuration during
-model construction, before weight load or API readiness; no request was issued
-and no smaller profile was substituted.
-
-P4 enabled one native MTP draft token on the P0 CuTeDSL profile. Both ranks
-loaded all target weights in 67.32 / 70.46 seconds, then rejected the draft
-model: its unquantized MoE does not support the globally selected CuTeDSL
-backend in the pinned runtime. The API never became ready, so P4 has no
-throughput, acceptance, quality, capacity, or network row and issued zero
-requests.
-
-P5 used the stock per-draft override to retain the CuTeDSL target while routing
-the unquantized MTP1 draft to FlashInfer CUTLASS. Both ranks proved the intended
-mapping, but the conservative 32,768-token bootstrap exposed 3.42 / 0.20 GiB
-available KV by rank. The limiting rank needed 1.48 GiB and estimated only a
-4,352-token maximum, so the API never became ready and zero requests were
-issued. This proves backend compatibility, not usable MTP throughput.
-
-P6 tested that same split at a separately labeled 9,216-token envelope, 95%
-static HBM utilization, and C1/C2/C4/C8 planned workload. Two controlled starts
-reached a healthy API and exposed 116,416 and 179,264 coordinated KV tokens,
-both above the 16,384-token pre-request minimum. The first stopped on SSH
-Go-template quoting in the audit; the one authorized retry stopped because the
-audit incorrectly expected vLLM's global EngineCore KV-token marker in both
-worker logs. Both issued zero benchmark requests. P6 therefore has no decode,
-prefill, speculative-acceptance, target-step, quality, or network result.
-
-P7 audited vLLM pipeline parallelism with TP1/PP2, EP1, speculation off,
-autotuning off, and a 40/38 partition. PP0 and PP1 loaded 206.32 and 209.52 GiB
-respectively, validating the intended balance. Startup then failed before API:
-the indexer stage selected a 64-token KV block and the MLA stage selected 32,
-and pinned vLLM raised `No common block size for 32`. No request or full
-P0-envelope PP2 run followed, so P7 has no performance or network row.
-
-P8 held the 40/38 topology, CuTeDSL backend, FP8 E4M3 KV, speculation-off and
-autotune-off settings, then added the stock `--block-size 64` workaround and
-`--enforce-eager`. Both ranks reached a healthy API with 402,688 coordinated KV
-tokens. Two exact 8K+1K and two exact 8K+4,608-token outputs all passed the
-retained degeneration and character-quality checks. The greedy pairs were
-coherent but not byte-identical, so their hash mismatches are recorded as
-nondeterminism rather than corruption. The raw harness's failure status is
-preserved: it expected the 8,194-token accounting seen in a different
-standalone-prefill path, while direct chat usage and `/tokenize` both measured
-exactly 8,192. A separate corrected validator accepts the unchanged raw
-outputs. P8 has four correctness requests and zero performance rows.
-
-P9 kept P8's block64/40,38/CuTeDSL controls, returned to the full 135,168-token
-P0 envelope, enabled Inductor, and explicitly disabled CUDA graphs. Both stages
-completed weight load, compilation, and profiling warmup. PP0 then exposed
-7.60 GiB of available KV memory, while PP1 exposed only 0.28 GiB; that limiting
-stage needed 2.9 GiB and estimated a maximum model length of 12,864 tokens.
-vLLM rejected the declared envelope before API readiness. The planned retained
-correctness gate and all benchmark/quality/network requests therefore remained
-unrun, and P9 has zero performance rows.
-
-P10 retained P9's declared configuration and workload but raised static HBM
-utilization from 93% to 95%; it also inherited the AOT/page-cache state
-populated by P9. Both stages loaded cached AOT artifacts, exposed 20.27 / 10.63
-GiB of available KV memory, and initialized 494,528 coordinated KV tokens,
-above the 139,264-token workload minimum. A forced exact-8K gate produced 512
-and 4,097 output tokens with 1.003% / 1.000% repeated 8-grams and no flags.
-The four-prompt natural audit ended 4/4 with `stop` and zero degeneration
-flags; it is a coherence check, not a factual-accuracy evaluation.
-
-![P0 and P10 exact-configuration decode and prefill comparison](charts/deep-study-p10-topology-comparison.png)
-
-| Exact accepted configuration | C1 | C16 | C128 | 8K prefill | 64K prefill | 128K prefill |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| P0: TP2/EP2, 93% HBM, normal CUDA-graph profile | 68.2 | 539.7 | 2,013.9 | 6,223 | 7,461 | 7,179 |
-| P10: PP2/EP1 40/38, 95% HBM, Inductor/no graphs, warm caches | 9.2 | 148.5 | 1,186.4 | 13,371 | 16,870 | 18,637 |
-| P10 versus P0 | -86.5% | -72.5% | -41.1% | +114.9% | +126.1% | +159.6% |
-
-These are exact-configuration comparisons, not a topology-only A/B. P0 and
-P10 share the checkpoint, image, benchmark, FP8 KV type, context ceiling, and
-workload, but differ in TP/PP/EP, HBM utilization, CUDA-graph execution, and
-cache state. P10's capacity recovery over P9 therefore cannot be attributed to
-the additional two HBM-utilization points alone. Decode uses a shared 8K
-prefix; C128 is not 128 unrelated 8K prompts. Every P10 stream remained in
-flight at the 30-second boundary, so its decode values are continuous-usage
-token rates rather than completed-request rates. During long prefill, P0 logged
-two recovered 1.125-GiB allocation failures and P10 logged nine recovered
-2.25-GiB allocation failures on its limiting stage. All measured requests
-for standalone prefill completed, but these client-observed results are not
-memory-robustness claims.
-
-P0's quiet before/after RoCE counters recorded 1.236 TB in each direction over
-372.4 seconds, or 26.55 Gb/s average, with no deltas in the configured
-health-counter set. That is a
-whole-matrix average, not a peak-link or bottleneck claim. P3 recorded 1.233 TB
-in each direction over 370.5 seconds, or 26.62 Gb/s average, also with no
-configured health-counter deltas. Its four natural outputs finished normally with zero
-automatic flags. P10's PP0→PP1 quiet window averaged 0.361 Gb/s with no
-deltas in the configured health-counter set. The whole-window counters do not
-suggest sustained bulk-bandwidth saturation, but do not exclude brief bursts,
-small-message latency, synchronization, or pipeline bubbles. All starts used
-graceful teardown, passed the current-boot
-kernel scan, and returned to 2–8 MiB idle HBM per rank. See the frozen
-[`P0 evidence`](data/deep-study/2026-08-20-p0-cutedsl/),
-[`P1 cold-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-cold-cache/),
-[`P1 warm-capacity evidence`](data/deep-study/2026-08-20-p1-flashinfer-cutlass-warm-cache/),
-[`P2 incompatibility evidence`](data/deep-study/2026-08-20-p2-vllm-cutlass-incompatible/),
-[`P3 autotune evidence`](data/deep-study/2026-08-20-p3-cutedsl-autotune-on/),
-[`P4 MTP1 incompatibility evidence`](data/deep-study/2026-08-20-p4-mtp1-cutedsl-incompatible/),
-[`P5 split-backend capacity evidence`](data/deep-study/2026-08-20-p5-mtp1-split-bootstrap-capacity/),
-[`P6 short-context harness evidence`](data/deep-study/2026-08-20-p6-mtp1-short-context-harness-only/),
-[`P7 PP2 incompatibility evidence`](data/deep-study/2026-08-20-p7-pp2-kv-block-incompatible/),
-[`P8 PP2 block64 correctness evidence`](data/deep-study/2026-08-21-p8-pp2-block64-eager-correctness/),
-[`P9 PP2 Inductor capacity evidence`](data/deep-study/2026-08-21-p9-pp2-inductor-full-capacity/),
-[`P10 accepted PP2 performance evidence`](data/deep-study/2026-08-21-p10-pp2-inductor-warm095/),
-and [`P11–P13 TP2 prefill-chunk evidence`](data/deep-study/2026-08-21-p11-p13-tp2-prefill-chunk-sweep/).
-
-## TP2 prefill chunk-size sweep
-
-P11–P13 use the same checkpoint, image, TP2/EP2 topology, CuTeDSL backend,
-FP8 KV, 93% HBM utilization, 135,168-token ceiling, prefix caching, and CUDA
-graph policy as P0. The only semantic server-argument change is
-`--max-num-batched-tokens`; the new arms run only standalone prefill, while P0
-supplies the 32K control from its identical prefill phase.
-
-| Max batched tokens | 8K prefill | 64K prefill | 128K prefill | Observed KV capacity |
-| ---: | ---: | ---: | ---: | ---: |
-| 4K | 6,661 tok/s<br><sub>1.230s · N=7</sub> | 6,584<br><sub>9.954s · N=1</sub> | 6,372<br><sub>20.570s · N=1</sub> | 329,408 tokens |
-| **8K** | **7,317**<br><sub>**1.120s · N=7**</sub> | 7,260<br><sub>9.028s · N=2</sub> | 7,069<br><sub>18.542s · N=1</sub> | 310,784 tokens |
-| 16K | 6,345<br><sub>1.291s · N=7</sub> | 7,294<br><sub>8.985s · N=2</sub> | 7,118<br><sub>18.414s · N=1</sub> | 218,624 tokens |
-| **32K (P0)** | 6,223<br><sub>1.317s · N=7</sub> | **7,461**<br><sub>**8.785s · N=2**</sub> | **7,179**<br><sub>**18.258s · N=1**</sub> | 261,952 tokens |
-
-![GLM-5.2 TP2 prefill chunk-size sweep](charts/deep-study-p11-p13-prefill-chunk-sweep.png)
-
-The 8K chunk led at 8K input (+17.58% versus P0), while the 32K control led at
-64K and 128K. The benchmark uses a fixed 10-second window per context, checked
-between completed requests, so sample counts depend on request duration. Each
-arm also incurred one runtime JIT event inside a measured long-context sample;
-the prompts used different generated padding seeds, and 128K is N=1. These are
-directional single-run results, not repeated warm steady-state estimates.
-
-All new-arm prompt tokens were locally computed with zero cached tokens,
-prefix hits, preemptions, aborts, request errors, or repetition finishes. No
-natural text was retained for the lean prefill-only arms, so they establish
-request health rather than semantic quality. Observed KV capacity includes
-startup-profiler variance and should not be read as a guaranteed monotonic
-chunk-size effect.
-
-## One DGX Station: capacity result
-
-| Configuration | Usable GB300 HBM | Indexed weight files | Weight-file bytes | Runtime headroom | Result |
-| --- | ---: | ---: | ---: | ---: | --- |
-| 1× DGX Station GB300 | 250.687 GiB | 47/47 | 432.900 GiB | −182.214 GiB before runtime | **Does not fit** |
-
-The measured GPU reports 256,703 MiB of HBM. The 47 files referenced by
-`model.safetensors.index.json` occupy 464,823,042,096 bytes. The weights alone
-therefore exceed usable HBM by 195,650,437,168 bytes (182.214 GiB using the
-unrounded byte values; displayed capacity arithmetic may differ by rounding).
-The canonical `data/capacity.csv` records the exact byte values.
-
-This project deliberately does not use CPU offload. Even if offload made the
-server start, it would answer a different performance question and would make
-the result dominated by host-memory traffic.
-
-## Two DGX Stations: sustained decode (8K input / up to 1K output)
-
-Aggregate output tokens/second. Every cell uses an exactly targeted 8,192-token
-prompt, a 1,024-token per-request cap, temperature 0, EOS ignored, and a
-30-second sustained measurement window after warm-up. `C` is offered request
-concurrency. Streams still in flight at the window boundary contribute their
-observed output to the server usage-counter aggregate but are not counted as
-completed 1K responses; `data/throughput.csv` retains both counts.
-
-<!-- BEGIN GENERATED:DECODE -->
-| Topology | C1 | C2 | C4 | C8 | C16 | C32 | C64 | C128 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| TP2 / PP1 + expert parallel | 68.0 | 117.8 | 219.2 | 361.7 | 540.0 | 904.1 | 1,261.0 | 2,012.4 |
-<!-- END GENERATED:DECODE -->
-
-PP2 and TP2 are reported separately because their communication patterns are
-materially different across Ethernet. Any capacity-limited cell will remain in
-the raw data with its effective concurrency, maximum running requests, and an
-explicit flag rather than being silently promoted to a full-concurrency result.
-
-C128 is a shared-prefix result. The harness's unshared-KV admission estimate
-was overridden, while the actual server had prefix caching enabled: all 128
-requests became resident with zero queued, the log reached an 86.9% prefix hit
-rate and 31.9% KV usage, and vLLM reported a 256,320-token KV cache. This is
-shared-prefix capacity, not capacity for 128 unrelated 8K prompts.
-
-## Two DGX Stations: cold prefill
-
-Single-request client-observed prompt tokens/second and time to first token.
-
-<!-- BEGIN GENERATED:PREFILL -->
-| Topology | 8K | 64K | 128K |
-| --- | ---: | ---: | ---: |
-| TP2 / PP1 + expert parallel | 6,262 tok/s<br><sub>1.309s TTFT</sub> | 7,444 tok/s<br><sub>8.804s TTFT</sub> | 7,244 tok/s<br><sub>18.095s TTFT</sub> |
-<!-- END GENERATED:PREFILL -->
-
-The server ceiling used for this initial comparison is 135,168 tokens, enough
-for the 128K prompt plus output and chat-template overhead. This is a benchmark
-profile, not the model's full documented 1M-token context ceiling.
-
-## WikiText-2 and output quality
+## Quality
 
 <!-- BEGIN GENERATED:QUALITY -->
-| Topology | KV cache | Word PPL ↓ | Byte PPL ↓ | Bits/byte ↓ |
-| --- | --- | ---: | ---: | ---: |
-| TP2 / PP1 + expert parallel | bfloat16 | 3.352366 | 1.253844 | 0.326357 |
-
-| Topology | Outputs | Automatic flags | Max repeated 8-gram fraction | Manual review |
-| --- | ---: | ---: | ---: | --- |
-| TP2 / PP1 + expert parallel | 4 | 0 | 0.049442 | clean |
+| KV cache | Word PPL ↓ | Byte PPL ↓ | Bits/byte ↓ | Natural outputs | Automatic flags | Manual review |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| bfloat16 | **3.3524** | 1.253844 | 0.326357 | 4/4 finished naturally | 0 | clean |
 <!-- END GENERATED:QUALITY -->
 
-Natural outputs are audited separately from the forced-length throughput load.
-The audit stores full reasoning/content, hashes, token usage, repeated 8-gram
-fraction, identical-word runs, and identical-character runs for four unrelated
-prompts. The published audit used BF16 KV and a 4,096-token cap; all four ended
-naturally with complete final answers and no automatic flags. The original
-1,024-token FP8-KV audit is preserved separately because two responses reached
-the cap before finishing. Human inspection is required in addition to the
-mechanical checks.
+WikiText-2 and the natural-output audit use BF16 KV rather than the FP8 KV used
+for performance. The output audit checks coherence and degeneration, not
+factual accuracy.
 
-The first WikiText-2 evaluator attempt failed before inference because
-Transformers 4 could not load the checkpoint's `TokenizersBackend` metadata.
-A subsequent evaluator retry used a tokenizer-only `PreTrainedTokenizerFast`
-compatibility directory validated token-for-token and completed all 62
-document-level samples. The published result uses BF16 KV, batch size 4, and
-lm-eval's effective 2,047-token window (2,048 requested with one token reserved
-by the API adapter). The failed attempt is retained separately; no result from
-it was used.
+## Checkpoint and runtime provenance
 
-<!-- BEGIN GENERATED:CHARTS -->
-![GLM-5.2 decode topology comparison](charts/decode-throughput.png)
+| Item | Pinned value |
+| --- | --- |
+| Checkpoint | [`nvidia/GLM-5.2-NVFP4`](https://huggingface.co/nvidia/GLM-5.2-NVFP4) |
+| Revision | `aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa` |
+| Architecture | 753B total / 40B active MoE; documented 1M-token context ceiling |
+| Quantization | NVFP4 expert linear layers; shared expert and selected tensors remain at higher precision |
+| Indexed payload | 47 weight files; 464,823,042,096 bytes |
+| License | [MIT, as declared by the pinned model card](https://huggingface.co/nvidia/GLM-5.2-NVFP4/blob/aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa/README.md) |
+| Runtime | vLLM 0.27.1 at `6e448d0ea9bf3d88d898b65449ca6dc2aec170ac` |
+| Container | `vllm/vllm-openai@sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967` |
 
-![GLM-5.2 cold-prefill comparison](charts/prefill.png)
-<!-- END GENERATED:CHARTS -->
+## Scope and caveats
 
-## Hardware and pinned software
+- Decode is aggregate output throughput from vLLM's continuous usage counters.
+  Streams still active at the 30-second boundary contribute observed tokens.
+- The C128 result uses a shared 8K prefix with prefix caching; it is not a
+  capacity claim for 128 unrelated 8K prompts.
+- Prefill reports actual prompt tokens divided by client TTFT. The measured
+  135,168-token serving envelope is not a benchmark of the full 1M context.
+- The pinned benchmark and evaluator commits, exact metric definitions, sample
+  counts, validation gates, and complete commands are in the recipes and data.
 
-- 2× DGX Station, each with one server-class NVIDIA GB300 (256,703 MiB reported)
-- Dedicated 400 GbE RoCE rail, MTU 9000, one GPU per node
-- NVIDIA driver 595.84 on the measured systems
-- Checkpoint: `nvidia/GLM-5.2-NVFP4` at `aec724e8c7b8ee9db3b48c01c320f63f9cdaf8aa`
-- vLLM 0.27.1 container digest: `sha256:0a51ea5b4ae2dc5d81890e5173f54203d2a3ae0cfffe51b8fd2afd4391bfd967`
-- `llm-inference-bench`: commit `0b4185b5b435e948b199c9077a00b084864aa963`
-- `lm-evaluation-harness`: commit `8a07e1110d060de48cfc7a9a7987b7659060b60b`
-- Throughput/prefill: FP8 E4M3 KV cache and prefix caching
-- Natural-output audit and WikiText-2: BF16 KV cache; `glm45` reasoning parser and `glm47` tool parser
+## Reproduce or inspect
 
-## Data files
-
-- [`data/capacity.csv`](data/capacity.csv) — exact one-station no-fit measurement
-- [`data/throughput.csv`](data/throughput.csv) — schema for C1–C128 decode results
-- [`data/prefill.csv`](data/prefill.csv) — schema for 8K/64K/128K cold-prefill results
-- [`data/wikitext2-perplexity.csv`](data/wikitext2-perplexity.csv) — measured
-  document-level WikiText-2 perplexity
-- [`data/evidence/tp2-wikitext2.json`](data/evidence/tp2-wikitext2.json) —
-  compact result, sample hash, tokenizer hashes, and runtime provenance
-- [`data/quality-audit.csv`](data/quality-audit.csv) — natural-output audit summary schema
-- [`data/evidence/tp2-quality.json`](data/evidence/tp2-quality.json) — full
-  canonical 4,096-token BF16-KV natural outputs and hashed runtime provenance
-- [`data/evidence/tp2-quality-1024-cap.json`](data/evidence/tp2-quality-1024-cap.json)
-  — preserved noncanonical FP8-KV audit that exposed the shorter-cap truncation
-- [`data/failure-attempts.json`](data/failure-attempts.json) — excluded startup
-  profiles, the failed tokenizer attempt, and the measured retry disposition
-- [`data/publication-manifest.json`](data/publication-manifest.json) — accepted,
-  rejected, and absent topology state from the latest extraction
+- [Accepted serving recipe and benchmark methodology](recipes/)
+- [Optimization recipe and experiment log](recipes/deep-study/)
+- [Normalized results and compact evidence](data/)
+- [Checksummed deep-study increments](data/deep-study/)

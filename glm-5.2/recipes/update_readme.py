@@ -5,13 +5,11 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
-from collections import defaultdict
 from pathlib import Path
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-LABELS = {"pp2": "TP1 / PP2", "tp2": "TP2 / PP1 + expert parallel"}
+LANDING_TOPOLOGY = "tp2"
 
 
 def rows(path: Path) -> list[dict[str, str]]:
@@ -31,150 +29,70 @@ def replace_block(text: str, name: str, content: str) -> str:
     return f"{before}{start}\n{content.rstrip()}\n{end}{after}"
 
 
-def status_block(
-    decode: list[dict[str, str]],
-    quality: list[dict[str, str]],
-    ppl: list[dict[str, str]],
-    manifest: dict,
+def headline_block(
+    decode: list[dict[str, str]], prefill: list[dict[str, str]]
 ) -> str:
-    accepted = sorted({row["topology"] for row in decode})
-    rejected = manifest.get("rejected_topologies", {})
-    unretained_failures = [
-        topology for topology in ("pp2", "tp2")
-        if "original startup logs were not retained" in rejected.get(topology, "")
+    decode_by_concurrency = {
+        int(row["concurrency"]): row
+        for row in decode
+        if row["topology"] == LANDING_TOPOLOGY
+    }
+    prefill_by_context = {
+        int(row["context_tokens"]): row
+        for row in prefill
+        if row["topology"] == LANDING_TOPOLOGY
+    }
+    decode_points = (1, 64, 128)
+    prefill_points = (8192, 65536, 131072)
+    if not all(point in decode_by_concurrency for point in decode_points):
+        return "_No recommended-profile headline decode result is published._"
+    if not all(point in prefill_by_context for point in prefill_points):
+        return "_No recommended-profile headline prefill result is published._"
+
+    decode_values = [
+        f"**{float(decode_by_concurrency[point]['aggregate_output_tok_s']):,.1f}**"
+        for point in decode_points
     ]
-    other_rejections = [
-        topology for topology in ("pp2", "tp2")
-        if topology in rejected and topology not in unretained_failures
+    prefill_values = [
+        "**"
+        f"{float(prefill_by_context[point]['prompt_tok_s']):,.0f} / "
+        f"{float(prefill_by_context[point]['median_ttft_s']):.3f}s"
+        "**"
+        for point in prefill_points
     ]
-    missing = [
-        topology for topology in ("pp2", "tp2")
-        if topology not in accepted and topology not in rejected
-    ]
-    performance = (
-        "- Accepted two-station performance: " + ", ".join(LABELS[item] for item in accepted)
-        if accepted else "- No accepted two-station performance run has been published yet"
-    )
-    if missing:
-        performance += "; not yet published: " + ", ".join(LABELS[item] for item in missing)
-    if unretained_failures:
-        performance += (
-            "; operator-observed startup failure (original logs not retained): "
-            + ", ".join(LABELS[item] for item in unretained_failures)
-        )
-    if other_rejections:
-        performance += "; rejected: " + ", ".join(LABELS[item] for item in other_rejections)
-    audits = sorted({row["topology"] for row in quality})
-    perplexities = sorted({row["topology"] for row in ppl})
-    quality_line = (
-        "- Natural-output audits: " + (", ".join(LABELS[item] for item in audits) or "none published")
-        + "; WikiText-2: " + (", ".join(LABELS[item] for item in perplexities) or "none published")
-    )
     return "\n".join([
-        "- Checkpoint download and integrity verification: complete",
-        "- One-station capacity test: complete; no fit",
-        performance, quality_line,
+        "| Decode C1<br><sub>output tok/s</sub> | Decode C64<br><sub>output tok/s</sub> | Decode C128<br><sub>output tok/s</sub> | Prefill 8K<br><sub>prompt tok/s / TTFT</sub> | Prefill 64K<br><sub>prompt tok/s / TTFT</sub> | Prefill 128K<br><sub>prompt tok/s / TTFT</sub> |",
+        "| ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| " + " | ".join(decode_values + prefill_values) + " |",
     ])
 
 
-def decode_block(data: list[dict[str, str]]) -> str:
-    if not data:
-        return "_No accepted two-station decode run has been published yet._"
-    by_topology: dict[str, dict[int, dict[str, str]]] = defaultdict(dict)
-    for row in data:
-        by_topology[row["topology"]][int(row["concurrency"])] = row
-    output = [
-        "| Topology | C1 | C2 | C4 | C8 | C16 | C32 | C64 | C128 |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
-    ]
-    for topology in ("pp2", "tp2"):
-        if topology not in by_topology:
-            continue
-        values = []
-        for concurrency in (1, 2, 4, 8, 16, 32, 64, 128):
-            row = by_topology[topology].get(concurrency)
-            if row is None:
-                raise ValueError(f"accepted {topology} CSV is missing C{concurrency}")
-            marker = "†" if row["capacity_limited"] == "true" else ""
-            values.append(f"{float(row['aggregate_output_tok_s']):,.1f}{marker}")
-        output.append(f"| {LABELS[topology]} | " + " | ".join(values) + " |")
-    if any(row["capacity_limited"] == "true" for row in data):
-        output.append("\n† Harness-classified capacity-limited cell; effective concurrency remains in the CSV.")
-    return "\n".join(output)
-
-
-def prefill_block(data: list[dict[str, str]]) -> str:
-    if not data:
-        return "_No accepted two-station prefill run has been published yet._"
-    by_topology: dict[str, dict[int, dict[str, str]]] = defaultdict(dict)
-    for row in data:
-        by_topology[row["topology"]][int(row["context_tokens"])] = row
-    output = [
-        "| Topology | 8K | 64K | 128K |",
-        "| --- | ---: | ---: | ---: |",
-    ]
-    for topology in ("pp2", "tp2"):
-        if topology not in by_topology:
-            continue
-        values = []
-        for context in (8192, 65536, 131072):
-            row = by_topology[topology].get(context)
-            if row is None:
-                raise ValueError(f"accepted {topology} CSV is missing {context} prefill")
-            values.append(
-                f"{float(row['prompt_tok_s']):,.0f} tok/s<br><sub>{float(row['median_ttft_s']):.3f}s TTFT</sub>"
-            )
-        output.append(f"| {LABELS[topology]} | " + " | ".join(values) + " |")
-    return "\n".join(output)
-
-
 def quality_block(quality: list[dict[str, str]], ppl: list[dict[str, str]]) -> str:
+    quality = [row for row in quality if row["topology"] == LANDING_TOPOLOGY]
+    ppl = [row for row in ppl if row["topology"] == LANDING_TOPOLOGY]
     if not quality and not ppl:
-        return "_No accepted natural-output audit or WikiText-2 result has been published yet._"
-    output: list[str] = []
-    if ppl:
-        output.extend([
-            "| Topology | KV cache | Word PPL ↓ | Byte PPL ↓ | Bits/byte ↓ |",
-            "| --- | --- | ---: | ---: | ---: |",
-        ])
-        for row in ppl:
-            output.append(
-                f"| {LABELS[row['topology']]} | {row['kv_cache_dtype']} | "
-                f"{float(row['word_ppl']):.6f} | {float(row['byte_ppl']):.6f} | "
-                f"{float(row['bits_per_byte']):.6f} |"
-            )
-    else:
-        output.append("_No accepted WikiText-2 result has been published yet._")
-    if quality:
-        if output:
-            output.append("")
-        output.extend([
-            "| Topology | Outputs | Automatic flags | Max repeated 8-gram fraction | Manual review |",
-            "| --- | ---: | ---: | ---: | --- |",
-        ])
-        grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
-        for row in quality:
-            grouped[row["topology"]].append(row)
-        for topology in ("pp2", "tp2"):
-            if topology not in grouped:
-                continue
-            group = grouped[topology]
-            output.append(
-                f"| {LABELS[topology]} | {len(group)} | "
-                f"{sum(row['flagged'] == 'True' for row in group)} | "
-                f"{max(float(row['repeated_8gram_fraction']) for row in group):.6f} | "
-                f"{group[0]['manual_review_status']} |"
-            )
-    return "\n".join(output)
+        return "_No recommended-profile quality result is published._"
 
-
-def charts_block(package: Path) -> str:
-    lines = []
-    if (package / "charts" / "decode-throughput.png").is_file():
-        lines.append("![GLM-5.2 decode topology comparison](charts/decode-throughput.png)")
-    if (package / "charts" / "prefill.png").is_file():
-        lines.append("![GLM-5.2 cold-prefill comparison](charts/prefill.png)")
-    return "\n\n".join(lines) if lines else "<!-- Charts appear here only after a complete topology passes validation. -->"
+    ppl_row = ppl[0] if ppl else None
+    natural_finishes = sum(row["finish_reason"] == "stop" for row in quality)
+    flags = sum(row["flagged"].lower() == "true" for row in quality)
+    kv_cache_dtype = (
+        ppl_row["kv_cache_dtype"] if ppl_row else quality[0]["kv_cache_dtype"]
+    )
+    word_ppl = f"**{float(ppl_row['word_ppl']):.4f}**" if ppl_row else "—"
+    byte_ppl = f"{float(ppl_row['byte_ppl']):.6f}" if ppl_row else "—"
+    bits_per_byte = f"{float(ppl_row['bits_per_byte']):.6f}" if ppl_row else "—"
+    natural_outputs = (
+        f"{natural_finishes}/{len(quality)} finished naturally" if quality else "—"
+    )
+    flag_count = str(flags) if quality else "—"
+    manual_review = quality[0]["manual_review_status"] if quality else "—"
+    return "\n".join([
+        "| KV cache | Word PPL ↓ | Byte PPL ↓ | Bits/byte ↓ | Natural outputs | Automatic flags | Manual review |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
+        f"| {kv_cache_dtype} | {word_ppl} | {byte_ppl} | {bits_per_byte} | "
+        f"{natural_outputs} | {flag_count} | {manual_review} |",
+    ])
 
 
 def update(package: Path) -> None:
@@ -184,14 +102,9 @@ def update(package: Path) -> None:
     prefill = rows(package / "data" / "prefill.csv")
     quality = rows(package / "data" / "quality-audit.csv")
     ppl = rows(package / "data" / "wikitext2-perplexity.csv")
-    manifest_path = package / "data" / "publication-manifest.json"
-    manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
     for name, content in (
-        ("STATUS", status_block(decode, quality, ppl, manifest)),
-        ("DECODE", decode_block(decode)),
-        ("PREFILL", prefill_block(prefill)),
+        ("HEADLINES", headline_block(decode, prefill)),
         ("QUALITY", quality_block(quality, ppl)),
-        ("CHARTS", charts_block(package)),
     ):
         text = replace_block(text, name, content)
     temporary = readme.with_suffix(".md.tmp")
