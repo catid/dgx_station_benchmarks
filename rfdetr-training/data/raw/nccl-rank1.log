@@ -1,0 +1,198 @@
+gemini2:2722119:2722119 [0] NCCL INFO ncclOsDlopen(libnccl-env.so) failed: libnccl-env.so: cannot open shared object file: No such file or directory
+gemini2:2722119:2722119 [0] NCCL INFO ENV/Plugin: Could not find: libnccl-env.so
+gemini2:2722119:2722119 [0] NCCL INFO cudaDriverVersion 13020
+gemini2:2722119:2722119 [0] NCCL INFO NCCL_SOCKET_IFNAME set to enP1p3s0f0np0
+gemini2:2722119:2722119 [0] NCCL INFO NCCL version 2.30.7+cuda13.3
+gemini2:2722119:2722119 [0] NCCL INFO NCCL git version HEAD a5187fa2e
+gemini2:2722119:2722119 [0] NCCL INFO ncclOsDlopen(libnccl-net.so) failed: libnccl-net.so: cannot open shared object file: No such file or directory
+gemini2:2722119:2722119 [0] NCCL INFO NET/Plugin: Could not find: libnccl-net.so
+gemini2:2722119:2722119 [0] NCCL INFO NCCL_IB_HCA set to =mlx5_0:1,mlx5_1:1
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB: Data Direct DMA Interface is detected for device mlx5_0
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB: [0] mlx5_0:uverbs0:1/RoCE provider=Mlx5 speed=400000 context=0x356597b0 pciPath=/sys/devices/pci0009:00/0009:00:00.0/0009:01:00.0/0009:02:00.0/0009:03:00.0 ar=0 oooRqSize=0
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB: Data Direct DMA Interface is detected for device mlx5_1
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB: [1] mlx5_1:uverbs1:1/RoCE provider=Mlx5 speed=400000 context=0x3569aee0 pciPath=/sys/devices/pci0009:00/0009:00:00.0/0009:01:00.0/0009:02:00.0/0009:03:00.0 ar=0 oooRqSize=0
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB : Made virtual device [0] name=mlx5_0_dma speed=400000 ndevs=1 rail=-1 plane=-1
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB : Made virtual device [1] name=mlx5_1_dma speed=400000 ndevs=1 rail=-1 plane=-1
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB : Using [0]mlx5_0_dma:1/RoCE [1]mlx5_1_dma:1/RoCE [RO]; OOB enP1p3s0f0np0:192.168.200.2<0>
+gemini2:2722119:2722119 [0] NCCL INFO Initialized NET plugin IB
+gemini2:2722119:2722119 [0] NCCL INFO Assigned NET plugin IB to comm
+gemini2:2722119:2722119 [0] NCCL INFO ncclOsDlopen(libnccl-rma.so) failed: libnccl-rma.so: cannot open shared object file: No such file or directory
+gemini2:2722119:2722119 [0] NCCL INFO RMA/Plugin: Could not find: libnccl-rma.so
+gemini2:2722119:2722119 [0] NCCL INFO RMA/Plugin: Failed to load external plugin libnccl-rma.so, dlHandle: (nil), ncclRma: (nil)
+gemini2:2722119:2722119 [0] NCCL INFO RMA/Plugin: Assigned plugin RMA_IB_PROXY to comm
+gemini2:2722119:2722119 [0] NCCL INFO ncclOsDlopen(libnccl-gin.so) failed: libnccl-gin.so: cannot open shared object file: No such file or directory
+gemini2:2722119:2722119 [0] NCCL INFO GIN/Plugin: Could not find: libnccl-gin.so
+gemini2:2722119:2722119 [0] NCCL INFO GIN/Plugin: Failed to load external plugin libnccl-gin.so, dlHandle: (nil), ncclGin: (nil)
+gemini2:2722119:2722119 [0] NCCL INFO GIN/Plugin: Assigned plugin GIN_IB_GDAKI type 3 to comm
+gemini2:2722119:2722119 [0] NCCL INFO Using network IB
+gemini2:2722119:2722119 [0] NCCL INFO Loaded NVML from libnvidia-ml.so.1
+gemini2:2722119:2722119 [0] NCCL INFO DMA-BUF is available on GPU device 0
+gemini2:2722119:2722119 [0] NCCL INFO [Rank 1] ncclCommInitRankConfig comm 0x2c43d340 rank 1 nranks 2 cudaDev 0 nvmlDev 1 busId 906000 commId 0xd0aab04fe5e37c2c - Init START
+gemini2:2722119:2722119 [0] NCCL INFO RAS client listening socket at ::1<28028>
+gemini2:2722119:2722119 [0] NCCL INFO NET/GIN_IB_GDAKI : GPU Direct RDMA Enabled for HCA 0 'mlx5_0_dma'
+gemini2:2722119:2722119 [0] NCCL INFO NET/GIN_IB_GDAKI : GPU Direct RDMA Enabled for HCA 1 'mlx5_1_dma'
+gemini2:2722119:2722119 [0] NCCL INFO NET/RMA_IB_PROXY : GPU Direct RDMA Enabled for HCA 0 'mlx5_0_dma'
+gemini2:2722119:2722119 [0] NCCL INFO NET/RMA_IB_PROXY : GPU Direct RDMA Enabled for HCA 1 'mlx5_1_dma'
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB : GPU Direct RDMA Enabled for HCA 0 'mlx5_0_dma'
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB : GPU Direct RDMA Enabled for HCA 1 'mlx5_1_dma'
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB : Made virtual device [2] name=mlx5_0_dma+mlx5_1_dma speed=800000 ndevs=2 rail=-1 plane=16385
+gemini2:2722119:2722119 [0] NCCL INFO NET/IB : GPU Direct RDMA Enabled for HCA 2 'mlx5_0_dma+mlx5_1_dma'
+gemini2:2722119:2722119 [0] NCCL INFO ncclTopoGetCpuAffinity: Affinity for GPU 1 is 0-71. (GPU affinity = 0-71 ; CPU affinity = 0-71).
+gemini2:2722119:2722119 [0] NCCL INFO Rank 1: 3 Net devices
+gemini2:2722119:2722119 [0] NCCL INFO Rank 1: 0 CollNet devices
+gemini2:2722119:2722119 [0] NCCL INFO comm 0x2c43d340 rank 1 nRanks 2 nNodes 2 localRanks 1 localRank 0 MNNVL 0
+gemini2:2722119:2722119 [0] NCCL INFO Trees [0] -1/-1/-1->1->0 [1] -1/-1/-1->1->0 [2] 0/-1/-1->1->-1 [3] 0/-1/-1->1->-1 [4] -1/-1/-1->1->0 [5] -1/-1/-1->1->0 [6] 0/-1/-1->1->-1 [7] 0/-1/-1->1->-1
+gemini2:2722119:2722119 [0] NCCL INFO P2P Chunksize set to 262144
+gemini2:2722119:2722119 [0] NCCL INFO Tuning P2P operations with maxP2pPeers = 2
+gemini2:2722119:2722119 [0] NCCL INFO ncclOsDlopen(libnccl-profiler.so) failed: libnccl-profiler.so: cannot open shared object file: No such file or directory
+gemini2:2722119:2722119 [0] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so
+gemini2:2722119:2722119 [0] NCCL INFO Check P2P Type isAllDirectP2p 1 directMode 0 isAllCudaP2p 1
+gemini2:2722119:2722579 [0] NCCL INFO [Proxy Service] Device 0 CPU core 7
+gemini2:2722119:2722580 [0] NCCL INFO [Proxy Service UDS] Device 0 CPU core 8
+gemini2:2722119:2722579 [0] NCCL INFO proxy listening socket at 192.168.200.2<37587>
+gemini2:2722119:2722119 [0] NCCL INFO ncclOsDlopen(libnccl-tuner.so) failed: libnccl-tuner.so: cannot open shared object file: No such file or directory
+gemini2:2722119:2722119 [0] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so
+gemini2:2722119:2722119 [0] NCCL INFO threadThresholds 8/8/64 | 16/8/64 | 512 | 512
+gemini2:2722119:2722119 [0] NCCL INFO 8 coll channels, 8 collnet channels, 0 nvls channels, 8 p2p channels, 8 p2p channels per peer
+gemini2:2722119:2722119 [0] NCCL INFO ncclCommInitRankConfig comm 0x2c43d340 rank 1 nranks 2 cudaDev 0 nvmlDev 1 busId 906000 commId 0xd0aab04fe5e37c2c - Init COMPLETE
+gemini2:2722119:2722119 [0] NCCL INFO Init timings - ncclCommInitRankConfig: rank 1 nranks 2 total 0.23 (kernels 0.15, alloc 0.01, bootstrap 0.00, allgathers 0.00, topo 0.02, graphs 0.00, connections 0.06, rest 0.00)
+gemini2:2722119:2722119 [0] NCCL INFO Symmetric VA size=252GB
+gemini2:2722119:2722581 [0] NCCL INFO [Proxy Progress] Device 0 CPU core 9
+gemini2:2722119:2722119 [0] NCCL INFO Channel 00/0 : 0[1] -> 1[1] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 01/0 : 0[1] -> 1[1] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 02/0 : 0[1] -> 1[1] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 03/0 : 0[1] -> 1[1] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 04/0 : 0[1] -> 1[1] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 05/0 : 0[1] -> 1[1] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 06/0 : 0[1] -> 1[1] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 07/0 : 0[1] -> 1[1] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 00/0 : 1[1] -> 0[1] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 01/0 : 1[1] -> 0[1] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 02/0 : 1[1] -> 0[1] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 03/0 : 1[1] -> 0[1] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 04/0 : 1[1] -> 0[1] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 05/0 : 1[1] -> 0[1] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 06/0 : 1[1] -> 0[1] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722119 [0] NCCL INFO Channel 07/0 : 1[1] -> 0[1] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the send communicator (comm=0xfc4d28020000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the recv communicator (comm=0xfc4d28090000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbRecvCommInit: Receive work requests will be posted on-demand
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the send communicator (comm=0xfc4d28110000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=916 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1160 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 0 Port 1 qp_num 916 mtu 5 GID 3 (0/2C8A8C0FFFF0000) ctsFifoRkey=0x15d18d ctsFifoLkey=0x15d18d
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 0 Port 1 qp_num 916 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 1 Port 1 qp_num 1160 mtu 5 GID 3 (0/6C8A8C0FFFF0000) ctsFifoRkey=0x19918d ctsFifoLkey=0x19918d
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 1 Port 1 qp_num 1160 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=917 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1161 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=918 pkey=0 pd=0xfc4d2801a620
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1162 pkey=0 pd=0xfc4d2801aa10
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the recv communicator (comm=0xfc4d28380000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbRecvCommInit: Receive work requests will be posted on-demand
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the send communicator (comm=0xfc4d28400000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 0 Port 1 qp_num 916 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 1 Port 1 qp_num 1160 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=919 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1163 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 0 Port 1 qp_num 919 mtu 5 GID 3 (0/2C8A8C0FFFF0000) ctsFifoRkey=0x170cca ctsFifoLkey=0x170cca
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 0 Port 1 qp_num 919 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 1 Port 1 qp_num 1163 mtu 5 GID 3 (0/6C8A8C0FFFF0000) ctsFifoRkey=0x1ac6c2 ctsFifoLkey=0x1ac6c2
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 1 Port 1 qp_num 1163 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=920 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1164 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=921 pkey=0 pd=0xfc4d2801a620
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1165 pkey=0 pd=0xfc4d2801aa10
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the recv communicator (comm=0xfc4d28610000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbRecvCommInit: Receive work requests will be posted on-demand
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the send communicator (comm=0xfc4d28690000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the recv communicator (comm=0xfc4d286e0000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbRecvCommInit: Receive work requests will be posted on-demand
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the send communicator (comm=0xfc4d28760000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the recv communicator (comm=0xfc4d287d0000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbRecvCommInit: Receive work requests will be posted on-demand
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the send communicator (comm=0xfc4d28850000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the recv communicator (comm=0xfc4d288c0000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbRecvCommInit: Receive work requests will be posted on-demand
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the send communicator (comm=0xfc4d28940000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the recv communicator (comm=0xfc4d289b0000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbRecvCommInit: Receive work requests will be posted on-demand
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the send communicator (comm=0xfc4d28a10000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbResiliencyInit: Resiliency is disabled on the recv communicator (comm=0xfc4d28a80000)
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbRecvCommInit: Receive work requests will be posted on-demand
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 0 Port 1 qp_num 919 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 1 Port 1 qp_num 1163 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=922 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1166 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 0 Port 1 qp_num 922 mtu 5 GID 3 (0/2C8A8C0FFFF0000) ctsFifoRkey=0x17d28e ctsFifoLkey=0x17d28e
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 0 Port 1 qp_num 922 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 1 Port 1 qp_num 1166 mtu 5 GID 3 (0/6C8A8C0FFFF0000) ctsFifoRkey=0x1b3936 ctsFifoLkey=0x1b3936
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 1 Port 1 qp_num 1166 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=923 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1167 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 0 Port 1 qp_num 923 mtu 5 GID 3 (0/2C8A8C0FFFF0000) ctsFifoRkey=0x1743ff ctsFifoLkey=0x1743ff
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 0 Port 1 qp_num 923 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 1 Port 1 qp_num 1167 mtu 5 GID 3 (0/6C8A8C0FFFF0000) ctsFifoRkey=0x1bb2ae ctsFifoLkey=0x1bb2ae
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 1 Port 1 qp_num 1167 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=924 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1168 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 0 Port 1 qp_num 924 mtu 5 GID 3 (0/2C8A8C0FFFF0000) ctsFifoRkey=0x17af73 ctsFifoLkey=0x17af73
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 0 Port 1 qp_num 924 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 1 Port 1 qp_num 1168 mtu 5 GID 3 (0/6C8A8C0FFFF0000) ctsFifoRkey=0x1b4541 ctsFifoLkey=0x1b4541
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 1 Port 1 qp_num 1168 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=925 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1169 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 0 Port 1 qp_num 925 mtu 5 GID 3 (0/2C8A8C0FFFF0000) ctsFifoRkey=0x168a46 ctsFifoLkey=0x168a46
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 0 Port 1 qp_num 925 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 1 Port 1 qp_num 1169 mtu 5 GID 3 (0/6C8A8C0FFFF0000) ctsFifoRkey=0x1a5853 ctsFifoLkey=0x1a5853
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 1 Port 1 qp_num 1169 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=926 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1170 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 0 Port 1 qp_num 926 mtu 5 GID 3 (0/2C8A8C0FFFF0000) ctsFifoRkey=0x1632ed ctsFifoLkey=0x1632ed
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 0 Port 1 qp_num 926 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 1 Port 1 qp_num 1170 mtu 5 GID 3 (0/6C8A8C0FFFF0000) ctsFifoRkey=0x19f5f1 ctsFifoLkey=0x19f5f1
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 1 Port 1 qp_num 1170 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=927 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1171 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=928 pkey=0 pd=0xfc4d2801a620
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1172 pkey=0 pd=0xfc4d2801aa10
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=929 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1173 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=930 pkey=0 pd=0xfc4d2801a620
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1174 pkey=0 pd=0xfc4d2801aa10
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=931 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1175 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=932 pkey=0 pd=0xfc4d2801a620
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1176 pkey=0 pd=0xfc4d2801aa10
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 0 Port 1 qp_num 922 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 1 Port 1 qp_num 1166 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 0 Port 1 qp_num 923 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 1 Port 1 qp_num 1167 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 0 Port 1 qp_num 924 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 1 Port 1 qp_num 1168 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 0 Port 1 qp_num 925 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 1 Port 1 qp_num 1169 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=933 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1177 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=934 pkey=0 pd=0xfc4d2801a620
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1178 pkey=0 pd=0xfc4d2801aa10
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 0 Port 1 qp_num 926 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 1 Port 1 qp_num 1170 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=935 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1179 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=936 pkey=0 pd=0xfc4d2801a620
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1180 pkey=0 pd=0xfc4d2801aa10
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=937 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1181 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=938 pkey=0 pd=0xfc4d2801a620
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbReceiverQpsCreateToRts: Flush QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1182 pkey=0 pd=0xfc4d2801aa10
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=0 devName=mlx5_0_dma ndevs=2 nmdevs=3 qp_num=939 pkey=0 pd=0xfc4d2801a620 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsCreate: QP created: port=1 dev=1 devName=mlx5_1_dma ndevs=2 nmdevs=3 qp_num=1183 pkey=0 pd=0xfc4d2801aa10 oooRq=0
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 0 Port 1 qp_num 939 mtu 5 GID 3 (0/2C8A8C0FFFF0000) ctsFifoRkey=0x17c682 ctsFifoLkey=0x17c682
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 0 Port 1 qp_num 939 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: NCCL Dev 2 IbDev 1 Port 1 qp_num 1183 mtu 5 GID 3 (0/6C8A8C0FFFF0000) ctsFifoRkey=0x1b7b76 ctsFifoLkey=0x1b7b76
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbConnectImpl: IbDev 1 Port 1 qp_num 1183 query_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 0 Port 1 qp_num 939 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722579 [0] NCCL INFO NET/IB: ncclIbSenderQpsToRts: Set ECE: IbDev 1 Port 1 qp_num 1183 set_ece={supported=1, vendor_id=0x15b3, options=0x30000002, comp_mask=0x0}
+gemini2:2722119:2722119 [0] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+gemini2:2722119:2722119 [0] NCCL INFO Connected binomial trees

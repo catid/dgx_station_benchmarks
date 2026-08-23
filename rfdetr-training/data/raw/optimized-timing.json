@@ -1,0 +1,19 @@
+{
+  "amp_dtype": "bf16",
+  "augmentation_backend": "torchvision",
+  "compile": false,
+  "effective_batch_size": 128,
+  "elapsed_seconds_including_model_load": 6412.026251538999,
+  "epochs": 1,
+  "grad_accum_steps": 1,
+  "host": "gemini1",
+  "model": "RFDETRLarge",
+  "multi_scale": true,
+  "num_workers": 8,
+  "per_rank_batch_size": 64,
+  "persistent_workers": true,
+  "pin_memory": true,
+  "prefetch_factor": 4,
+  "rank": 0,
+  "world_size": 2
+}
