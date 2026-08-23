@@ -80,6 +80,42 @@ whose output text was not retained.
 
 ![Qwen throughput across thinking levels](charts/qwen-thinking-grid.png)
 
+### BennyDaBall GGUF NVFP4/MTP parallel-instance replay
+
+Two independent llama.cpp instances were run simultaneously, one on each
+station; these are per-host results, not combined or model-sharded throughput.
+The workload used an approximately 8K cached prompt, a forced 1,024-token
+output, temperature zero, and five measured waves. MTP used the checkpoint's
+embedded heads with `draft-n-max=2` and `p-split=0.2`.
+
+| Host / mode | C1 | C2 | C4 | C8 | C16 | C32 | C64 | C128 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| gemini2 autoregressive | 91.5 | 153.9 | 208.6 | 220.1 | 197.7 | 161.7 | **224.6** | 152.0 |
+| gemini2 embedded MTP-2 | **133.3** | **187.1** | 197.9 | 212.6 | **203.9** | 161.1 | 122.5 | **239.4** |
+| gemini1 autoregressive | 91.9 | 154.5 | 208.5 | **220.1** | 196.7 | **161.2** | **225.7** | 153.6 |
+| gemini1 embedded MTP-2 | **136.9** | **190.5** | 204.4 | 217.4 | **203.1** | 159.8 | 121.4 | **240.1** |
+
+MTP improved C1 by 45.7% on gemini2 and 49.0% on gemini1. It was roughly
+throughput-neutral from C4 through C32, fell about 46% behind autoregressive at
+C64 under prompt-cache pressure, then reached 239.4--240.1 tok/s at C128 after
+the measured cohorts reused warmed cache state. C128 tail latency remained
+large (roughly 375--378 seconds p50 and 1,216--1,218 seconds p90), so the C128
+aggregate win is not a low-latency result.
+
+This GGUF is an unofficial/community checkpoint. The 27B backbone is NVFP4,
+while embeddings, output head, and MTP tensors remain BF16. The pinned
+llama.cpp build targeted GB300 `sm_103a`, but upstream's native NVFP4 MMA
+selector identifies `sm_120` only; these measurements therefore use the
+generic CUDA fallback and must not be described as native Blackwell NVFP4 MMA
+performance. No `sm_120` selector was forced.
+
+All 32 primary result files completed their exact request target with zero
+errors. A separate 600-second C128 timeout diagnostic and a no-cache C1
+diagnostic are retained but excluded. Exact checkpoint/runtime provenance,
+postflight safety evidence, and the text-free raw result files are under
+[`data/benny-nvfp4-gguf-provenance.json`](data/benny-nvfp4-gguf-provenance.json)
+and [`verification/benny-nvfp4-gguf/`](verification/benny-nvfp4-gguf/).
+
 ## Fixed-length decode throughput
 
 Aggregate output tokens/second. `C` is request concurrency. All runs use 8,192 input tokens, 1,024 forced output tokens, temperature 0, and BF16 KV/Mamba state.
