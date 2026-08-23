@@ -1,0 +1,46 @@
+{
+  "checkpoint": {
+    "repository": "BennyDaBall/Qwen3.8-Uncensored-NVFP4-MTP",
+    "revision": "d8ad61f9211c00f3124fcd825f8934584065fca5",
+    "file": "Qwen3.8-27B-Uncensored-NVFP4-MTP.gguf",
+    "bytes": 19694360544,
+    "sha256": "db17acbca53da5a7b0e861175b198cc6fd467865e99d1ad53d9dca584257a1a1"
+  },
+  "runtime": {
+    "project": "ggml-org/llama.cpp",
+    "commit": "6657ded4faa3b8450221119fc6b4d002e35104a2",
+    "cuda": "13.0.88",
+    "target_architecture": "sm_103a",
+    "nvfp4_kernel_note": "The upstream native NVFP4 MMA selector identifies sm_120 only. GB300 sm_103a used llama.cpp's generic CUDA fallback; no sm_120 selector was forced."
+  },
+  "methodology": {
+    "topology": "Two independent one-GB300 instances run simultaneously; results are not combined or sharded.",
+    "input_tokens_requested": 8192,
+    "output_tokens": 1024,
+    "temperature": 0.0,
+    "measured_waves": 5,
+    "concurrency": [1, 2, 4, 8, 16, 32, 64, 128],
+    "prefix_caching": true,
+    "request_timeout_seconds": 1800,
+    "mtp": {
+      "type": "draft-mtp",
+      "draft_n_max": 2,
+      "draft_p_split": 0.2
+    }
+  },
+  "excluded_diagnostics": {
+    "c128_timeout_seconds": 600,
+    "reason": "The original client timeout expired before first output for 67-71 requests; retained separately and excluded from the primary matrix.",
+    "no_cache_c1": "Retained separately because disabling cache defeats the decode-scout methodology."
+  },
+  "validation": {
+    "primary_json_files": 32,
+    "all_completed_request_count_equal_target": true,
+    "all_num_errors_zero": true,
+    "postflight_kernel_danger_scan": "pass",
+    "postflight_idle_hbm_mib": {
+      "gemini1": 67,
+      "gemini2": 793
+    }
+  }
+}
