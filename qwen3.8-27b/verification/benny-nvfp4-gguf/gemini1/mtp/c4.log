@@ -1,0 +1,86 @@
+╭──────────────────────────── NVIDIA P2P Override ─────────────────────────────╮
+│ Effective: no                                                                │
+│ Configured file: no (/etc/modprobe.d/nvidia-p2p-override.conf)               │
+│ Runtime: ForceP2P=; RMForceP2PType=; RMPcieP2PType=;                         │
+│ GrdmaPciTopoCheckOverride=; EnableResizableBar=0; DmaRemapPeerMmio=1         │
+│ Suggested modprobe line:                                                     │
+│ options nvidia                                                               │
+│ NVreg_RegistryDwords="ForceP2P=0x11;RMForceP2PType=1;RMPcieP2PType=2;GrdmaPc │
+│ iTopoCheckOverride=1;EnableResizableBar=1"                                   │
+│ Apply requires NVIDIA module reload or reboot after stopping GPU workloads.  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─────────────────────────────── Configuration ────────────────────────────────╮
+│ LLM Inference Benchmark                                                      │
+│ Model: BennyDaBall-Qwen3.8-27B-NVFP4-MTP @ 127.0.0.1:30000                   │
+│ Decode concurrency: [4]                                                      │
+│ Decode contexts: ['8k']                                                      │
+│ Request-count: 20 measured + 4 warmup requests per cell | Max tokens: 1024   │
+│ Pre-decode warmup: C=1 max-runnable context for 3s                           │
+│ Prefill: skipped | Sustained decode: 1 cells                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Engine: OpenAI-compatible proxy  Models: ['BennyDaBall-Qwen3.8-27B-NVFP4-MTP']
+WARNING: Only OpenAI /v1 endpoints appear reachable (no vllm:/sglang: metrics on
+/metrics); engine-specific probes and Prometheus diagnostics are disabled. Using
+OpenAI-stream-only measurement.
+Prefill tests: skipped
+Calibrating padding text (run=yxuhavabmxgv, up to 8k)...
+  /tokenize exact targeting failed; falling back to single-point estimate: 
+/tokenize returned invalid count: {'tokens': []}
+  Calibrated: 6.17 chars/token (from 8k probe)
+  8k: 50,524 chars (~8,191 tokens)
+Done.
+
+
+
+llm-decode-bench v0.4.29
+╭─────────────────────────────────── Decode ───────────────────────────────────╮
+│ Burst / E2E Decode                                                           │
+│ Burst / E2E-only mode from --request-count. Aggregate throughput is          │
+│ completed output tokens divided by profiling wall time.                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Aggregate tok/s  + TTFT/ITL  
+╭────────────┬──────────────╮
+│ ctx \ conc │            4 │
+├────────────┼──────────────┤
+│ 8k         │ 204.4 151/19 │
+╰────────────┴──────────────╯
+Burst / E2E-only mode: aggregate tok/s = completed output tokens / profiling 
+wall time, using OpenAI stream usage. Prometheus throughput is kept in JSON as 
+server_gen_throughput.
+Per-Request tok/s    
+╭────────────┬──────╮
+│ ctx \ conc │    4 │
+├────────────┼──────┤
+│ 8k         │ 51.1 │
+╰────────────┴──────╯
+Client request latency: p50 
+/ p90 ms                    
+╭────────────┬─────────────╮
+│ ctx \ conc │           4 │
+├────────────┼─────────────┤
+│ 8k         │ 19.6k/21.2k │
+╰────────────┴─────────────╯
+Aggregate cells show dim detail as TTFT ms / ITL ms for the same ctx/conc 
+coordinate. ITL is computed from observed generated tokens, including streams 
+stopped at the measurement boundary; a missing ITL means no stream produced at 
+least two measured output tokens. Per-request tok/s and request latency are 
+shown in separate per-cell matrices. Completion/sample counts and full 
+request-level distributions remain in JSON under request_samples.
+Request-count mode: aggregate tok/s = completed output tokens / profiling wall 
+time. Client ITL=(last_token_time-first_token_time)/(output_tokens-1), user 
+tok/s=1/ITL.
+
+╭────────────────────────────── Primary Summary ───────────────────────────────╮
+│ Primary matrices repeated last so the important numbers are visible without  │
+│ scrolling back through diagnostics.                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+Aggregate decode tok/s
+╭────────────┬───────╮
+│ ctx \ conc │     4 │
+├────────────┼───────┤
+│ 8k         │ 204.4 │
+╰────────────┴───────╯
+
+Results saved to 
+/home/catid/qwen3.8-benny-nvfp4/results/20260823T084900Z-benny-full/gemini1/mtp/
+c4.json
