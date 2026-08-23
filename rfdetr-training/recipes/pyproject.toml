@@ -1,0 +1,21 @@
+[project]
+name = "gemini-rfdetr-benchmark"
+version = "0.1.0"
+description = "Reproducible RF-DETR fine-tuning comparison on the paired GB300 systems"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "rfdetr[train]==1.9.3",
+    "torch==2.15.0.dev20260821+cu132",
+    "torchvision==0.30.0.dev20260822+cu132",
+    "triton==3.8.0+git3f6e4113; sys_platform == 'linux'",
+]
+
+[[tool.uv.index]]
+name = "pytorch-nightly"
+url = "https://download.pytorch.org/whl/nightly/cu132"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-nightly" }
+torchvision = { index = "pytorch-nightly" }
+triton = { index = "pytorch-nightly" }

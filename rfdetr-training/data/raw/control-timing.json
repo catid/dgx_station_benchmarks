@@ -1,0 +1,11 @@
+{
+  "effective_batch_size": 16,
+  "elapsed_seconds_including_model_load": 15659.984075344,
+  "epochs": 1,
+  "grad_accum_steps": 1,
+  "host": "gemini1",
+  "model": "RFDETRLarge",
+  "per_rank_batch_size": 8,
+  "rank": 0,
+  "world_size": 2
+}
