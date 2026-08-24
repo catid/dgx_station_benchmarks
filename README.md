@@ -1,9 +1,9 @@
 # NVIDIA DGX Station benchmarks
 
-Reproducible local LLM inference results from NVIDIA DGX Station systems with
-one NVIDIA GB300 selected per station for inference. Multi-node experiments
-use generic `node0` and `node1` roles. These are GB300 systems, not DGX
-Spark/GB10.
+Reproducible local ML training, operator, and LLM inference results from NVIDIA
+DGX Station systems with one NVIDIA GB300 selected per station. Multi-node
+experiments use generic `node0` and `node1` roles. These are GB300 systems, not
+DGX Spark/GB10.
 
 ![Two NVIDIA DGX Stations connected for distributed inference](assets/dgx-stations-direct-connect-redacted.png)
 
@@ -24,6 +24,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 | [RF-DETR Large training](rfdetr-training/) | BF16 fine-tuning on the 1.17M-image MLPerf OpenImages subset; 2× GB300 DDP | Optimized global-batch-128 epoch: 220.45 images/s and 1:46:52 end to end (2.44× faster than control) |
 | [MLPerf RetinaNet training](mlperf-retinanet-training/) | Unofficial MLPerf Training v4.0 `ssd` reproduction; RetinaNet/ResNeXt-50 on OpenImages; 2× GB300 | Reached mAP 0.34759 in 5,365.422 s (1:29:25), versus a 2,159.003 s median for the published 8× H100 reference |
 | [nanoGPT training](nanogpt-training/) | modded-nanogpt FineWeb time-to-loss plus classic GPT-2 124M; 1× and 2× GB300 | modded 2×: 225.081 s to loss 3.2764; classic 2×: 1.838M tok/s; 95.0% / 98.95% scaling efficiency |
+| [Gated DeltaNet-2 linear attention](gdn2-linear-attention/) | BF16 operator microbenchmark; batch 4, 64 heads, d=128, sequence 2K–32K; 1× GB300 | cuDNN reaches 181–203 TFLOP/s forward and 67–69 TFLOP/s backward; 3.04–3.14× combined-pass speedup over FLA |
 | [DeepSeek-V4-Flash-0731](deepseek-v4-flash-0731/) | 304B/13B-active native mixed FP4-expert/FP8-dense checkpoint | DSpark: 345.8 output tok/s at C1; C128 raw, capacity-limited: 6,511.1 aggregate output tok/s |
 | [Ornith-1.5-397B](ornith-1.5-397b/) | Official ModelOpt NVFP4 W4A4 checkpoint; 1× TP1 and 2× PP2/TP2+EP | 1× C1: 129.8 output tok/s; 2× PP2 stable, capacity-limited C128: 3,799.6 aggregate tok/s |
 | [GLM-5.2](glm-5.2/) | Official NVIDIA NVFP4 checkpoint; 2× TP2+EP (1× does not fit) | C1: 68.0 output tok/s; shared-prefix C128: 2,012.4 aggregate tok/s |
@@ -93,6 +94,10 @@ and retains completion and scheduler-residency fields.
 │   ├── data/
 │   └── recipes/
 ├── mlperf-retinanet-training/
+│   ├── README.md
+│   ├── data/
+│   └── recipes/
+├── gdn2-linear-attention/
 │   ├── README.md
 │   ├── data/
 │   └── recipes/

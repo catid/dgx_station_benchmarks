@@ -1,0 +1,55 @@
+{
+  "measured_at": "2026-08-23T21:39:00-07:00",
+  "hardware": {
+    "hosts": ["gemini1", "gemini2"],
+    "gpu_per_host": "1x NVIDIA GB300",
+    "driver": "595.84"
+  },
+  "source": {
+    "repository": "https://github.com/NVIDIA/cudnn-frontend.git",
+    "revision": "aded9909c3c2a897fdbc7b5fd79fa53bc915f4f5",
+    "benchmark": "benchmark/linear_attention/benchmark_single_linear_attention.py",
+    "published_baseline": "benchmark/linear_attention/results/gdn2/gb300/gdn2_20260814.csv"
+  },
+  "container": {
+    "image": "gdn2-linear-attention:26.07-cudnn-aded990-cutlass4.7.0",
+    "image_id": "sha256:8a15c70519ee21cc3466a59adf8b15e2bd1fb7e424cbdb8d420c1964465d4762",
+    "base": "nvcr.io/nvidia/pytorch:26.07-py3",
+    "base_manifest": "sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c"
+  },
+  "software": {
+    "pytorch": "2.13.0a0+9186a08b2c.nv26.07",
+    "cudnn_frontend": "1.28.0",
+    "cudnn_backend": "9.25.0.15",
+    "cudnn_backend_numeric": 92500,
+    "cutlass_dsl": "4.7.0",
+    "flash_linear_attention": "0.5.2",
+    "apache_tvm_ffi": "0.1.12"
+  },
+  "configuration": {
+    "dtype": "bfloat16",
+    "batch_size": 4,
+    "num_q_heads": 64,
+    "num_kv_heads": 64,
+    "head_dim": 128,
+    "sequence_lengths": [2048, 4096, 8192, 16384, 32768],
+    "iterations": 20,
+    "discarded_initial_observations": 5,
+    "profile_pass": "both"
+  },
+  "correctness_gate": {
+    "host": "gemini2",
+    "backend": "cudnn",
+    "reference": "fla",
+    "sequence_length": 2048,
+    "max_absolute_output_difference": 0.000977,
+    "rtol": 0.01,
+    "atol": 0.01,
+    "passed": true,
+    "gradient_comparison_performed": false
+  },
+  "idle_hbm_mib": {
+    "gemini1": {"normal_baseline": 67, "before": 3039, "after": 3051},
+    "gemini2": {"normal_baseline": 793, "before": 295, "after": 274}
+  }
+}
