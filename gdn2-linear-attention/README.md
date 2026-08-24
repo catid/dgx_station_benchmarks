@@ -16,6 +16,9 @@ This is a linear-attention **operator microbenchmark**, not full-model training
 throughput. The combined-pass speedup is `(FLA forward + backward) / (cuDNN
 forward + backward)` for this operation.
 
+See the shared [GDN2, Mamba-3, and Transformer Engine comparison](../gdn2-mamba3-te-comparison/)
+for side-by-side plots and the operator-versus-full-training boundary.
+
 ## cuDNN result and published baseline
 
 Each cell shows median kernel time followed by analytical throughput. The

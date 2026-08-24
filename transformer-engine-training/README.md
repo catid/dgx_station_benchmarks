@@ -10,6 +10,9 @@ microbatch of 64 per rank it reaches 413,257 tokens/s on one GB300 and 817,314
 tokens/s on two. The corresponding BF16 results are 245,620 and 484,343
 tokens/s. MXFP8 reaches 364,402 and 724,666 tokens/s.
 
+See the shared [GDN2, Mamba-3, and Transformer Engine comparison](../gdn2-mamba3-te-comparison/)
+for side-by-side plots and scope-normalized interpretation.
+
 ## Three-way result
 
 These are mean full-step rates at batch 64 per rank. Delayed FP8 enables

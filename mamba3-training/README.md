@@ -11,6 +11,9 @@ safe one-station result is 17,136 tokens/s at batch 64 and 196.9 GiB reserved
 HBM, versus 87,096 tokens/s for SISO and 245,620 tokens/s for BF16 Transformer
 Engine.
 
+See the shared [GDN2, Mamba-3, and Transformer Engine comparison](../gdn2-mamba3-te-comparison/)
+for side-by-side plots and the operator-versus-full-training boundary.
+
 ## Matched-scale comparison
 
 Each model is approximately one billion parameters, uses BF16 parameters, and
