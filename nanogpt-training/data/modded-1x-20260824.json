@@ -1,0 +1,41 @@
+{
+  "benchmark": "modded-nanogpt-fineweb-time-to-loss",
+  "source_revision": "ecbb586296d3dac36fd206211f25d63bad4a6b35",
+  "target_validation_loss": 3.28,
+  "train_steps": 1285,
+  "total_training_tokens": 338821120,
+  "official_8xh100_reference_seconds": 73.8,
+  "runs": [
+    {
+      "host": "gemini1",
+      "accelerators": "1x NVIDIA GB300",
+      "run_id": "modded-1x-gemini1-20260824T0131Z",
+      "train_time_seconds": 427.841,
+      "final_validation_loss": 3.2777,
+      "training_tokens_per_second": 791932.33,
+      "peak_allocated_mib": 39402,
+      "peak_reserved_mib": 51810,
+      "process_elapsed_seconds_approx": 860.129
+    },
+    {
+      "host": "gemini2",
+      "accelerators": "1x NVIDIA GB300",
+      "run_id": "modded-1x-gemini2-20260824T0131Z",
+      "train_time_seconds": 427.893,
+      "final_validation_loss": 3.2771,
+      "training_tokens_per_second": 791836.09,
+      "peak_allocated_mib": 39402,
+      "peak_reserved_mib": 51810,
+      "process_elapsed_seconds_approx": 856.589
+    }
+  ],
+  "mean_train_time_seconds": 427.867,
+  "mean_final_validation_loss": 3.2774,
+  "mean_training_tokens_per_second": 791884.21,
+  "time_ratio_vs_official_8xh100": 5.79766,
+  "notes": [
+    "train_time is the upstream synchronized training timer and excludes compilation, warmup, and validation",
+    "both runs passed the <=3.28 nominal loss target",
+    "the result is a platform reproduction, not an official record submission"
+  ]
+}

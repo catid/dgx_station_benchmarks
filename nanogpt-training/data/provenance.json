@@ -1,0 +1,31 @@
+{
+  "modded_nanogpt": {
+    "source": "https://github.com/KellerJordan/modded-nanogpt",
+    "revision": "ecbb586296d3dac36fd206211f25d63bad4a6b35",
+    "dataset": "kjj0/fineweb10B-gpt2",
+    "dataset_revision": "889765ea1f903759787add96995d81171b632d0c",
+    "staged_train_shards": 9,
+    "staged_validation_shards": 1,
+    "staged_bytes": 2000010240,
+    "official_h100_reference_minutes": 1.23,
+    "adapted_source_sha256": {
+      "train_gpt.py": "1644c3eb8e28708556f06679006f0e191353c16fe7373eb45b30ce9d04e3282b",
+      "triton_kernels.py": "9079be73a869385e3009880069b8c7bad918ef377a1b7c584c2f7920fedc6bb4",
+      "Dockerfile.gb300": "fb690093a40cba4480d6474556a195b01e1a102ae32b702ce948f0c802de2e59",
+      "patch_torch_triton_analysis.py": "3e8004c0740fae26b00cb6a9cd7bb590af428c6ee663e155c06236712b57841d",
+      "test_linear_relu_square.py": "64da3b440bccf4f264efe3816d6662a381bf6c76d0b69b2d222960cad6590cfd",
+      "run_modded_rank.sh": "9462f8443774f794b70c0caaa3ffdaf7ad9e16db01a22d36e2eef66c661b4748"
+    }
+  },
+  "software": {
+    "base_image": "nvcr.io/nvidia/pytorch:26.07-py3",
+    "image": "modded-nanogpt:gb300-2026-08-23-r2",
+    "image_ids": {
+      "gemini1": "sha256:d0278226b6c5f62bb041154b0d69ca9e070d779b2df5abfcf57beed846b4b0fe",
+      "gemini2": "sha256:c18bb61d5c128cb7bf8a9cc653954d4abe833ee01957d65fb24b489547efe131"
+    },
+    "patched_torch_file_sha256": "9a3190e387721537f438e50b912d17359dbda5d3736ede3ac47844a3eaec1ecb",
+    "pytorch": "2.13.0a0+9186a08b2c.nv26.7.59513937",
+    "cuda": "13.3.1"
+  }
+}
