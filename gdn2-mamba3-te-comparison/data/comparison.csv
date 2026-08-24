@@ -9,6 +9,15 @@ gdn2,fla,one_node_sweep,1,4,4096,,,operator_forward_backward,2.976,11.034,14.010
 gdn2,fla,one_node_sweep,1,4,8192,,,operator_forward_backward,5.878,22.002,27.880,1175322.812,31,25,,../gdn2-linear-attention/data/results.csv
 gdn2,fla,one_node_sweep,1,4,16384,,,operator_forward_backward,11.718,43.850,55.568,1179383.818,31,25,,../gdn2-linear-attention/data/results.csv
 gdn2,fla,one_node_sweep,1,4,32768,,,operator_forward_backward,23.369,83.990,107.359,1220875.753,31,26,,../gdn2-linear-attention/data/results.csv
+gdn2,fla-triton,one_node_backend,1,1,2048,1013162976,14,full_training_step,,,106.396153,19248.816,,,11226,../gdn2-linear-attention/data/full-training-results.csv
+gdn2,cudnn,one_node_training,1,1,2048,1013162976,14,full_training_step,,,90.743674,22569.066,,,10970,../gdn2-linear-attention/data/full-training-results.csv
+gdn2,cudnn,one_node_training,1,2,2048,1013162976,14,full_training_step,,,89.194374,45922.179,,,15018,../gdn2-linear-attention/data/full-training-results.csv
+gdn2,cudnn,one_node_training,1,4,2048,1013162976,14,full_training_step,,,91.461127,89568.107,,,23870,../gdn2-linear-attention/data/full-training-results.csv
+gdn2,cudnn,one_node_training,1,8,2048,1013162976,14,full_training_step,,,118.727655,137996.493,,,39080,../gdn2-linear-attention/data/full-training-results.csv
+gdn2,cudnn,one_node_training,1,16,2048,1013162976,14,full_training_step,,,222.103705,147534.684,,,71332,../gdn2-linear-attention/data/full-training-results.csv
+gdn2,cudnn,one_node_training,1,32,2048,1013162976,14,full_training_step,,,439.235547,149204.682,,,136288,../gdn2-linear-attention/data/full-training-results.csv
+gdn2,cudnn,one_node_training,1,48,2048,1013162976,14,full_training_step,,,648.581885,151567.600,,,198962,../gdn2-linear-attention/data/full-training-results.csv
+gdn2,cudnn,two_node_fixed,2,16,2048,1013162976,14,full_training_step,,,227.418436,288173.647,,,74782,../gdn2-linear-attention/data/full-training-results.csv
 transformer_engine,bf16,one_node_fixed,1,64,2048,973111296,4,full_training_step,,,533.638349,245619.529,,,101800,../transformer-engine-training/data/results.csv
 transformer_engine,fp8-delayed-dpa,one_node_fixed,1,64,2048,973111296,4,full_training_step,,,317.168056,413257.254,,,87736,../transformer-engine-training/data/results.csv
 transformer_engine,mxfp8,one_node_fixed,1,64,2048,973111296,4,full_training_step,,,359.690696,364401.975,,,112506,../transformer-engine-training/data/results.csv

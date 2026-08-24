@@ -97,7 +97,11 @@ def legend_item(draw: ImageDraw.ImageDraw, x: int, y: int, color: str, label: st
 
 
 def render_gdn2(rows: Iterable[dict[str, str]]) -> None:
-    selected = [row for row in rows if row["family"] == "gdn2"]
+    selected = [
+        row
+        for row in rows
+        if row["family"] == "gdn2" and row["timing_scope"] == "operator_forward_backward"
+    ]
     by_variant = {
         variant: sorted(
             (row for row in selected if row["variant"] == variant),
@@ -144,6 +148,67 @@ def render_gdn2(rows: Iterable[dict[str, str]]) -> None:
     image.save(CHART_DIR / "gdn2-operator-throughput.png", optimize=True)
 
 
+def render_gdn2_training(rows: Iterable[dict[str, str]]) -> None:
+    selected = sorted(
+        (
+            row
+            for row in rows
+            if row["family"] == "gdn2"
+            and row["variant"] == "cudnn"
+            and row["scope"] == "one_node_training"
+        ),
+        key=lambda row: int(row["batch_per_rank"]),
+    )
+    image, draw = base_chart(
+        "GDN2 full-training batch scaling",
+        "cuDNN FROST • 1.013B parameters • 14 blocks • BF16 • sequence 2048",
+    )
+    bounds = (150, 220, 1425, 710)
+    draw_axes(draw, bounds, 160_000, 8, lambda value: f"{value / 1_000:.0f}k")
+    draw.text((75, 445), "training tokens/s", fill=MUTED, font=font(18), anchor="mm")
+
+    # Right axis for reserved HBM; both series share categorical batch x positions.
+    draw.line((bounds[2], bounds[1], bounds[2], bounds[3]), fill=INK, width=3)
+    for index in range(6):
+        value = 220 * index / 5
+        y = bounds[3] - (bounds[3] - bounds[1]) * index / 5
+        draw.text((bounds[2] + 14, y - 10), f"{value:.0f}", fill=MUTED, font=font(18))
+
+    x_positions = [
+        bounds[0] + index * (bounds[2] - bounds[0]) / (len(selected) - 1)
+        for index in range(len(selected))
+    ]
+    throughput_points = []
+    memory_points = []
+    for x, row in zip(x_positions, selected):
+        throughput = float(row["tokens_per_second"])
+        memory_gib = float(row["peak_reserved_mib"]) / 1024
+        throughput_points.append((x, bounds[3] - throughput / 160_000 * (bounds[3] - bounds[1])))
+        memory_points.append((x, bounds[3] - memory_gib / 220 * (bounds[3] - bounds[1])))
+        text_center(draw, x, bounds[3] + 23, row["batch_per_rank"], 20, MUTED)
+    text_center(draw, (bounds[0] + bounds[2]) / 2, 780, "microbatch per rank", 19, MUTED)
+
+    draw.line(throughput_points, fill=BLUE, width=7, joint="curve")
+    draw.line(memory_points, fill=ORANGE, width=6, joint="curve")
+    for index, ((tx, ty), (mx, my), row) in enumerate(zip(throughput_points, memory_points, selected)):
+        draw.ellipse((tx - 8, ty - 8, tx + 8, ty + 8), fill=PANEL, outline=BLUE, width=5)
+        draw.ellipse((mx - 8, my - 8, mx + 8, my + 8), fill=PANEL, outline=ORANGE, width=5)
+        if row["batch_per_rank"] in {"1", "16", "48"}:
+            throughput_y = ty + 12 if row["batch_per_rank"] == "48" else ty - 34
+            throughput_x = tx - 25 if row["batch_per_rank"] == "48" else tx
+            text_center(draw, throughput_x, throughput_y, value_label(float(row["tokens_per_second"])), 18, BLUE, bold=True)
+        if row["batch_per_rank"] in {"16", "48"}:
+            memory_x = mx - 35 if row["batch_per_rank"] == "48" else mx
+            text_center(draw, memory_x, my + 15, f"{float(row['peak_reserved_mib']) / 1024:.1f} GiB", 17, ORANGE, bold=True)
+
+    legend_item(draw, 1010, 173, BLUE, "Throughput")
+    legend_item(draw, 1250, 173, ORANGE, "Reserved HBM")
+    draw.rounded_rectangle((160, 170, 735, 211), 18, fill="#DBEAFE")
+    draw.text((181, 178), "Batch 16: 97.3% of maximum at 69.7 GiB", fill="#1E40AF", font=font(19, bold=True))
+    footer(draw, "Full forward + backward + fused AdamW step • one DGX Station GB300 • measured August 2026")
+    image.save(CHART_DIR / "gdn2-full-training.png", optimize=True)
+
+
 def render_grouped_bars(
     filename: str,
     title: str,
@@ -162,7 +227,9 @@ def render_grouped_bars(
     legend_item(draw, 1325, 173, GREEN, "2× GB300")
 
     centers = [bounds[0] + (index + 0.5) * (bounds[2] - bounds[0]) / len(categories) for index in range(len(categories))]
-    bar_width = 122
+    group_width = (bounds[2] - bounds[0]) / len(categories)
+    bar_width = min(122, int(group_width / 2 - 12))
+    category_font_size = 18 if len(categories) > 4 else 22
     for center, (key, label) in zip(centers, categories):
         for world_size, color, offset in (("1", BLUE, -bar_width - 7), ("2", GREEN, 7)):
             value = values[(key, world_size)]
@@ -171,7 +238,7 @@ def render_grouped_bars(
             y0 = bounds[3] - height
             draw.rounded_rectangle((x0, y0, x0 + bar_width, bounds[3]), 9, fill=color)
             text_center(draw, x0 + bar_width / 2, y0 - 31, value_label(value), 20, color, bold=True)
-        text_center(draw, center, bounds[3] + 24, label, 22, INK, bold=True)
+        text_center(draw, center, bounds[3] + 24, label, category_font_size, INK, bold=True)
 
     for index, line in enumerate(detail_lines):
         text_center(draw, centers[index], 790, line, 17, MUTED)
@@ -198,22 +265,35 @@ def render_transformer_engine(rows: Iterable[dict[str, str]]) -> None:
     )
 
 
-def render_mamba(rows: Iterable[dict[str, str]]) -> None:
+def render_full_training_comparison(rows: Iterable[dict[str, str]]) -> None:
     values: dict[tuple[str, str], float] = {}
     for row in rows:
-        if row["family"] == "transformer_engine" and row["variant"] == "bf16" and row["scope"] in {"one_node_fixed", "two_node_fixed"}:
-            values[("te-bf16", row["world_size"])] = float(row["tokens_per_second"])
+        if row["family"] == "transformer_engine" and row["scope"] in {"one_node_fixed", "two_node_fixed"}:
+            key = "te-bf16" if row["variant"] == "bf16" else row["variant"]
+            values[(key, row["world_size"])] = float(row["tokens_per_second"])
         if row["family"] == "mamba3" and row["scope"] in {"one_node_fixed", "two_node_fixed"}:
             values[(row["variant"], row["world_size"])] = float(row["tokens_per_second"])
+        if row["family"] == "gdn2" and row["variant"] == "cudnn":
+            if row["scope"] == "one_node_training" and row["batch_per_rank"] == "16":
+                values[("gdn2-cudnn", "1")] = float(row["tokens_per_second"])
+            elif row["scope"] == "two_node_fixed":
+                values[("gdn2-cudnn", "2")] = float(row["tokens_per_second"])
     render_grouped_bars(
-        "mamba3-vs-transformer.png",
-        "Mamba-3 versus a similarly sized Transformer",
-        "Complete training steps at sequence 2048 • approximately one billion parameters",
-        [("te-bf16", "TE BF16"), ("siso", "Mamba-3 SISO"), ("mimo-r4", "Mamba-3 MIMO-r4")],
+        "full-training-comparison.png",
+        "Matched-scale full-training comparison",
+        "Complete sequence-2048 steps • 0.97–1.07B parameters • practical fixed batch per rank",
+        [
+            ("te-bf16", "TE BF16"),
+            ("fp8-delayed-dpa", "TE delayed FP8"),
+            ("mxfp8", "TE MXFP8"),
+            ("gdn2-cudnn", "GDN2 cuDNN"),
+            ("siso", "Mamba-3 SISO"),
+            ("mimo-r4", "Mamba-3 MIMO-r4"),
+        ],
         values,
-        550_000,
+        900_000,
         "Different architectures; rates compare systems throughput, not model quality • measured August 2026",
-        ["batch 64/rank", "batch 16/rank", "batch 64/rank"],
+        ["batch 64", "batch 64", "batch 64", "batch 16", "batch 16", "batch 64"],
     )
 
 
@@ -221,8 +301,9 @@ def main() -> None:
     CHART_DIR.mkdir(parents=True, exist_ok=True)
     rows = read_rows()
     render_gdn2(rows)
+    render_gdn2_training(rows)
     render_transformer_engine(rows)
-    render_mamba(rows)
+    render_full_training_comparison(rows)
     for path in sorted(CHART_DIR.glob("*.png")):
         print(f"wrote {path.relative_to(ROOT)} ({path.stat().st_size:,} bytes)")
 

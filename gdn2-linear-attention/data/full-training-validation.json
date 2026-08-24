@@ -1,0 +1,35 @@
+{
+  "shape": {
+    "layers": 1,
+    "hidden": 2304,
+    "intermediate_size": 6208,
+    "heads": 16,
+    "head_dim": 128,
+    "sequence_length": 256,
+    "micro_batch_size": 1,
+    "parameters": 72368784
+  },
+  "reference": "fla-triton-0.5.2",
+  "candidate": "cudnn-frost",
+  "reference_loss": 1.0133415460586548,
+  "candidate_loss": 1.0133417844772339,
+  "loss_relative_error": 2.3527958567264962e-7,
+  "output": {
+    "cosine": 1.0,
+    "relative_l2": 0.00028601818485185504,
+    "max_absolute_error": 0.015625,
+    "finite": true
+  },
+  "input_gradient": {
+    "cosine": 0.9999996423721313,
+    "relative_l2": 0.0008930481853894889,
+    "max_absolute_error": 5.960464477539063e-8,
+    "finite": true
+  },
+  "parameter_gradient": {
+    "cosine": 0.999998927116394,
+    "relative_l2": 0.0014522664714604616,
+    "max_absolute_error": 2.384185791015625e-7,
+    "finite": true
+  }
+}

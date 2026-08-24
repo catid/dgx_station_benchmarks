@@ -1,23 +1,65 @@
-# Gated DeltaNet-2 linear attention on GB300
+# Gated DeltaNet-2 training and linear attention on GB300
 
-This reproduces the single-GPU GB300 operator benchmark accompanying
-[NVIDIA's cuDNN Gated DeltaNet-2 result](https://x.com/ahatamiz1/status/2091623415665074300).
-It uses the exact benchmark now shipped in
-[`NVIDIA/cudnn-frontend`](https://github.com/NVIDIA/cudnn-frontend/tree/main/benchmark/linear_attention)
-and compares its cuDNN FROST path with the Flash Linear Attention (FLA)
-Triton path.
+This measures Gated DeltaNet-2 at two explicit boundaries: a complete
+1.013-billion-parameter training step and NVIDIA's isolated cuDNN linear-
+attention operator benchmark. See the shared
+[GDN2, Mamba-3, and Transformer Engine comparison](../gdn2-mamba3-te-comparison/)
+for matched-scale plots.
 
-The headline result reproduces cleanly. On `gemini2`, cuDNN is 6.08--6.56×
-faster for forward, 2.64--2.76× faster for backward, and 3.04--3.14× faster
-when forward and backward times are added. The second station produced cuDNN
-times within about 1% of the first.
+## Full-training result
 
-This is a linear-attention **operator microbenchmark**, not full-model training
-throughput. The combined-pass speedup is `(FLA forward + backward) / (cuDNN
-forward + backward)` for this operation.
+The model is a stack of 14 recurrent blocks from NVLabs' official
+`gdn2_1.3B` configuration. Reducing only its block count from 18 to 14 yields
+1,013,162,976 trainable parameters, close to the ~1B Transformer Engine and
+Mamba-3 stacks. Each timed BF16 step covers zero-grad, the complete block
+stack, mean-square loss, backward, and fused AdamW at sequence length 2,048.
 
-See the shared [GDN2, Mamba-3, and Transformer Engine comparison](../gdn2-mamba3-te-comparison/)
-for side-by-side plots and the operator-versus-full-training boundary.
+| Backend / topology | Batch / rank | Step time | Tokens/s | Peak reserved HBM |
+| --- | ---: | ---: | ---: | ---: |
+| Current FLA Triton, 1 station | 1 | 106.40 ms | 19,249 | 11.0 GiB |
+| cuDNN FROST, 1 station | 1 | 90.74 ms | 22,569 | 10.7 GiB |
+| cuDNN FROST, 1 station | 2 | 89.19 ms | 45,922 | 14.7 GiB |
+| cuDNN FROST, 1 station | 4 | 91.46 ms | 89,568 | 23.3 GiB |
+| cuDNN FROST, 1 station | 8 | 118.73 ms | 137,996 | 38.2 GiB |
+| cuDNN FROST, 1 station | 16 | 222.10 ms | 147,535 | 69.7 GiB |
+| cuDNN FROST, 1 station | 32 | 439.24 ms | 149,205 | 133.1 GiB |
+| cuDNN FROST, 1 station | 48 | 648.58 ms | **151,568** | 194.3 GiB |
+| cuDNN FROST DDP, 2 stations | 16 | 227.42 ms | **288,174** | 73.0 GiB (rank 0) |
+
+Batch 16 is the practical setting: it retains 97.3% of the highest measured
+one-node throughput while using 124.6 GiB less reserved HBM than batch 48.
+The two-node run uses batch 16 per rank and reaches 97.66% scaling efficiency.
+
+The cuDNN recurrence was also compared with current FLA Triton inside one
+complete official block, using identical weights and inputs:
+
+| Check | Result |
+| --- | ---: |
+| Relative loss error | 2.35e-7 |
+| Output cosine / relative L2 | 1.000000 / 2.86e-4 |
+| Input-gradient cosine / relative L2 | 0.9999996 / 8.93e-4 |
+| All parameter-gradient cosine / relative L2 | 0.9999989 / 1.45e-3 |
+
+All outputs and gradients were finite. The May 2026 NVLabs snapshot targets
+older private FLA kernel APIs, so the benchmark uses FLA 0.5.2's current
+`chunk_gdn2` as its Triton reference and cuDNN frontend 1.28's
+`gated_delta_net_v2` FROST plan as the optimized recurrence. Only that
+recurrence call is selected; the official projections, gates, short
+convolution, normalization, MLP, and residual paths remain intact.
+
+Machine-readable measurements and validation are in
+[`data/full-training-results.csv`](data/full-training-results.csv) and
+[`data/full-training-validation.json`](data/full-training-validation.json).
+
+## Operator microbenchmark
+
+The separate operator test reproduces NVIDIA's cuDNN result using the exact
+benchmark shipped in
+[`NVIDIA/cudnn-frontend`](https://github.com/NVIDIA/cudnn-frontend/tree/main/benchmark/linear_attention).
+On `gemini2`, cuDNN is 6.08--6.56× faster for forward, 2.64--2.76× faster for
+backward, and 3.04--3.14× faster when forward and backward times are added.
+The second station produced cuDNN times within about 1% of the first. These
+operator rates are not full-model training throughput.
 
 ## cuDNN result and published baseline
 
@@ -81,6 +123,8 @@ compilation is not represented by these steady-state figures.
 | cuDNN frontend | 1.28.0, revision `aded9909c3c2a897fdbc7b5fd79fa53bc915f4f5` |
 | CUTLASS DSL | 4.7.0 |
 | Flash Linear Attention | 0.5.2 |
+| NVLabs GDN2 model | revision `95709fc250357c2dd109361c353192f2aa5913f9` |
+| Full-training stack | 14 × `gdn2_1.3B` blocks; 1,013,162,976 parameters |
 | Measured image ID | `sha256:8a15c70519ee21cc3466a59adf8b15e2bd1fb7e424cbdb8d420c1964465d4762` |
 
 The `gemini1` preflight reported 3,039 MiB used HBM versus its 67 MiB normal
@@ -90,13 +134,57 @@ identical timings and returned to 3,051 MiB afterward. `gemini2` moved from
 295 MiB before the run to 274 MiB afterward. Both named containers were
 removed, and both postflight checks passed.
 
+The full-training DDP run also explicitly removed its named containers. Its
+final postflight reported 268 MiB on `gemini2` and the previously accepted
+3,038 MiB on `gemini1`, both within their configured idle-HBM limits. No GPU
+reset, driver reload, or reboot was used.
+
 Additional immutable details are recorded in
 [`data/provenance.json`](data/provenance.json). The build and guarded launcher
 are in [`recipes/`](recipes/).
 
 ## Reproduction
 
-From this directory:
+### Full training
+
+Clone and pin the official model, then copy the four files in
+[`recipes/full_training/`](recipes/full_training/) into its checkout root:
+
+```bash
+git clone https://github.com/NVlabs/GatedDeltaNet-2.git
+cd GatedDeltaNet-2
+git checkout 95709fc250357c2dd109361c353192f2aa5913f9
+cp ../recipes/full_training/{gdn2_benchmark_model.py,benchmark_gdn2_training.py,validate_gdn2_backends.py,run_ddp_rank.sh} .
+```
+
+Build the image from the parent benchmark folder, validate the recurrence,
+and run a single-node point:
+
+```bash
+docker build -t gdn2-linear-attention:26.07-cudnn-aded990-cutlass4.7.0 \
+  -f ../recipes/Dockerfile ..
+/home/catid/gb300-idle-preflight.sh
+export GPU_UUID='GPU-<reviewed-GB300-UUID-for-this-host>'
+docker run --rm --device "nvidia.com/gpu=$GPU_UUID" --ipc=host \
+  -v "$PWD:/workspace/GatedDeltaNet-2:ro" \
+  -w /workspace/GatedDeltaNet-2 \
+  gdn2-linear-attention:26.07-cudnn-aded990-cutlass4.7.0 \
+  python validate_gdn2_backends.py
+docker run --rm --device "nvidia.com/gpu=$GPU_UUID" --ipc=host \
+  -v "$PWD:/workspace/GatedDeltaNet-2:ro" \
+  -w /workspace/GatedDeltaNet-2 \
+  gdn2-linear-attention:26.07-cudnn-aded990-cutlass4.7.0 \
+  python benchmark_gdn2_training.py --backend cudnn --layers 14 \
+    --sequence-length 2048 --micro-batch-size 16
+```
+
+For DDP, invoke `run_ddp_rank.sh` concurrently on the two stations with rank
+0 and rank 1. Review its host-specific UUID, peer address, RDMA devices, image
+digest, and HBM limits before use on another pair of systems.
+
+### Operator sweep
+
+From this benchmark directory:
 
 ```bash
 docker build -t gdn2-linear-attention:26.07-cudnn-aded990-cutlass4.7.0 \

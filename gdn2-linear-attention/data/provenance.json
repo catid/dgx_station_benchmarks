@@ -51,5 +51,38 @@
   "idle_hbm_mib": {
     "gemini1": {"normal_baseline": 67, "before": 3039, "after": 3051},
     "gemini2": {"normal_baseline": 793, "before": 295, "after": 274}
+  },
+  "full_training": {
+    "measured_at": "2026-08-24T10:48:54-07:00",
+    "model_source": {
+      "repository": "https://github.com/NVlabs/GatedDeltaNet-2.git",
+      "revision": "95709fc250357c2dd109361c353192f2aa5913f9",
+      "configuration": "gdn2_1.3B recurrent-only block stack reduced from 18 to 14 layers"
+    },
+    "configuration": {
+      "parameters": 1013162976,
+      "layers": 14,
+      "hidden": 2304,
+      "intermediate_size": 6208,
+      "heads": 16,
+      "head_dim": 128,
+      "sequence_length": 2048,
+      "dtype": "bfloat16",
+      "optimizer": "fused AdamW",
+      "timed_work": "zero-grad, forward, mean-square loss, backward, optimizer step"
+    },
+    "backends": {
+      "cudnn": "cuDNN frontend 1.28.0 GDN2 FROST",
+      "fla": "Flash Linear Attention 0.5.2 Triton GDN2"
+    },
+    "distributed": {
+      "framework": "PyTorch DDP",
+      "processes": "one process and one GB300 per host",
+      "fabric": "NCCL merged mlx5_0:1 and mlx5_1:1 over two 400 Gb/s links"
+    },
+    "final_idle_hbm_mib": {
+      "gemini1": 3038,
+      "gemini2": 268
+    }
   }
 }
