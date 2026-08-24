@@ -24,6 +24,8 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 | [RF-DETR Large training](rfdetr-training/) | BF16 fine-tuning on the 1.17M-image MLPerf OpenImages subset; 2× GB300 DDP | Optimized global-batch-128 epoch: 220.45 images/s and 1:46:52 end to end (2.44× faster than control) |
 | [MLPerf RetinaNet training](mlperf-retinanet-training/) | Unofficial MLPerf Training v4.0 `ssd` reproduction; RetinaNet/ResNeXt-50 on OpenImages; 2× GB300 | Reached mAP 0.34759 in 5,365.422 s (1:29:25), versus a 2,159.003 s median for the published 8× H100 reference |
 | [nanoGPT training](nanogpt-training/) | modded-nanogpt FineWeb time-to-loss plus classic GPT-2 124M; 1× and 2× GB300 | modded 2×: 225.081 s to loss 3.2764; classic 2×: 1.838M tok/s; 95.0% / 98.95% scaling efficiency |
+| [Transformer Engine FP8 training](transformer-engine-training/) | 973M-parameter decoder; BF16, delayed FP8, and MXFP8; full AdamW steps; 1× and 2× GB300 | 1×: 245.6k / 413.3k / 364.4k tok/s; 2×: 484.3k / 817.3k / 724.7k tok/s |
+| [Mamba-3 training](mamba3-training/) | Official v2.3.2.post1 SISO Triton and rank-4 MIMO TileLang kernels; ~1.0B parameters; 1× and 2× GB300 | SISO: 87.1k (1×), 169.1k (2×); MIMO: 17.1k (1×), 33.7k (2×) tok/s |
 | [Gated DeltaNet-2 linear attention](gdn2-linear-attention/) | BF16 operator microbenchmark; batch 4, 64 heads, d=128, sequence 2K–32K; 1× GB300 | cuDNN reaches 181–203 TFLOP/s forward and 67–69 TFLOP/s backward; 3.04–3.14× combined-pass speedup over FLA |
 | [DeepSeek-V4-Flash-0731](deepseek-v4-flash-0731/) | 304B/13B-active native mixed FP4-expert/FP8-dense checkpoint | DSpark: 345.8 output tok/s at C1; C128 raw, capacity-limited: 6,511.1 aggregate output tok/s |
 | [Ornith-1.5-397B](ornith-1.5-397b/) | Official ModelOpt NVFP4 W4A4 checkpoint; 1× TP1 and 2× PP2/TP2+EP | 1× C1: 129.8 output tok/s; 2× PP2 stable, capacity-limited C128: 3,799.6 aggregate tok/s |
@@ -98,6 +100,14 @@ and retains completion and scheduler-residency fields.
 │   ├── data/
 │   └── recipes/
 ├── gdn2-linear-attention/
+│   ├── README.md
+│   ├── data/
+│   └── recipes/
+├── transformer-engine-training/
+│   ├── README.md
+│   ├── data/
+│   └── recipes/
+├── mamba3-training/
 │   ├── README.md
 │   ├── data/
 │   └── recipes/

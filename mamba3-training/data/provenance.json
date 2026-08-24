@@ -1,0 +1,42 @@
+{
+  "measured_at": "2026-08-23T22:41:00-07:00",
+  "hardware": {
+    "hosts": ["gemini1", "gemini2"],
+    "gpu_per_host": "1x NVIDIA GB300",
+    "driver": "595.84",
+    "fabric": "2x 400 Gb/s ConnectX links"
+  },
+  "source": {
+    "repository": "https://github.com/state-spaces/mamba.git",
+    "tag": "v2.3.2.post1",
+    "revision": "a14b1dff0454a3bc27d9eb31355dc01e4b2490ec",
+    "module": "mamba_ssm/modules/mamba3.py"
+  },
+  "container": {
+    "base": "nvcr.io/nvidia/pytorch:26.07-py3",
+    "base_manifest": "sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c",
+    "local_image_id": "sha256:1c052269869841bc4e9faefaffae6d10830c1fd58f197bb0b6397bbdd317dd02",
+    "peer_image_id": "sha256:acabb06acbffd34f88eafa943678dc3aa9e2fc597a91cd6458f75a50f23deeaa"
+  },
+  "software": {
+    "pytorch": "2.13.0a0+9186a08b2c.nv26.07",
+    "tilelang": "0.1.8",
+    "apache_tvm_ffi": "0.1.9"
+  },
+  "configuration": {
+    "sequence_length": 2048,
+    "hidden": 4096,
+    "layers": 10,
+    "state_size": 128,
+    "head_dim": 64,
+    "siso_chunk_size": 64,
+    "mimo_rank": 4,
+    "mimo_chunk_size": 16,
+    "dtype": "bfloat16",
+    "optimizer": "fused AdamW"
+  },
+  "idle_hbm_mib_after_final_run": {
+    "gemini1": 3037,
+    "gemini2": 258
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "measured_at": "2026-08-23T22:24:00-07:00",
+  "hardware": {
+    "hosts": ["gemini1", "gemini2"],
+    "gpu_per_host": "1x NVIDIA GB300",
+    "driver": "595.84",
+    "fabric": "2x 400 Gb/s ConnectX links"
+  },
+  "source": {
+    "repository": "https://github.com/NVIDIA/TransformerEngine.git",
+    "version": "2.18.0",
+    "revision": "27486e03cfc1fa41f6932dcecdc47c71c47eac3e"
+  },
+  "container": {
+    "base": "nvcr.io/nvidia/pytorch:26.07-py3",
+    "base_manifest": "sha256:2140e699b3beaf7f96a0081fd9c9406bc3832b435cdb60dfa2d261f7d2f34a1c",
+    "local_image_id": "sha256:da482a32ae29b5bb789d384138166c7133fdf0ac134ecd250aeefb2191d14f82",
+    "peer_image_id": "sha256:ec484a5a25e2aa5ee6ad2bb16e6e73041a2ad3ffa4bc01aeef7bad7d5447ff8b",
+    "native_wheel_sha256": "bdef3b6089e66bc38c7d822b91e409f0a9ce40c513e81aaf0313b7e401a884ad"
+  },
+  "software": {
+    "pytorch": "2.13.0a0+9186a08b2c.nv26.07",
+    "transformer_engine": "2.18.0",
+    "nvidia_cudnn_frontend": "1.26.0",
+    "cuda_arch_build_setting": "100",
+    "runtime_compute_capability": "10.3"
+  },
+  "idle_hbm_mib_after_final_run": {
+    "gemini1": 3037,
+    "gemini2": 258
+  }
+}

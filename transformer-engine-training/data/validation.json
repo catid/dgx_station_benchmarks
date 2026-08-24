@@ -1,0 +1,35 @@
+{
+  "shape": {
+    "layers": 1,
+    "hidden": 1024,
+    "ffn_hidden": 3584,
+    "heads": 8,
+    "sequence_length": 512,
+    "micro_batch_size": 2
+  },
+  "iterations_per_recipe": 3,
+  "note": "The first two iterations calibrate delayed-scaling amax history; metrics use iteration three.",
+  "bf16_loss": 1.1836037635803223,
+  "fp8_delayed": {
+    "loss": 1.1821963787078857,
+    "loss_relative_error": 0.0011890675881084378,
+    "output_relative_l2": 0.026067646220326424,
+    "output_cosine": 0.9996602535247803,
+    "output_max_absolute_error": 0.1484375,
+    "gradient_relative_l2": 0.08526906371116638,
+    "gradient_cosine": 0.9963685870170593,
+    "gradient_max_absolute_error": 0.000026702880859375,
+    "finite": true
+  },
+  "mxfp8": {
+    "loss": 1.1822926998138428,
+    "loss_relative_error": 0.001107688068271777,
+    "output_relative_l2": 0.026229973882436752,
+    "output_cosine": 0.9996560215950012,
+    "output_max_absolute_error": 0.15625,
+    "gradient_relative_l2": 0.06767164915800095,
+    "gradient_cosine": 0.9977120757102966,
+    "gradient_max_absolute_error": 0.000019073486328125,
+    "finite": true
+  }
+}
