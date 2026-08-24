@@ -43,8 +43,7 @@ Including one-time compilation/warmup and validation, process elapsed time was
 approximately 14m17s on gemini2 and 14m20s on gemini1. Those operational wall
 times are not comparable with the official training-only timer.
 
-The classic nanoGPT two-station result is still running and will be appended
-here. Completed measurements are retained in
+Completed modded-nanogpt measurements are retained in
 [`data/modded-1x-20260824.json`](data/modded-1x-20260824.json) and
 [`data/modded-2x-20260824.json`](data/modded-2x-20260824.json).
 
@@ -57,12 +56,18 @@ excluding initial compilation/evaluation and the final evaluation.
 | System | Mean step | Throughput | 600k-step extrapolation | Step-200 val loss |
 |---|---:|---:|---:|---:|
 | gemini2, 1× GB300 | 529.134 ms | 928,914 tok/s | 317,480 s / 3.67 days | 6.6194 |
+| gemini1 + gemini2, 2× GB300 DDP | 267.378 ms | 1,838,293 tok/s | 160,427 s / 1.86 days | 6.5857 |
 
 The extrapolation is close to and about 8.1% shorter than the upstream
 repository's approximate four-day 8×A100 result. It is a steady-state
 throughput comparison, not a claim that the 200-step sample converged to the
 published approximately 2.85 OpenWebText loss. Machine-readable measurements
-are in [`data/classic-1x-20260824.json`](data/classic-1x-20260824.json).
+are in [`data/classic-1x-20260824.json`](data/classic-1x-20260824.json) and
+[`data/classic-2x-20260824.json`](data/classic-2x-20260824.json).
+
+Two-node DDP is 1.979× faster than one node with 98.95% strong-scaling
+efficiency, even though the fixed measurement window includes one 433 ms
+outlier. The two-node 600,000-step extrapolation is 1.86 days.
 
 ## GB300 software port
 
