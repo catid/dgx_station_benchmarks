@@ -1,0 +1,26 @@
+{
+  "model": {
+    "source": "Qwen/Qwen2.5-72B-Instruct",
+    "revision": "495f39366efef23836d0cfae4fbe635880d2be31",
+    "weight_files": 37,
+    "weight_bytes_from_index": 145412407296,
+    "local_manifest": "model-sha256.txt"
+  },
+  "dataset": {
+    "source": "smangrul/ultrachat-10k-chatml",
+    "revision": "20b71144fdfdd1c10b98850b774325903ba2a5dd",
+    "split": "train",
+    "rows": 10000,
+    "materialized_fingerprint": "65d4c24b559123e1"
+  },
+  "software": {
+    "base_image": "nvcr.io/nvidia/pytorch:26.07-py3",
+    "pytorch": "2.13.0a0+9186a08b2c.nv26.7.59513937",
+    "cuda": "13.3.1",
+    "transformers": "5.15.1",
+    "accelerate": "1.14.0",
+    "peft": "0.20.0",
+    "datasets": "5.0.1",
+    "huggingface_hub": "1.28.0"
+  }
+}
