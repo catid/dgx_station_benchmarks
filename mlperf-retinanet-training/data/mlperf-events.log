@@ -1,0 +1,7 @@
+:::MLLOG {"namespace": "", "time_ms": 1787434825896, "event_type": "INTERVAL_START", "key": "run_start", "value": null, "metadata": {"file": "/workspace/ssd/train.py", "lineno": 577}}
+:::MLLOG {"namespace": "", "time_ms": 1787436197317, "event_type": "POINT_IN_TIME", "key": "eval_accuracy", "value": 0.2462323998462728, "metadata": {"file": "/workspace/ssd/engine.py", "lineno": 437, "epoch_num": 1}}
+:::MLLOG {"namespace": "", "time_ms": 1787437523024, "event_type": "POINT_IN_TIME", "key": "eval_accuracy", "value": 0.30879030746239944, "metadata": {"file": "/workspace/ssd/engine.py", "lineno": 437, "epoch_num": 2}}
+:::MLLOG {"namespace": "", "time_ms": 1787438860398, "event_type": "POINT_IN_TIME", "key": "eval_accuracy", "value": 0.33661902738053406, "metadata": {"file": "/workspace/ssd/engine.py", "lineno": 437, "epoch_num": 3}}
+:::MLLOG {"namespace": "", "time_ms": 1787440190172, "event_type": "POINT_IN_TIME", "key": "eval_accuracy", "value": 0.3475858085285299, "metadata": {"file": "/workspace/ssd/engine.py", "lineno": 437, "epoch_num": 4}}
+:::MLLOG {"namespace": "", "time_ms": 1787440191318, "event_type": "INTERVAL_END", "key": "run_stop", "value": null, "metadata": {"file": "/workspace/ssd/engine.py", "lineno": 315, "status": "success"}}
+RESULT,SINGLE_STAGE_DETECTOR,,5408,nvidia,2026-08-22 09:39:50 PM

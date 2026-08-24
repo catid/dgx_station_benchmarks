@@ -1,0 +1,22 @@
+{
+  "run_tag": "full-20260822-143937",
+  "mlcommons_source_revision": "6fe954378efe4a1a1bd665550b18ff8f26018def",
+  "container": {
+    "tag": "mlperf-retinanet:26.07-gb300",
+    "image_id": "sha256:e12226730be8efa60e016b5fb4f0e73f68cdcfdb634a6ab8fd69eb88eb99b66e",
+    "pytorch": "2.13.0a0+9186a08b2c",
+    "cuda": "13.3",
+    "dali": "2.2.0"
+  },
+  "sha256": {
+    "full_rank0_log": "394b55dc5d5802f52cca05faec5dcdf3d5e889bf99e6588777721ddca7a34a15",
+    "full_rank1_log": "13031121e04f6bbe5331a78e11b1ee9fef6ba78a58ef8aed3f6dd977c99fb665",
+    "gb300_config": "04c8c3865401b817afb539dfe1ec9ae612f1694dc88ee72a5610ce80b3f20d27",
+    "two_node_launcher": "8f0e2187d187db4446fb362c631cafb1be6f270ecd18e1a253c656edf08d2e74"
+  },
+  "notes": [
+    "Full rank logs remain in the local benchmark workspace and are identified by hash.",
+    "The repository retains only the benchmark-defining MLLOG event excerpt.",
+    "This was one successful unofficial reproduction, not a compliant MLPerf submission."
+  ]
+}

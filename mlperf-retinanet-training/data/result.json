@@ -1,0 +1,54 @@
+{
+  "benchmark": "MLPerf Training v4.0 ssd (RetinaNet)",
+  "official_submission": false,
+  "status": "success",
+  "hardware": {
+    "nodes": 2,
+    "accelerators_per_node": 1,
+    "accelerator": "NVIDIA GB300",
+    "total_accelerators": 2
+  },
+  "workload": {
+    "model": "RetinaNet with ResNeXt-50 32x4d backbone",
+    "dataset": "MLPerf OpenImages subset",
+    "train_images": 1170301,
+    "validation_images": 24781,
+    "classes": 264,
+    "image_size": [800, 800],
+    "batch_per_rank": 128,
+    "global_batch": 256,
+    "target_map": 0.34,
+    "maximum_epochs": 8,
+    "learning_rate": 0.000085,
+    "warmup_epochs": 0
+  },
+  "result": {
+    "run_start_time_ms": 1787434825896,
+    "run_stop_time_ms": 1787440191318,
+    "time_to_quality_seconds": 5365.422,
+    "outer_launcher_seconds": 5408,
+    "target_reached_after_epoch": 4,
+    "final_map": 0.3475858085285299,
+    "peak_memory_mib_per_rank": 75628,
+    "epoch_per_rank_images_per_second": [
+      487.18894269274597,
+      488.01773965588535,
+      488.46181202517624,
+      488.79768044572165
+    ]
+  },
+  "evaluations": [
+    {"epoch": 1, "elapsed_seconds": 1371.421, "map": 0.2462323998462728},
+    {"epoch": 2, "elapsed_seconds": 2697.128, "map": 0.30879030746239944},
+    {"epoch": 3, "elapsed_seconds": 4034.502, "map": 0.33661902738053406},
+    {"epoch": 4, "elapsed_seconds": 5364.276, "map": 0.3475858085285299}
+  ],
+  "reference": {
+    "system": "SMC single-node 8x H100 SXM 80 GB",
+    "source": "MLPerf Training v4.0 published result logs",
+    "run_seconds": [2155.089, 2159.003, 2161.367, 2159.418, 2155.929],
+    "median_seconds": 2159.003,
+    "gb300_to_reference_time_ratio": 2.485139,
+    "gb300_relative_time_to_quality_speed": 0.402392
+  }
+}

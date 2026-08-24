@@ -22,6 +22,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 | [Qwen3.8-27B](qwen3.8-27b/) | BF16 plus unofficial Huginn FP8 and NVFP4A16 targets; BF16 KV/Mamba state | DFlash2: 265.8 tok/s C1; MTP: 6,348.8 C128. Quant AR C128: FP8 5,494.4 (+8.7% vs BF16), NVFP4A16 3,607.4 (−28.6%) |
 | [Qwen2.5-72B LoRA FSDP training](qwen72b-lora-fsdp/) | BF16 LoRA SFT; FSDP2 over 2× GB300; packed UltraChat 10K at 2,048 tokens | 4,453.19 tokens/s; 29.433 s/optimizer step; global batch 131,072 tokens |
 | [RF-DETR Large training](rfdetr-training/) | BF16 fine-tuning on the 1.17M-image MLPerf OpenImages subset; 2× GB300 DDP | Optimized global-batch-128 epoch: 220.45 images/s and 1:46:52 end to end (2.44× faster than control) |
+| [MLPerf RetinaNet training](mlperf-retinanet-training/) | Unofficial MLPerf Training v4.0 `ssd` reproduction; RetinaNet/ResNeXt-50 on OpenImages; 2× GB300 | Reached mAP 0.34759 in 5,365.422 s (1:29:25), versus a 2,159.003 s median for the published 8× H100 reference |
 | [nanoGPT training](nanogpt-training/) | modded-nanogpt FineWeb time-to-loss plus classic GPT-2 124M; 1× and 2× GB300 | modded 2×: 225.081 s to loss 3.2764; classic 2×: 1.838M tok/s; 95.0% / 98.95% scaling efficiency |
 | [DeepSeek-V4-Flash-0731](deepseek-v4-flash-0731/) | 304B/13B-active native mixed FP4-expert/FP8-dense checkpoint | DSpark: 345.8 output tok/s at C1; C128 raw, capacity-limited: 6,511.1 aggregate output tok/s |
 | [Ornith-1.5-397B](ornith-1.5-397b/) | Official ModelOpt NVFP4 W4A4 checkpoint; 1× TP1 and 2× PP2/TP2+EP | 1× C1: 129.8 output tok/s; 2× PP2 stable, capacity-limited C128: 3,799.6 aggregate tok/s |
@@ -88,6 +89,10 @@ and retains completion and scheduler-residency fields.
 │   ├── data/
 │   └── recipes/
 ├── nanogpt-training/
+│   ├── README.md
+│   ├── data/
+│   └── recipes/
+├── mlperf-retinanet-training/
 │   ├── README.md
 │   ├── data/
 │   └── recipes/
