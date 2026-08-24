@@ -1,4 +1,14 @@
 {
+  "classic_nanogpt": {
+    "source": "https://github.com/karpathy/nanoGPT",
+    "revision": "3adf61e154c3fe3fca428ad6bc3818b27a3b8291",
+    "dataset": "Skylion007/openwebtext",
+    "dataset_revision": "79d93d786212f7344586290adb811d4ae6a1762c",
+    "train_tokens": 9035582489,
+    "validation_tokens": 4434606,
+    "train_bin_sha256": "68a352b5dbd52e85b7a8a1556c1ccae65ce14b02e4913788b0883b89ceddc1d1",
+    "val_bin_sha256": "009ecdd6da34f1ae915ff1f0f3aeb0416b02f2252356505b32ce44166dd5cfcc"
+  },
   "modded_nanogpt": {
     "source": "https://github.com/KellerJordan/modded-nanogpt",
     "revision": "ecbb586296d3dac36fd206211f25d63bad4a6b35",

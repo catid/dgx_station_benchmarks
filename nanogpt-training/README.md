@@ -43,10 +43,26 @@ Including one-time compilation/warmup and validation, process elapsed time was
 approximately 14m17s on gemini2 and 14m20s on gemini1. Those operational wall
 times are not comparable with the official training-only timer.
 
-The classic nanoGPT one- versus two-station results are still running and will
-be appended here. Completed measurements are retained in
+The classic nanoGPT two-station result is still running and will be appended
+here. Completed measurements are retained in
 [`data/modded-1x-20260824.json`](data/modded-1x-20260824.json) and
 [`data/modded-2x-20260824.json`](data/modded-2x-20260824.json).
+
+## Classic nanoGPT throughput
+
+The classic GPT-2 124M run retains the upstream 491,520-token global batch.
+The benchmark captures 201 optimizer steps and summarizes steps 20--199,
+excluding initial compilation/evaluation and the final evaluation.
+
+| System | Mean step | Throughput | 600k-step extrapolation | Step-200 val loss |
+|---|---:|---:|---:|---:|
+| gemini2, 1× GB300 | 529.134 ms | 928,914 tok/s | 317,480 s / 3.67 days | 6.6194 |
+
+The extrapolation is close to and about 8.1% shorter than the upstream
+repository's approximate four-day 8×A100 result. It is a steady-state
+throughput comparison, not a claim that the 200-step sample converged to the
+published approximately 2.85 OpenWebText loss. Machine-readable measurements
+are in [`data/classic-1x-20260824.json`](data/classic-1x-20260824.json).
 
 ## GB300 software port
 
