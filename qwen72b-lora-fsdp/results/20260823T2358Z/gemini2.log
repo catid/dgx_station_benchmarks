@@ -1,0 +1,155 @@
+time="2026-08-23T17:01:49-07:00" level=info msg="Found 5 CDI devices"
+PASS host=gemini2 gpu=GPU-29f29a57-f81b-d26d-b895-c907d4be95b0 used=0MiB baseline=793MiB limit=4889MiB
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 26.07 (build 373437299)
+PyTorch Version 2.13.0a0+9186a08
+Container image Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+GOVERNING TERMS: The software and materials are governed by the NVIDIA Software License Agreement
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
+and the Product-Specific Terms for NVIDIA AI Products
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/).
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 13.3 driver version 610.43.02 with kernel driver version 595.84.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+W0824 00:02:11.144000 267 torch/utils/_pytree.py:630] <enum 'KernelPreference'> is an Enum subclass and is now natively supported by torch.compile as an opaque value type. Calling register_constant() on Enum subclasses is deprecated and will be an error in a future release.
+W0824 00:02:11.226000 267 torch/utils/_pytree.py:630] <enum 'ScaleCalculationMode'> is an Enum subclass and is now natively supported by torch.compile as an opaque value type. Calling register_constant() on Enum subclasses is deprecated and will be an error in a future release.
+Apply chat template:   0%|          | 0/10000 [00:00<?, ? examples/s]Apply chat template:  11%|█         | 1073/10000 [00:00<00:00, 10655.73 examples/s]Apply chat template:  24%|██▍       | 2416/10000 [00:00<00:00, 12275.55 examples/s]Apply chat template:  38%|███▊      | 3765/10000 [00:00<00:00, 12826.37 examples/s]Apply chat template:  51%|█████     | 5078/10000 [00:00<00:00, 12941.65 examples/s]Apply chat template:  64%|██████▍   | 6448/10000 [00:00<00:00, 13210.94 examples/s]Apply chat template:  78%|███████▊  | 7808/10000 [00:00<00:00, 13340.70 examples/s]Apply chat template:  98%|█████████▊| 9834/10000 [00:00<00:00, 13405.60 examples/s]Apply chat template: 100%|██████████| 10000/10000 [00:00<00:00, 12936.30 examples/s]
+Tokenize:   0%|          | 0/10000 [00:00<?, ? examples/s]Tokenize:  10%|█         | 1000/10000 [00:00<00:05, 1555.46 examples/s]Tokenize:  20%|██        | 2000/10000 [00:01<00:04, 1943.55 examples/s]Tokenize:  30%|███       | 3000/10000 [00:01<00:03, 2143.82 examples/s]Tokenize:  40%|████      | 4000/10000 [00:01<00:02, 2237.21 examples/s]Tokenize:  50%|█████     | 5000/10000 [00:02<00:02, 2303.82 examples/s]Tokenize:  60%|██████    | 6000/10000 [00:02<00:01, 2375.07 examples/s]Tokenize:  70%|███████   | 7000/10000 [00:03<00:01, 2381.76 examples/s]Tokenize:  80%|████████  | 8000/10000 [00:03<00:00, 2362.73 examples/s]Tokenize:  90%|█████████ | 9000/10000 [00:03<00:00, 2395.80 examples/s]Tokenize: 100%|██████████| 10000/10000 [00:04<00:00, 2378.96 examples/s]Tokenize: 100%|██████████| 10000/10000 [00:04<00:00, 2273.41 examples/s]
+Pack 2048-token sequences:   0%|          | 0/10000 [00:00<?, ? examples/s]Pack 2048-token sequences:  10%|█         | 1000/10000 [00:00<00:03, 2544.94 examples/s]Pack 2048-token sequences:  20%|██        | 2000/10000 [00:00<00:03, 2464.78 examples/s]Pack 2048-token sequences:  30%|███       | 3000/10000 [00:01<00:02, 2440.65 examples/s]Pack 2048-token sequences:  40%|████      | 4000/10000 [00:01<00:02, 2405.68 examples/s]Pack 2048-token sequences:  50%|█████     | 5000/10000 [00:02<00:02, 2420.41 examples/s]Pack 2048-token sequences:  60%|██████    | 6000/10000 [00:02<00:01, 2420.14 examples/s]Pack 2048-token sequences:  70%|███████   | 7000/10000 [00:02<00:01, 2394.10 examples/s]Pack 2048-token sequences:  80%|████████  | 8000/10000 [00:03<00:00, 2372.80 examples/s]Pack 2048-token sequences:  90%|█████████ | 9000/10000 [00:03<00:00, 2381.23 examples/s]Pack 2048-token sequences: 100%|██████████| 10000/10000 [00:04<00:00, 2353.88 examples/s]Pack 2048-token sequences: 100%|██████████| 10000/10000 [00:04<00:00, 2383.62 examples/s]
+Loading weights:   0%|          | 0/963 [00:00<?, ?it/s]Loading weights: 100%|██████████| 963/963 [00:00<00:00, 10917.68it/s]
+gemini2:267:267 [0] NCCL INFO ncclOsDlopen(libnccl-env.so) failed: libnccl-env.so: cannot open shared object file: No such file or directory
+gemini2:267:267 [0] NCCL INFO ENV/Plugin: Could not find: libnccl-env.so
+gemini2:267:267 [0] NCCL INFO cudaDriverVersion 13030
+gemini2:267:267 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to enP1p3s0f0np0
+gemini2:267:267 [0] NCCL INFO Bootstrap: Using enP1p3s0f0np0:192.168.200.2<0>
+gemini2:267:267 [0] NCCL INFO NCCL version 2.30.7+cuda13.3
+gemini2:267:267 [0] NCCL INFO NCCL git version HEAD a5187fa2e
+gemini2:267:267 [0] NCCL INFO Comm config Blocking set to 1
+gemini2:267:267 [0] NCCL INFO NCCL_NET_PLUGIN set by environment to spcx
+gemini2:267:267 [0] NCCL INFO ncclOsDlopen(spcx) failed: spcx: cannot open shared object file: No such file or directory
+gemini2:267:267 [0] NCCL INFO NET/Plugin: Loaded net plugin SPCX (v12)
+gemini2:267:267 [0] NCCL INFO NET/Plugin: Loaded collnet plugin SPCX (v12)
+gemini2:267:267 [0] NCCL INFO Successfully loaded external network plugin /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so
+gemini2:267:267 [0] NCCL INFO Plugin Path : /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so (SPCX Ver. 1.4-0)
+gemini2:267:267 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to enP1p3s0f0np0
+gemini2:267:267 [0] NCCL INFO NCCL_IB_HCA set to =mlx5_0:1,mlx5_1:1
+
+[2026-08-24 00:02:29] gemini2:267:267 [0] init.cc:449 NCCL WARN Spectrum-X (SPCX) NCCL plugin is not supported on device:mlx5_0, skipping ..
+
+[2026-08-24 00:02:29] gemini2:267:267 [0] init.cc:449 NCCL WARN Spectrum-X (SPCX) NCCL plugin is not supported on device:mlx5_1, skipping ..
+gemini2:267:267 [0] NCCL INFO NET/IB : No device found.
+gemini2:267:267 [0] NCCL INFO NET/IB : Using [RO]; OOB enP1p3s0f0np0:192.168.200.2<0>
+gemini2:267:267 [0] NCCL INFO Failed to initialize NET plugin SPCX
+gemini2:267:267 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to enP1p3s0f0np0
+gemini2:267:267 [0] NCCL INFO NCCL_IB_HCA set to =mlx5_0:1,mlx5_1:1
+gemini2:267:267 [0] NCCL INFO NET/IB: Data Direct DMA Interface is detected for device mlx5_0
+
+[2026-08-24 00:02:29] gemini2:267:267 [0] misc/ibvwrap.cc:402 (wrap_ibv_query_port_speed) NCCL WARN Call to ibv_query_port_speed failed with error Protocol not supported errno 93
+gemini2:267:267 [0] NCCL INFO NET/IB: Data Direct DMA Interface is detected for device mlx5_1
+
+[2026-08-24 00:02:29] gemini2:267:267 [0] misc/ibvwrap.cc:402 (wrap_ibv_query_port_speed) NCCL WARN Call to ibv_query_port_speed failed with error Protocol not supported errno 93
+gemini2:267:267 [0] NCCL INFO NCCL_IB_MERGE_NICS set by environment to 1.
+gemini2:267:267 [0] NCCL INFO NET/IB : Using [0]mlx5_0_dma:1/RoCE [1]mlx5_1_dma:1/RoCE [RO]; OOB enP1p3s0f0np0:192.168.200.2<0>
+gemini2:267:267 [0] NCCL INFO Initialized NET plugin IB
+gemini2:267:267 [0] NCCL INFO Assigned NET plugin IB to comm
+gemini2:267:267 [0] NCCL INFO ncclOsDlopen(libnccl-rma.so) failed: libnccl-rma.so: cannot open shared object file: No such file or directory
+gemini2:267:267 [0] NCCL INFO RMA/Plugin: Could not find: libnccl-rma.so
+gemini2:267:267 [0] NCCL INFO RMA/Plugin: Failed to load external plugin /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so, dlHandle: (nil), ncclRma: (nil)
+gemini2:267:267 [0] NCCL INFO RMA/Plugin: Loaded rma plugin SPCX_RMA (v13)
+gemini2:267:267 [0] NCCL INFO RMA/Plugin: Successfully loaded external plugin /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so
+gemini2:267:267 [0] NCCL INFO Plugin Path : /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so (SPCX Ver. 1.4-0)
+gemini2:267:267 [0] NCCL INFO plugin/rma/rma_v13.cc:18 (ncclRma_init) -> 3
+gemini2:267:267 [0] NCCL INFO RMA/Plugin: Assigned plugin RMA_IB_PROXY to comm
+gemini2:267:267 [0] NCCL INFO ncclOsDlopen(libnccl-gin.so) failed: libnccl-gin.so: cannot open shared object file: No such file or directory
+gemini2:267:267 [0] NCCL INFO GIN/Plugin: Could not find: libnccl-gin.so
+gemini2:267:267 [0] NCCL INFO GIN/Plugin: Failed to load external plugin /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so, dlHandle: (nil), ncclGin: (nil)
+gemini2:267:267 [0] NCCL INFO GIN/Plugin: Loaded gin plugin SPCX_GIN (v13)
+gemini2:267:267 [0] NCCL INFO GIN/Plugin: Successfully loaded external plugin /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so
+gemini2:267:267 [0] NCCL INFO Plugin Path : /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so (SPCX Ver. 1.4-0)
+gemini2:267:267 [0] NCCL INFO GIN/Plugin: Assigned plugin GIN_IB_GDAKI type 3 to comm
+gemini2:267:267 [0] NCCL INFO Using network IB
+gemini2:267:267 [0] NCCL INFO Loaded NVML from libnvidia-ml.so.1
+gemini2:267:267 [0] NCCL INFO DMA-BUF is available on GPU device 0
+gemini2:267:267 [0] NCCL INFO [Rank 1] ncclCommInitRankConfig comm 0x33f63a90 rank 1 nranks 2 cudaDev 0 nvmlDev 0 busId 906000 commId 0x9a6e62509c9b9b61 - Init START
+gemini2:267:267 [0] NCCL INFO Socket handshake magic 0x564ab9f2fc4b9d6c (built-in default)
+gemini2:267:267 [0] NCCL INFO RAS client listening socket at ::1<28028>
+gemini2:267:267 [0] NCCL INFO Bootstrap timings total 0.007002 (create 0.000038, send 0.000206, recv 0.006206, ring 0.000036, delay 0.000001)
+gemini2:267:267 [0] NCCL INFO NCCL_CROSS_NIC set by environment to 0.
+gemini2:267:267 [0] NCCL INFO ncclTopoGetCpuAffinity: Affinity for GPU 0 is 0-71. (GPU affinity = 0-71 ; CPU affinity = 0-71).
+gemini2:267:267 [0] NCCL INFO Rank 1: 3 Net devices
+gemini2:267:267 [0] NCCL INFO Rank 1: 0 CollNet devices
+gemini2:267:267 [0] NCCL INFO comm 0x33f63a90 rank 1 nRanks 2 nNodes 2 localRanks 1 localRank 0 MNNVL 0
+gemini2:267:267 [0] NCCL INFO Trees [0] -1/-1/-1->1->0 [1] -1/-1/-1->1->0 [2] 0/-1/-1->1->-1 [3] 0/-1/-1->1->-1 [4] -1/-1/-1->1->0 [5] -1/-1/-1->1->0 [6] 0/-1/-1->1->-1 [7] 0/-1/-1->1->-1
+gemini2:267:267 [0] NCCL INFO P2P Chunksize set to 262144
+gemini2:267:267 [0] NCCL INFO Tuning P2P operations with maxP2pPeers = 2
+gemini2:267:267 [0] NCCL INFO ncclOsDlopen(libnccl-profiler.so) failed: libnccl-profiler.so: cannot open shared object file: No such file or directory
+gemini2:267:267 [0] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so
+gemini2:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v6) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v6
+gemini2:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v5) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v5
+gemini2:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v4) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v4
+gemini2:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v3) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v3
+gemini2:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v2) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v2
+gemini2:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v1) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v1
+gemini2:267:267 [0] NCCL INFO Check P2P Type isAllDirectP2p 1 directMode 0 isAllCudaP2p 1
+gemini2:267:361 [0] NCCL INFO [Proxy Service] Device 0 CPU core 24
+gemini2:267:361 [0] NCCL INFO proxy listening socket at 192.168.200.2<54305>
+gemini2:267:362 [0] NCCL INFO [Proxy Service UDS] Device 0 CPU core 28
+gemini2:267:267 [0] NCCL INFO ncclOsDlopen(libnccl-tuner.so) failed: libnccl-tuner.so: cannot open shared object file: No such file or directory
+gemini2:267:267 [0] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so
+gemini2:267:267 [0] NCCL INFO TUNER/Plugin: Using SPCX (v5)
+gemini2:267:267 [0] NCCL INFO threadThresholds 8/8/64 | 16/8/64 | 512 | 512
+gemini2:267:267 [0] NCCL INFO 8 coll channels, 8 collnet channels, 0 nvls channels, 8 p2p channels, 8 p2p channels per peer
+gemini2:267:267 [0] NCCL INFO ncclCommInitRankConfig comm 0x33f63a90 rank 1 nranks 2 cudaDev 0 nvmlDev 0 busId 906000 commId 0x9a6e62509c9b9b61 - Init COMPLETE
+gemini2:267:267 [0] NCCL INFO Init timings - ncclCommInitRankConfig: rank 1 nranks 2 total 0.35 (kernels 0.27, alloc 0.04, bootstrap 0.01, allgathers 0.00, topo 0.03, graphs 0.00, connections 0.01, rest 0.00)
+gemini2:267:267 [0] NCCL INFO Symmetric VA size=252GB
+gemini2:267:363 [0] NCCL INFO [Proxy Progress] Device 0 CPU core 29
+gemini2:267:267 [0] NCCL INFO Channel 00/0 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 01/0 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 02/0 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 03/0 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 04/0 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 05/0 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 06/0 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 07/0 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 00/0 : 1[0] -> 0[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 01/0 : 1[0] -> 0[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 02/0 : 1[0] -> 0[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 03/0 : 1[0] -> 0[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 04/0 : 1[0] -> 0[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 05/0 : 1[0] -> 0[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 06/0 : 1[0] -> 0[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Channel 07/0 : 1[0] -> 0[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini2:267:267 [0] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+gemini2:267:267 [0] NCCL INFO Channel 00/1 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini2:267:267 [0] NCCL INFO Channel 01/1 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini2:267:267 [0] NCCL INFO Channel 02/1 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini2:267:267 [0] NCCL INFO Channel 03/1 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini2:267:267 [0] NCCL INFO Channel 04/1 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini2:267:267 [0] NCCL INFO Channel 05/1 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini2:267:267 [0] NCCL INFO Channel 06/1 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini2:267:267 [0] NCCL INFO Channel 07/1 : 0[0] -> 1[0] [receive] via NET/IB/2/GDRDMA(PCI)/Shared
+/usr/local/lib/python3.12/dist-packages/torch/distributed/c10d_logger.py:83: FutureWarning: `torch.distributed.all_gather_into_tensor` is deprecated. Please use `torch.distributed.all_gather_single` instead.
+  return func(*args, **kwargs)
+/usr/local/lib/python3.12/dist-packages/torch/distributed/c10d_logger.py:83: FutureWarning: `torch.distributed.all_gather_into_tensor` is deprecated. Please use `torch.distributed.all_gather_single` instead.
+  return func(*args, **kwargs)

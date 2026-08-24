@@ -1,0 +1,40 @@
+{
+  "model": "/home/catid/models/Qwen2.5-72B-Instruct",
+  "dataset": "/workspace/data/ultrachat-10k-chatml",
+  "world_size": 2,
+  "sequence_length": 2048,
+  "micro_batch_per_rank": 8,
+  "gradient_accumulation": 4,
+  "global_batch": 64,
+  "max_steps": 12,
+  "excluded_warmup_steps": 2,
+  "step_seconds": [
+    39.87266863800005,
+    29.28026765000004,
+    29.346672905000105,
+    29.574248350999824,
+    29.400620406000144,
+    29.400881236999794,
+    29.43146677699997,
+    29.437507606000054,
+    29.447835778000353,
+    29.451685736999934,
+    29.43137732299965,
+    29.41051081600017
+  ],
+  "steady_step_seconds_mean": 29.4332806936,
+  "steady_step_seconds_median": 29.43142204999981,
+  "steady_tokens_per_second": 4453.190297216865,
+  "wall_seconds": 380.9004396969999,
+  "trainer_metrics": {
+    "train_runtime": 363.7654,
+    "train_samples_per_second": 2.111,
+    "train_steps_per_second": 0.033,
+    "total_flos": 6.753792436092273e+17,
+    "train_loss": 1.1686197916666667,
+    "epoch": 0.13043478260869565
+  },
+  "peak_allocated_bytes_rank0": 192368931328,
+  "peak_reserved_bytes_rank0": 229153701888,
+  "torch_version": "2.13.0a0+9186a08b2c.nv26.07"
+}

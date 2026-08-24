@@ -1,0 +1,194 @@
+time="2026-08-23T17:01:49-07:00" level=info msg="Found 5 CDI devices"
+PASS host=gemini1 gpu=GPU-4d731396-ae44-0369-76bc-1db8fccb2f02 used=0MiB baseline=67MiB limit=4163MiB
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 26.07 (build 373437299)
+PyTorch Version 2.13.0a0+9186a08
+Container image Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+GOVERNING TERMS: The software and materials are governed by the NVIDIA Software License Agreement
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
+and the Product-Specific Terms for NVIDIA AI Products
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/).
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 13.3 driver version 610.43.02 with kernel driver version 595.84.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+W0824 00:02:11.177000 267 torch/utils/_pytree.py:630] <enum 'KernelPreference'> is an Enum subclass and is now natively supported by torch.compile as an opaque value type. Calling register_constant() on Enum subclasses is deprecated and will be an error in a future release.
+W0824 00:02:11.272000 267 torch/utils/_pytree.py:630] <enum 'ScaleCalculationMode'> is an Enum subclass and is now natively supported by torch.compile as an opaque value type. Calling register_constant() on Enum subclasses is deprecated and will be an error in a future release.
+Apply chat template:   0%|          | 0/10000 [00:00<?, ? examples/s]Apply chat template:   7%|▋         | 669/10000 [00:00<00:01, 6196.48 examples/s]Apply chat template:  19%|█▊        | 1874/10000 [00:00<00:00, 9526.76 examples/s]Apply chat template:  31%|███▏      | 3137/10000 [00:00<00:00, 10912.10 examples/s]Apply chat template:  45%|████▍     | 4473/10000 [00:00<00:00, 11862.42 examples/s]Apply chat template:  58%|█████▊    | 5822/10000 [00:00<00:00, 12444.63 examples/s]Apply chat template:  71%|███████   | 7101/10000 [00:00<00:00, 12559.24 examples/s]Apply chat template:  84%|████████▍ | 8435/10000 [00:00<00:00, 12811.32 examples/s]Apply chat template:  98%|█████████▊| 9760/10000 [00:00<00:00, 12948.22 examples/s]Apply chat template: 100%|██████████| 10000/10000 [00:00<00:00, 11968.29 examples/s]
+Tokenize:   0%|          | 0/10000 [00:00<?, ? examples/s]Tokenize:  10%|█         | 1000/10000 [00:00<00:05, 1583.94 examples/s]Tokenize:  20%|██        | 2000/10000 [00:01<00:04, 1985.67 examples/s]Tokenize:  30%|███       | 3000/10000 [00:01<00:03, 2181.39 examples/s]Tokenize:  40%|████      | 4000/10000 [00:01<00:02, 2268.89 examples/s]Tokenize:  50%|█████     | 5000/10000 [00:02<00:02, 2329.71 examples/s]Tokenize:  60%|██████    | 6000/10000 [00:02<00:01, 2388.62 examples/s]Tokenize:  70%|███████   | 7000/10000 [00:03<00:01, 2385.19 examples/s]Tokenize:  80%|████████  | 8000/10000 [00:03<00:00, 2367.95 examples/s]Tokenize:  90%|█████████ | 9000/10000 [00:03<00:00, 2407.18 examples/s]Tokenize: 100%|██████████| 10000/10000 [00:04<00:00, 2393.63 examples/s]Tokenize: 100%|██████████| 10000/10000 [00:04<00:00, 2291.11 examples/s]
+Pack 2048-token sequences:   0%|          | 0/10000 [00:00<?, ? examples/s]Pack 2048-token sequences:  10%|█         | 1000/10000 [00:00<00:03, 2419.13 examples/s]Pack 2048-token sequences:  20%|██        | 2000/10000 [00:00<00:03, 2360.43 examples/s]Pack 2048-token sequences:  30%|███       | 3000/10000 [00:01<00:02, 2350.18 examples/s]Pack 2048-token sequences:  40%|████      | 4000/10000 [00:01<00:02, 2326.07 examples/s]Pack 2048-token sequences:  50%|█████     | 5000/10000 [00:02<00:02, 2348.19 examples/s]Pack 2048-token sequences:  60%|██████    | 6000/10000 [00:02<00:01, 2354.66 examples/s]Pack 2048-token sequences:  70%|███████   | 7000/10000 [00:02<00:01, 2360.51 examples/s]Pack 2048-token sequences:  80%|████████  | 8000/10000 [00:03<00:00, 2342.58 examples/s]Pack 2048-token sequences:  90%|█████████ | 9000/10000 [00:03<00:00, 2352.49 examples/s]Pack 2048-token sequences: 100%|██████████| 10000/10000 [00:04<00:00, 2323.29 examples/s]Pack 2048-token sequences: 100%|██████████| 10000/10000 [00:04<00:00, 2332.60 examples/s]
+Loading weights:   0%|          | 0/963 [00:00<?, ?it/s]Loading weights: 100%|██████████| 963/963 [00:00<00:00, 10866.72it/s]
+trainable params: 105,267,200 || all params: 72,811,470,848 || trainable%: 0.1446
+gemini1:267:267 [0] NCCL INFO ncclOsDlopen(libnccl-env.so) failed: libnccl-env.so: cannot open shared object file: No such file or directory
+gemini1:267:267 [0] NCCL INFO ENV/Plugin: Could not find: libnccl-env.so
+gemini1:267:267 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to enP1p3s0f0np0
+gemini1:267:267 [0] NCCL INFO Bootstrap: Using enP1p3s0f0np0:192.168.200.1<0>
+gemini1:267:357 [0] NCCL INFO Socket handshake magic 0x564ab9f2fc4b9d6c (built-in default)
+gemini1:267:267 [0] NCCL INFO cudaDriverVersion 13030
+gemini1:267:267 [0] NCCL INFO NCCL version 2.30.7+cuda13.3
+gemini1:267:267 [0] NCCL INFO NCCL git version HEAD a5187fa2e
+gemini1:267:267 [0] NCCL INFO Comm config Blocking set to 1
+gemini1:267:267 [0] NCCL INFO NCCL_NET_PLUGIN set by environment to spcx
+gemini1:267:267 [0] NCCL INFO ncclOsDlopen(spcx) failed: spcx: cannot open shared object file: No such file or directory
+gemini1:267:267 [0] NCCL INFO NET/Plugin: Loaded net plugin SPCX (v12)
+gemini1:267:267 [0] NCCL INFO NET/Plugin: Loaded collnet plugin SPCX (v12)
+gemini1:267:267 [0] NCCL INFO Successfully loaded external network plugin /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so
+gemini1:267:267 [0] NCCL INFO Plugin Path : /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so (SPCX Ver. 1.4-0)
+gemini1:267:267 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to enP1p3s0f0np0
+gemini1:267:267 [0] NCCL INFO NCCL_IB_HCA set to =mlx5_0:1,mlx5_1:1
+
+[2026-08-24 00:02:29] gemini1:267:267 [0] init.cc:449 NCCL WARN Spectrum-X (SPCX) NCCL plugin is not supported on device:mlx5_0, skipping ..
+
+[2026-08-24 00:02:29] gemini1:267:267 [0] init.cc:449 NCCL WARN Spectrum-X (SPCX) NCCL plugin is not supported on device:mlx5_1, skipping ..
+gemini1:267:267 [0] NCCL INFO NET/IB : No device found.
+gemini1:267:267 [0] NCCL INFO NET/IB : Using [RO]; OOB enP1p3s0f0np0:192.168.200.1<0>
+gemini1:267:267 [0] NCCL INFO Failed to initialize NET plugin SPCX
+gemini1:267:267 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to enP1p3s0f0np0
+gemini1:267:267 [0] NCCL INFO NCCL_IB_HCA set to =mlx5_0:1,mlx5_1:1
+gemini1:267:267 [0] NCCL INFO NET/IB: Data Direct DMA Interface is detected for device mlx5_0
+
+[2026-08-24 00:02:29] gemini1:267:267 [0] misc/ibvwrap.cc:402 (wrap_ibv_query_port_speed) NCCL WARN Call to ibv_query_port_speed failed with error Protocol not supported errno 93
+gemini1:267:267 [0] NCCL INFO NET/IB: Data Direct DMA Interface is detected for device mlx5_1
+
+[2026-08-24 00:02:29] gemini1:267:267 [0] misc/ibvwrap.cc:402 (wrap_ibv_query_port_speed) NCCL WARN Call to ibv_query_port_speed failed with error Protocol not supported errno 93
+gemini1:267:267 [0] NCCL INFO NCCL_IB_MERGE_NICS set by environment to 1.
+gemini1:267:267 [0] NCCL INFO NET/IB : Using [0]mlx5_0_dma:1/RoCE [1]mlx5_1_dma:1/RoCE [RO]; OOB enP1p3s0f0np0:192.168.200.1<0>
+gemini1:267:267 [0] NCCL INFO Initialized NET plugin IB
+gemini1:267:267 [0] NCCL INFO Assigned NET plugin IB to comm
+gemini1:267:267 [0] NCCL INFO ncclOsDlopen(libnccl-rma.so) failed: libnccl-rma.so: cannot open shared object file: No such file or directory
+gemini1:267:267 [0] NCCL INFO RMA/Plugin: Could not find: libnccl-rma.so
+gemini1:267:267 [0] NCCL INFO RMA/Plugin: Failed to load external plugin /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so, dlHandle: (nil), ncclRma: (nil)
+gemini1:267:267 [0] NCCL INFO RMA/Plugin: Loaded rma plugin SPCX_RMA (v13)
+gemini1:267:267 [0] NCCL INFO RMA/Plugin: Successfully loaded external plugin /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so
+gemini1:267:267 [0] NCCL INFO Plugin Path : /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so (SPCX Ver. 1.4-0)
+gemini1:267:267 [0] NCCL INFO plugin/rma/rma_v13.cc:18 (ncclRma_init) -> 3
+gemini1:267:267 [0] NCCL INFO RMA/Plugin: Assigned plugin RMA_IB_PROXY to comm
+gemini1:267:267 [0] NCCL INFO ncclOsDlopen(libnccl-gin.so) failed: libnccl-gin.so: cannot open shared object file: No such file or directory
+gemini1:267:267 [0] NCCL INFO GIN/Plugin: Could not find: libnccl-gin.so
+gemini1:267:267 [0] NCCL INFO GIN/Plugin: Failed to load external plugin /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so, dlHandle: (nil), ncclGin: (nil)
+gemini1:267:267 [0] NCCL INFO GIN/Plugin: Loaded gin plugin SPCX_GIN (v13)
+gemini1:267:267 [0] NCCL INFO GIN/Plugin: Successfully loaded external plugin /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so
+gemini1:267:267 [0] NCCL INFO Plugin Path : /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so (SPCX Ver. 1.4-0)
+gemini1:267:267 [0] NCCL INFO GIN/Plugin: Assigned plugin GIN_IB_GDAKI type 3 to comm
+gemini1:267:267 [0] NCCL INFO Using network IB
+gemini1:267:267 [0] NCCL INFO Loaded NVML from libnvidia-ml.so.1
+gemini1:267:267 [0] NCCL INFO DMA-BUF is available on GPU device 0
+gemini1:267:267 [0] NCCL INFO [Rank 0] ncclCommInitRankConfig comm 0x40966590 rank 0 nranks 2 cudaDev 0 nvmlDev 0 busId 906000 commId 0x9a6e62509c9b9b61 - Init START
+gemini1:267:267 [0] NCCL INFO RAS client listening socket at ::1<28028>
+gemini1:267:267 [0] NCCL INFO Bootstrap timings total 0.000928 (create 0.000031, send 0.000111, recv 0.000273, ring 0.000107, delay 0.000001)
+gemini1:267:267 [0] NCCL INFO NCCL_CROSS_NIC set by environment to 0.
+gemini1:267:267 [0] NCCL INFO ncclTopoGetCpuAffinity: Affinity for GPU 0 is 0-71. (GPU affinity = 0-71 ; CPU affinity = 0-71).
+gemini1:267:267 [0] NCCL INFO Rank 0: 3 Net devices
+gemini1:267:267 [0] NCCL INFO Rank 0: 0 CollNet devices
+gemini1:267:267 [0] NCCL INFO Local Net device counts across ranks: min 3 max 3
+gemini1:267:267 [0] NCCL INFO Local CollNet device counts across ranks: min 0 max 0
+gemini1:267:267 [0] NCCL INFO comm 0x40966590 rank 0 nRanks 2 nNodes 2 localRanks 1 localRank 0 MNNVL 0
+gemini1:267:267 [0] NCCL INFO Channel 00/08 : 0 1
+gemini1:267:267 [0] NCCL INFO Channel 01/08 : 0 1
+gemini1:267:267 [0] NCCL INFO Channel 02/08 : 0 1
+gemini1:267:267 [0] NCCL INFO Channel 03/08 : 0 1
+gemini1:267:267 [0] NCCL INFO Channel 04/08 : 0 1
+gemini1:267:267 [0] NCCL INFO Channel 05/08 : 0 1
+gemini1:267:267 [0] NCCL INFO Channel 06/08 : 0 1
+gemini1:267:267 [0] NCCL INFO Channel 07/08 : 0 1
+gemini1:267:267 [0] NCCL INFO Trees [0] 1/-1/-1->0->-1 [1] 1/-1/-1->0->-1 [2] -1/-1/-1->0->1 [3] -1/-1/-1->0->1 [4] 1/-1/-1->0->-1 [5] 1/-1/-1->0->-1 [6] -1/-1/-1->0->1 [7] -1/-1/-1->0->1
+gemini1:267:267 [0] NCCL INFO P2P Chunksize set to 262144
+gemini1:267:267 [0] NCCL INFO Tuning P2P operations with maxP2pPeers = 2
+gemini1:267:267 [0] NCCL INFO ncclOsDlopen(libnccl-profiler.so) failed: libnccl-profiler.so: cannot open shared object file: No such file or directory
+gemini1:267:267 [0] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so
+gemini1:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v6) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v6
+gemini1:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v5) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v5
+gemini1:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v4) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v4
+gemini1:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v3) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v3
+gemini1:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v2) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v2
+gemini1:267:267 [0] NCCL INFO ncclOsDlsym(ncclProfiler_v1) failed: /opt/hpcx/nccl_spectrum-x_plugin/lib/libnccl-net-spcx.so: undefined symbol: ncclProfiler_v1
+gemini1:267:267 [0] NCCL INFO Check P2P Type isAllDirectP2p 1 directMode 0 isAllCudaP2p 1
+gemini1:267:362 [0] NCCL INFO [Proxy Service] Device 0 CPU core 42
+gemini1:267:362 [0] NCCL INFO proxy listening socket at 192.168.200.1<44341>
+gemini1:267:363 [0] NCCL INFO [Proxy Service UDS] Device 0 CPU core 43
+gemini1:267:267 [0] NCCL INFO ncclOsDlopen(libnccl-tuner.so) failed: libnccl-tuner.so: cannot open shared object file: No such file or directory
+gemini1:267:267 [0] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so
+gemini1:267:267 [0] NCCL INFO TUNER/Plugin: Using SPCX (v5)
+gemini1:267:267 [0] NCCL INFO threadThresholds 8/8/64 | 16/8/64 | 512 | 512
+gemini1:267:267 [0] NCCL INFO 8 coll channels, 8 collnet channels, 0 nvls channels, 8 p2p channels, 8 p2p channels per peer
+gemini1:267:267 [0] NCCL INFO CC Off, workFifoBytes 1048576
+gemini1:267:267 [0] NCCL INFO ncclCommInitRankConfig comm 0x40966590 rank 0 nranks 2 cudaDev 0 nvmlDev 0 busId 906000 commId 0x9a6e62509c9b9b61 - Init COMPLETE
+gemini1:267:267 [0] NCCL INFO Init timings - ncclCommInitRankConfig: rank 0 nranks 2 total 0.36 (kernels 0.28, alloc 0.04, bootstrap 0.00, allgathers 0.00, topo 0.03, graphs 0.00, connections 0.00, rest 0.00)
+gemini1:267:267 [0] NCCL INFO Symmetric VA size=252GB
+gemini1:267:364 [0] NCCL INFO [Proxy Progress] Device 0 CPU core 44
+gemini1:267:267 [0] NCCL INFO Channel 00/0 : 1[0] -> 0[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 01/0 : 1[0] -> 0[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 02/0 : 1[0] -> 0[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 03/0 : 1[0] -> 0[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 04/0 : 1[0] -> 0[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 05/0 : 1[0] -> 0[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 06/0 : 1[0] -> 0[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 07/0 : 1[0] -> 0[0] [receive] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 00/0 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 01/0 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 02/0 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 03/0 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 04/0 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 05/0 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 06/0 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Channel 07/0 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)
+gemini1:267:267 [0] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+gemini1:267:267 [0] NCCL INFO Channel 00/1 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini1:267:267 [0] NCCL INFO Channel 01/1 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini1:267:267 [0] NCCL INFO Channel 02/1 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini1:267:267 [0] NCCL INFO Channel 03/1 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini1:267:267 [0] NCCL INFO Channel 04/1 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini1:267:267 [0] NCCL INFO Channel 05/1 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini1:267:267 [0] NCCL INFO Channel 06/1 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)/Shared
+gemini1:267:267 [0] NCCL INFO Channel 07/1 : 0[0] -> 1[0] [send] via NET/IB/2/GDRDMA(PCI)/Shared
+  0%|          | 0/12 [00:00<?, ?it/s]/usr/local/lib/python3.12/dist-packages/torch/distributed/c10d_logger.py:83: FutureWarning: `torch.distributed.all_gather_into_tensor` is deprecated. Please use `torch.distributed.all_gather_single` instead.
+  return func(*args, **kwargs)
+BENCH_STEP step=1 seconds=39.872669
+  8%|▊         | 1/12 [00:40<07:21, 40.09s/it]                                              {'loss': '1.538', 'grad_norm': '0.7377', 'learning_rate': '0.0002', 'epoch': '0.01087'}
+  8%|▊         | 1/12 [00:40<07:21, 40.09s/it]/usr/local/lib/python3.12/dist-packages/torch/distributed/c10d_logger.py:83: FutureWarning: `torch.distributed.all_gather_into_tensor` is deprecated. Please use `torch.distributed.all_gather_single` instead.
+  return func(*args, **kwargs)
+BENCH_STEP step=2 seconds=29.280268
+ 17%|█▋        | 2/12 [01:09<05:37, 33.74s/it]                                              {'loss': '1.353', 'grad_norm': '1.487', 'learning_rate': '0.0002', 'epoch': '0.02174'}
+ 17%|█▋        | 2/12 [01:09<05:37, 33.74s/it]BENCH_STEP step=3 seconds=29.346673
+ 25%|██▌       | 3/12 [01:38<04:45, 31.73s/it]                                              {'loss': '1.263', 'grad_norm': '0.3527', 'learning_rate': '0.0002', 'epoch': '0.03261'}
+ 25%|██▌       | 3/12 [01:38<04:45, 31.73s/it]BENCH_STEP step=4 seconds=29.574248
+ 33%|███▎      | 4/12 [02:08<04:07, 30.88s/it]                                              {'loss': '1.123', 'grad_norm': '0.2137', 'learning_rate': '0.0002', 'epoch': '0.04348'}
+ 33%|███▎      | 4/12 [02:08<04:07, 30.88s/it]BENCH_STEP step=5 seconds=29.400620
+ 42%|████▏     | 5/12 [02:37<03:32, 30.35s/it]                                              {'loss': '1.139', 'grad_norm': '0.108', 'learning_rate': '0.0002', 'epoch': '0.05435'}
+ 42%|████▏     | 5/12 [02:37<03:32, 30.35s/it]BENCH_STEP step=6 seconds=29.400881
+ 50%|█████     | 6/12 [03:07<03:00, 30.03s/it]                                              {'loss': '1.113', 'grad_norm': '0.1667', 'learning_rate': '0.0002', 'epoch': '0.06522'}
+ 50%|█████     | 6/12 [03:07<03:00, 30.03s/it]BENCH_STEP step=7 seconds=29.431467
+ 58%|█████▊    | 7/12 [03:36<02:29, 29.83s/it]                                              {'loss': '1.142', 'grad_norm': '0.2402', 'learning_rate': '0.0002', 'epoch': '0.07609'}
+ 58%|█████▊    | 7/12 [03:36<02:29, 29.83s/it]BENCH_STEP step=8 seconds=29.437508
+ 67%|██████▋   | 8/12 [04:05<01:58, 29.71s/it]                                              {'loss': '1.071', 'grad_norm': '0.2088', 'learning_rate': '0.0002', 'epoch': '0.08696'}
+ 67%|██████▋   | 8/12 [04:05<01:58, 29.71s/it]BENCH_STEP step=9 seconds=29.447836
+ 75%|███████▌  | 9/12 [04:35<01:28, 29.63s/it]                                              {'loss': '1.031', 'grad_norm': '0.1121', 'learning_rate': '0.0002', 'epoch': '0.09783'}
+ 75%|███████▌  | 9/12 [04:35<01:28, 29.63s/it]BENCH_STEP step=10 seconds=29.451686
+ 83%|████████▎ | 10/12 [05:04<00:59, 29.58s/it]                                               {'loss': '1.104', 'grad_norm': '0.05569', 'learning_rate': '0.0002', 'epoch': '0.1087'}
+ 83%|████████▎ | 10/12 [05:04<00:59, 29.58s/it]BENCH_STEP step=11 seconds=29.431377
+ 92%|█████████▏| 11/12 [05:34<00:29, 29.53s/it]                                               {'loss': '1.095', 'grad_norm': '0.08764', 'learning_rate': '0.0002', 'epoch': '0.1196'}
+ 92%|█████████▏| 11/12 [05:34<00:29, 29.53s/it]BENCH_STEP step=12 seconds=29.410511
+100%|██████████| 12/12 [06:03<00:00, 29.50s/it]                                               {'loss': '1.053', 'grad_norm': '0.09815', 'learning_rate': '0.0002', 'epoch': '0.1304'}
+100%|██████████| 12/12 [06:03<00:00, 29.50s/it]                                               {'train_runtime': '363.8', 'train_samples_per_second': '2.111', 'train_steps_per_second': '0.033', 'train_loss': '1.169', 'epoch': '0.1304'}
+100%|██████████| 12/12 [06:03<00:00, 29.50s/it]100%|██████████| 12/12 [06:03<00:00, 30.31s/it]
+BENCH_SUMMARY {"dataset": "/workspace/data/ultrachat-10k-chatml", "excluded_warmup_steps": 2, "global_batch": 64, "gradient_accumulation": 4, "max_steps": 12, "micro_batch_per_rank": 8, "model": "/home/catid/models/Qwen2.5-72B-Instruct", "peak_allocated_bytes_rank0": 192368931328, "peak_reserved_bytes_rank0": 229153701888, "sequence_length": 2048, "steady_step_seconds_mean": 29.4332806936, "steady_step_seconds_median": 29.43142204999981, "steady_tokens_per_second": 4453.190297216865, "step_seconds": [39.87266863800005, 29.28026765000004, 29.346672905000105, 29.574248350999824, 29.400620406000144, 29.400881236999794, 29.43146677699997, 29.437507606000054, 29.447835778000353, 29.451685736999934, 29.43137732299965, 29.41051081600017], "torch_version": "2.13.0a0+9186a08b2c.nv26.07", "trainer_metrics": {"epoch": 0.13043478260869565, "total_flos": 6.753792436092273e+17, "train_loss": 1.1686197916666667, "train_runtime": 363.7654, "train_samples_per_second": 2.111, "train_steps_per_second": 0.033}, "wall_seconds": 380.9004396969999, "world_size": 2}
