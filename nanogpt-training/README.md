@@ -24,6 +24,7 @@ The batch schedule processes 338,821,120 training tokens.
 |---|---:|---:|---:|---:|
 | gemini1, 1× GB300 | 427.841 s | 3.2777 | 791,932 tok/s | 39,402 / 51,810 MiB |
 | gemini2, 1× GB300 | 427.893 s | 3.2771 | 791,836 tok/s | 39,402 / 51,810 MiB |
+| gemini1 + gemini2, 2× GB300 DDP | 225.081 s | 3.2764 | 1,505,330 tok/s | 35,321 / 48,930 MiB per rank |
 
 Both independent runs met the nominal ≤3.28 loss target and differed by only
 52 ms, or 0.012%, in measured training time. The mean is 427.867 seconds and
@@ -32,14 +33,20 @@ record. This is a hardware/software comparison rather than an official record
 submission: the GB300 port uses the adaptations below, and two runs alone do
 not satisfy the upstream repository's stricter statistical submission rule.
 
+Two-node DDP reduces training time to 225.081 seconds: 1.901× faster than the
+one-node mean, with 95.0% strong-scaling efficiency. It is 3.05× the official
+8×H100 time and its 3.2764 final loss also clears the upstream single-run
+statistical threshold. NCCL used both ConnectX-8 interfaces with RoCE,
+GDRDMA, merged NICs, and eight distributed channels.
+
 Including one-time compilation/warmup and validation, process elapsed time was
 approximately 14m17s on gemini2 and 14m20s on gemini1. Those operational wall
 times are not comparable with the official training-only timer.
 
-The synchronized two-station modded-nanogpt result and classic nanoGPT one-
-versus two-station results are still running and will be appended here. The
-completed measurements are retained in
-[`data/modded-1x-20260824.json`](data/modded-1x-20260824.json).
+The classic nanoGPT one- versus two-station results are still running and will
+be appended here. Completed measurements are retained in
+[`data/modded-1x-20260824.json`](data/modded-1x-20260824.json) and
+[`data/modded-2x-20260824.json`](data/modded-2x-20260824.json).
 
 ## GB300 software port
 

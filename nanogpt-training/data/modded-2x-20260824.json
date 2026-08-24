@@ -1,0 +1,34 @@
+{
+  "benchmark": "modded-nanogpt-fineweb-time-to-loss",
+  "source_revision": "ecbb586296d3dac36fd206211f25d63bad4a6b35",
+  "run_id": "modded-2x-20260824T0147Z",
+  "hosts": ["gemini1", "gemini2"],
+  "world_size": 2,
+  "accelerators": "2x NVIDIA GB300",
+  "target_validation_loss": 3.28,
+  "train_steps": 1285,
+  "total_training_tokens": 338821120,
+  "train_time_seconds": 225.081,
+  "final_validation_loss": 3.2764,
+  "training_tokens_per_second": 1505329.73,
+  "peak_allocated_mib_per_rank": 35321,
+  "peak_reserved_mib_per_rank": 48930,
+  "one_node_mean_train_time_seconds": 427.867,
+  "speedup_vs_one_node_mean": 1.90095,
+  "strong_scaling_efficiency_percent": 95.047,
+  "official_8xh100_reference_seconds": 73.8,
+  "time_ratio_vs_official_8xh100": 3.04988,
+  "process_elapsed_seconds_approx": 628.348,
+  "nccl_transport": {
+    "interfaces": ["mlx5_0", "mlx5_1"],
+    "network": "RoCE",
+    "gpu_direct": "GDRDMA",
+    "merged_nics": true,
+    "distributed_channels": 8
+  },
+  "notes": [
+    "train_time is the upstream synchronized training timer and excludes compilation, warmup, and validation",
+    "the global batch and optimizer schedule are identical to the one-node and 8xH100 recipes",
+    "the final loss clears the upstream single-run <=3.276 statistical threshold"
+  ]
+}
