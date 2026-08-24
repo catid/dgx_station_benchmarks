@@ -1,0 +1,36 @@
+{
+  "benchmark": "classic-nanogpt-gpt2-124m-openwebtext",
+  "world_size": 2,
+  "source_revision": "3adf61e154c3fe3fca428ad6bc3818b27a3b8291",
+  "global_tokens_per_optimizer_step": 491520,
+  "captured_iterations": 201,
+  "measured_steps": [20, 199],
+  "measured_step_count": 180,
+  "mean_step_ms": 267.3784444444444,
+  "median_step_ms": 266.48,
+  "min_step_ms": 262.06,
+  "max_step_ms": 433.04,
+  "steady_tokens_per_second": 1838293.2888298985,
+  "extrapolated_600k_steps_seconds": 160427.06666666665,
+  "extrapolated_600k_steps_days": 1.856795,
+  "one_node_mean_step_ms": 529.1338333333333,
+  "speedup_vs_one_node": 1.97897,
+  "strong_scaling_efficiency_percent": 98.948,
+  "evaluations": [
+    {
+      "step": 0,
+      "train_loss": 10.9876,
+      "val_loss": 10.9903
+    },
+    {
+      "step": 200,
+      "train_loss": 6.6037,
+      "val_loss": 6.5857
+    }
+  ],
+  "notes": [
+    "steps 20 through 199 are the steady-state measurement window",
+    "the window includes one 433.04 ms outlier at step 43",
+    "the 600k-step duration is an extrapolation, not a completed convergence run"
+  ]
+}
