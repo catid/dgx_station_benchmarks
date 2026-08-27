@@ -19,6 +19,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 
 | Experiment | Checkpoint / precision | Headline result |
 | --- | --- | --- |
+| [Qwen3.8-Flash-Next](qwen3.8-flash-next/) | Official FP8/vLLM and third-party RadixArk NVFP4/SGLang; 4× RTX PRO 6000 plus DGX qualification ledger | 4× PRO 6000: NVFP4 MTP3 C1: 211.7; NVFP4 AR C64: 2,849.4; FP8 AR C128: 3,668.9 tok/s; DGX timed rows pending |
 | [Qwen3.8-27B](qwen3.8-27b/) | BF16 plus unofficial Huginn FP8 and NVFP4A16 targets; BF16 KV/Mamba state | DFlash2: 265.8 tok/s C1; MTP: 6,348.8 C128. Quant AR C128: FP8 5,494.4 (+8.7% vs BF16), NVFP4A16 3,607.4 (−28.6%) |
 | [Qwen2.5-72B LoRA FSDP training](qwen72b-lora-fsdp/) | BF16 LoRA SFT; FSDP2 over 2× GB300; packed UltraChat 10K at 2,048 tokens | 4,453.19 tokens/s; 29.433 s/optimizer step; global batch 131,072 tokens |
 | [RF-DETR Large training](rfdetr-training/) | BF16 fine-tuning on the 1.17M-image MLPerf OpenImages subset; 2× GB300 DDP | Optimized global-batch-128 epoch: 220.45 images/s and 1:46:52 end to end (2.44× faster than control) |
@@ -28,6 +29,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 | [DeepSeek-V4-Flash-0731](deepseek-v4-flash-0731/) | 304B/13B-active native mixed FP4-expert/FP8-dense checkpoint | DSpark: 345.8 output tok/s at C1; C128 raw, capacity-limited: 6,511.1 aggregate output tok/s |
 | [Ornith-1.5-397B](ornith-1.5-397b/) | Official ModelOpt NVFP4 W4A4 checkpoint; 1× TP1 and 2× PP2/TP2+EP | 1× C1: 129.8 output tok/s; 2× PP2 stable, capacity-limited C128: 3,799.6 aggregate tok/s |
 | [GLM-5.2](glm-5.2/) | Official NVIDIA NVFP4 checkpoint; 2× TP2+EP (1× does not fit) | C1: 68.0 output tok/s; shared-prefix C128: 2,012.4 aggregate tok/s |
+| [GLM-5.3-Flash](glm-5.3-flash/) | Native official FP8 plus tracked third-party NVFP4 lanes | 4× PRO 6000 external MTP5: C1: 148.5; C10: 522.4 tok/s; current DGX measurements retained as unranked diagnostics |
 | [Hy3-FP8](hy3/) | Official FP8 checkpoint; 2× PP2 and TP2+EP (1× does not fit) | MTP2 C1: 141.9 output tok/s; MTP1 C64: 2,563.7; no-spec C128: 3,078.5 aggregate tok/s |
 | [MiniMax H3 video](minimax-h3-video/) | Official BF16 FL2VA checkpoint; resident 1× GB300, no offload | Official 5 s: 116.86 s mean; official 15 s: 719.29 s; experimental patched 30 s: 2,454.44 s |
 | [MiniMax M3](minimax-m3/) | Official NVIDIA NVFP4 (1×) plus official MiniMax MXFP8 (2× PP2) | NVFP4: 152.6 C1, 1,595.8 C16; MXFP8 PP2: 998.3 C32; 128K prefill: 35,683 tok/s; WikiText-2 PPL: 5.7120 / 5.4323 |
@@ -84,6 +86,11 @@ and retains completion and scheduler-residency fields.
 
 ```text
 .
+├── qwen3.8-flash-next/
+│   ├── README.md
+│   ├── charts/
+│   ├── data/
+│   └── recipes/
 ├── qwen3.8-27b/
 │   ├── README.md
 │   ├── charts/
@@ -128,6 +135,11 @@ and retains completion and scheduler-residency fields.
 │   ├── data/
 │   └── recipes/
 ├── glm-5.2/
+│   ├── README.md
+│   ├── charts/
+│   ├── data/
+│   └── recipes/
+├── glm-5.3-flash/
 │   ├── README.md
 │   ├── charts/
 │   ├── data/
