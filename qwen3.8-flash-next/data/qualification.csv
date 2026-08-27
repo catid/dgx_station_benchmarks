@@ -1,0 +1,5 @@
+profile,topology,mtp_tokens,status,rankable,evidence_run_id,note
+nvfp4_tp1_mtp0_smoke,independent_tp1_pair,0,PASS_SMOKE_UNRANKED,false,qwen38-sglang-nvfp4-tp1-mtp0-smoke-20260827-v15,"Sealed deterministic two-replica checkpoint, runtime, output, synchronization, cleanup, and postflight smoke"
+nvfp4_tp1_mtp3_smoke,independent_tp1_pair,3,FAILED_CORRECTNESS,false,qwen38-sglang-nvfp4-tp1-mtp3-smoke-20260827-v3,"MTP3 was deterministic across replicas and exposed consistent acceptance counters, but failed exact greedy parity against MTP0 at output index 6; unpatched MTP3 timing is excluded"
+nvfp4_tp2_mtp0,cross_node_tp2,0,PENDING,false,,"Runs after final TP1 qualification"
+nvfp4_tp2_mtp3,cross_node_tp2,3,PENDING_PATCH_QUALIFICATION,false,,"Runs only after the pinned upstream beta-parity patch passes exact TP1 output/state qualification"

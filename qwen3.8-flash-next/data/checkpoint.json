@@ -1,0 +1,76 @@
+{
+  "schema_version": 3,
+  "architecture": "Qwen4ExpForConditionalGeneration",
+  "model_family": "Qwen3.8-Flash-Next",
+  "not_model_family": "Qwen3.8-27B",
+  "shape": {
+    "hidden_size": 2560,
+    "num_hidden_layers": 48,
+    "linear_attention_layers": 36,
+    "full_attention_layers": 12,
+    "num_attention_heads": 24,
+    "num_key_value_heads": 2,
+    "head_dim": 256,
+    "num_experts": 512,
+    "num_experts_per_token": 10,
+    "vocab_size": 248320,
+    "max_position_embeddings": 262144,
+    "mtp_hidden_layers": 1
+  },
+  "checkpoints": {
+    "official_fp8": {
+      "model_id": "Qwen/Qwen3.8-Flash-Next-FP8",
+      "revision": "bcd9f01ddc9cff2316eb84281bebcd5b058bddce",
+      "publisher_status": "official_qwen",
+      "safetensors_files": 131,
+      "safetensors_bytes": 185523317458,
+      "precision": {
+        "weights": "FP8 dynamic activation scheme with 128x128 weight blocks",
+        "compute": "bfloat16"
+      }
+    },
+    "radix_nvfp4": {
+      "model_id": "RadixArk/Qwen3.8-Flash-Next-NVFP4",
+      "revision": "7b719225242aacd3dbd3f9407468c2ee9a9d2594",
+      "publisher_status": "third_party_quantization",
+      "safetensors_files": 206,
+      "safetensors_bytes": 135195303851,
+      "index_tensor_entries": 296475,
+      "shard_layout": {
+        "routed_expert_shards": 192,
+        "unquantized_bfloat16_shards": 4,
+        "ple_fp8_shards": 10
+      },
+      "precision": {
+        "model_compute": "bfloat16",
+        "target_experts": "ModelOpt NVFP4 W4A4 static group-16",
+        "recurrent_state": "float32",
+        "ple_table": "float8_e4m3fn",
+        "ple_output": "bfloat16",
+        "mtp_source_tensors": "bfloat16",
+        "mtp_observation": "online NVFP4 conversion of draft expert weights was reported"
+      }
+    }
+  },
+  "local_dgx_qualification": {
+    "accepted_smoke": {
+      "run_id": "qwen38-sglang-nvfp4-tp1-mtp0-smoke-20260827-v15",
+      "status": "SEALED_PASS_SMOKE_UNRANKED",
+      "comparison_id": "qwen38-sglang-nvfp4-tp1-qualification-20260827-final3",
+      "replica_token_ids_sha256": "b381629a51d8d777068fa445395450a9260b6a61d62932aa21f1b9c0a35efd20",
+      "tokens_compared": 64
+    },
+    "mtp3_v3": {
+      "run_id": "qwen38-sglang-nvfp4-tp1-mtp3-smoke-20260827-v3",
+      "status": "FAILED_CORRECTNESS",
+      "comparison_id": "qwen38-sglang-nvfp4-tp1-qualification-20260827-final3",
+      "replica_token_ids_sha256": "2a243cc3e3ad16363ede4e1dddb7a778161c2a2cef1a072e7c610d86b4504b30",
+      "tokens_compared": 64,
+      "first_mtp0_mtp3_divergence_output_index": 6,
+      "mtp0_token_at_divergence": 198,
+      "mtp3_token_at_divergence": 271,
+      "differing_output_positions": 57,
+      "note": "MTP3 was deterministic across hosts and its counters were self-consistent, but it failed the exact greedy MTP0/MTP3 semantic gate. Unpatched MTP3 results are excluded."
+    }
+  }
+}

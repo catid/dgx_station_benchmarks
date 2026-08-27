@@ -1,0 +1,128 @@
+{
+  "schema_version": 2,
+  "source_id": "foureyes-20260827-qwen-handoff",
+  "source_type": "external_user_supplied_handoff",
+  "snapshot_utc": "2026-08-27",
+  "source_host": "foureyes",
+  "source_system": {
+    "system": "ASUS Pro WS WRX90E-SAGE SE workstation",
+    "gpu_count": 4,
+    "gpu_model": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+    "compute_capability": "12.0",
+    "server_instances": 1
+  },
+  "local_raw_artifacts": {
+    "present_at_import": false,
+    "verified_at_import": false,
+    "expected_r2_roots_checked": [
+      "nvfp4/results-20260827-r2/tep4/ar",
+      "nvfp4/results-20260827-r2/tep4/mtp3",
+      "nvfp4/results-20260827-r2/tp4/ar",
+      "nvfp4/results-20260827-r2/tp4/mtp3"
+    ],
+    "policy": "The supplied tables, seal claims, hashes, and expected paths are retained as external user-supplied evidence. The r2 raw trees were absent from this checkout at import, so SEALED_PRIMARY_EXTERNAL means sealed by the source handoff, not locally byte-verified."
+  },
+  "benchmark_contract": {
+    "harness": "llm-inference-bench",
+    "harness_version": "0.4.29",
+    "harness_commit": "0b4185b5b435e948b199c9077a00b084864aa963",
+    "endpoint": "/v1/chat/completions",
+    "temperature": 0,
+    "decode_input_tokens": 8192,
+    "decode_output_tokens": 1024,
+    "decode_ignore_eos": true,
+    "decode_concurrency": [1, 2, 4, 8, 16, 32, 64, 128],
+    "decode_warmup_requests_per_cell": "concurrency",
+    "decode_measured_requests_per_cell": "5 * concurrency",
+    "decode_prefix_state": "same-prefix warm after unmeasured scout and warmups",
+    "cold_prefill_concurrency": 1,
+    "cold_prefill_nominal_tokens": [8192, 32768, 65536, 131072],
+    "cold_prefill_actual_tokens": [8194, 32770, 65538, 131074],
+    "cold_prefill_output_tokens": 1,
+    "cold_prefill_unique_leading_prefix": true
+  },
+  "lanes": {
+    "official_fp8_vllm": {
+      "publication_status": "SEALED_PRIMARY_EXTERNAL",
+      "model_id": "Qwen/Qwen3.8-Flash-Next-FP8",
+      "revision": "bcd9f01ddc9cff2316eb84281bebcd5b058bddce",
+      "runtime": "vLLM 0.1.dev20073+g8e685d198",
+      "profiles": ["TP4/AR", "TP4/MTP3", "TEP4/AR", "TEP4/MTP3"],
+      "manifest_entries_verified_per_profile": "68/68",
+      "model_manifest_sha256": "01eae702c27b68bc987795af16d54c0367948f27c5ea6896449db1df00bc3077",
+      "shard_manifest_sha256": "aa87fbd5ecf782ebdaa7bd2a4653455ac0528a3e95c1af47fe406df4c7f23cb7",
+      "safetensors_index_sha256": "0419e2c2dfbb925257d7409405433a793cf7ff7d96f3eba882a815ec6d9fe7a6",
+      "expected_profile_seal_file_sha256": {
+        "data/raw/tp4/ar/SHA256SUMS": "71c9ee0e4b42ab179610143c350988d1fd81a4fcb7806c21b026840e9b944eab",
+        "data/raw/tp4/mtp3/SHA256SUMS": "4dec4573aae9dbaffedb07561bec8e2c9e55c7c3e21bc67c2679ba8316cefbb1",
+        "data/raw/tep4/ar/SHA256SUMS": "a7418c0abb2c177e6adb6bb60396efbe09f2df5c7c2f21028ddb96010bc1b485",
+        "data/raw/tep4/mtp3/SHA256SUMS": "d5985e22d647040ecf171a60ef6b8903c0729e41258c8de75167681264e5fb00"
+      }
+    },
+    "radix_nvfp4_sglang": {
+      "publication_status": "SEALED_PRIMARY_EXTERNAL",
+      "verification_scope": "Source-supplied seal claims; raw r2 artifact trees were absent locally and hashes were not reverified during import.",
+      "model_id": "RadixArk/Qwen3.8-Flash-Next-NVFP4",
+      "revision": "7b719225242aacd3dbd3f9407468c2ee9a9d2594",
+      "runtime": "patched SGLang 0.0.0.dev1+gd91c3682b",
+      "profiles_present": ["TEP4/AR decode and cold prefill", "TEP4/MTP3 decode and cold prefill"],
+      "profiles_unsupported": ["TP4/AR startup", "TP4/MTP3 startup"],
+      "unsupported_policy": "Unsupported startup attempts are recorded in external-attempts.csv and are never encoded as zero-throughput measurements.",
+      "unsupported_startup_attempts_reported_by_source": {
+        "TP4/AR": {
+          "expected_failure_root": "nvfp4/results-20260827-r2/tp4/ar/failure/",
+          "expected_server_log_sha256": "8d9a099681779846a40dc875b03532c3c80180adc139719f29c4f237cc30e8aa",
+          "normalized_traceback_sha256": "8b195578b2940af5f6a841b4cb07b7616c750e478eb44d93ff517ce74fb13eb5",
+          "failure_reason": "ModelOpt routed-expert w2_weight_scale shape (512, 2560, 10) requires padding while the gated activation already implements padding; startup stopped before health or timing."
+        },
+        "TP4/MTP3": {
+          "expected_failure_root": "nvfp4/results-20260827-r2/tp4/mtp3/failure/",
+          "expected_server_log_sha256": "ab1f247b9d0ed959d401c45ec56d616a2e4412b11fc0259c19b550af8eed1fb8",
+          "normalized_traceback_sha256": "8b195578b2940af5f6a841b4cb07b7616c750e478eb44d93ff517ce74fb13eb5",
+          "failure_reason": "ModelOpt routed-expert w2_weight_scale shape (512, 2560, 10) requires padding while the gated activation already implements padding; startup stopped before health or timing."
+        }
+      },
+      "shard_manifest_sha256": "3258a0d1e3b721dcc51ed3a2493ea82c1a705aef1830ff2f0169a77ac857170d",
+      "model_contract_sha256": "5bdc9450dcd756f3758ac45db2e96c870ed9d51c3bace002cdff6303f0b4e294",
+      "safetensors_index_sha256": "da5ca9c3b65e48e151329e64e141c2fa700bf2f99aec53cc014e4b52a6ff7a84",
+      "profile_seals_reported_by_source": {
+        "nvfp4/results-20260827-r2/tep4/ar/SHA256SUMS": {
+          "sha256": "a95881ba198b9a22f3317e13d42cf36a343362852b5ced316c74eedef139c13a",
+          "file_count": 154,
+          "seal_note": "Source reported a repaired substantive-cache seal after a zero-byte FlashInfer diagnostic path caused the original final cache check to fail; no measurement was reportedly rerun or rewritten."
+        },
+        "nvfp4/results-20260827-r2/tep4/mtp3/SHA256SUMS": {
+          "sha256": "de9459cfb8ae365c9dd40d0e404d6240228280634fd3bd285a72ff29258353fe",
+          "file_count": 155,
+          "seal_note": "Source reported sealed measurement evidence with the C128 first-use Triton compile exception retained."
+        }
+      },
+      "mtp3_c128_cache_exception": {
+        "affected_artifact": "nvfp4/results-20260827-r2/tep4/mtp3/fixed/c128.json",
+        "status": "MEASURED_WITH_FIRST_USE_TRITON_COMPILE",
+        "strict_warmed_cache": false,
+        "kernel": "alloc_extend_kernel",
+        "added_cache_files": 8,
+        "added_cache_bytes": 214284,
+        "post_run_cache_manifest_sha256_reported_by_source": "35f7d2585f10946af76be841c9409b0ad6d08440d584fd591787d48ff9456183",
+        "capacity_limited": true,
+        "queue_fraction": 0.917,
+        "mean_effective_concurrency": 95.7,
+        "policy": "Retain the measured result and exception; do not describe this C128 row as strict warmed-cache or as 128 simultaneously resident sequences. C1-C64 are source-reported clean warmed-cache rows; prefill followed the compile."
+      },
+      "expected_result_sha256_reported_by_source": {
+        "nvfp4/results-20260827-r2/tep4/mtp3/fixed/c1.json": "37c54b13a1f69d0db6647dde432db3decbc569d37f8cb2dd7e68000010002e9d",
+        "nvfp4/results-20260827-r2/tep4/mtp3/fixed/c2.json": "4e2c42b232e878b69063e3bfdc96fdd980f2d0c52c096328a8fa6e744b6585ad",
+        "nvfp4/results-20260827-r2/tep4/mtp3/fixed/c4.json": "272cf66047fb84c40ab40c9a6a49889a13675552cadd4aa4cdaeb5bc45570126",
+        "nvfp4/results-20260827-r2/tep4/mtp3/fixed/c8.json": "3bdfbbce197db638d85e8d68bfd982e1fbd62abfaaf84dea88ba5a6f34e5e354",
+        "nvfp4/results-20260827-r2/tep4/mtp3/fixed/c16.json": "2dc895ed3c686187752538522eaef0d618b52602a71e76b4376aa805125d6aae",
+        "nvfp4/results-20260827-r2/tep4/mtp3/fixed/c32.json": "131858aa80bf8af391d51e7605aa9336cf46fbabfedeb1690285632642240a0b",
+        "nvfp4/results-20260827-r2/tep4/mtp3/fixed/c64.json": "14095cf706c0dc06ea1d720813a3dbc0b2edb243fb73a6d240bd39bbaad09f8e",
+        "nvfp4/results-20260827-r2/tep4/mtp3/fixed/c128.json": "0a3c2877a8aec7869b70243c619542d2ba18786b723c76f71628a828211ac713",
+        "nvfp4/results-20260827-r2/tep4/mtp3/prefill/cold.json": "25a04512b5175e97253a9a8861554034fe98332ebaacc4303d2cdf2c2ea7206f"
+      }
+    }
+  },
+  "comparison_warning": "FP8/vLLM versus NVFP4/SGLang changes checkpoint and runtime together; it is an end-to-end system comparison, not an isolated quantization comparison.",
+  "natural_output_diagnostic_excluded": "The handoff's natural-output series hit the 1024-token cap with empty final-answer content and is not published as successful-answer throughput."
+}
