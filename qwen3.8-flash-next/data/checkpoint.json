@@ -54,9 +54,9 @@
   },
   "local_dgx_qualification": {
     "accepted_smoke": {
-      "run_id": "qwen38-sglang-nvfp4-tp1-mtp0-smoke-20260827-v15",
+      "run_id": "qwen38-dgx-nvfp4-tp1-mtp0-smoke-20260827-v17",
       "status": "SEALED_PASS_SMOKE_UNRANKED",
-      "comparison_id": "qwen38-sglang-nvfp4-tp1-qualification-20260827-final3",
+      "comparison_id": "qwen38-dgx-nvfp4-20260827",
       "replica_token_ids_sha256": "b381629a51d8d777068fa445395450a9260b6a61d62932aa21f1b9c0a35efd20",
       "tokens_compared": 64
     },

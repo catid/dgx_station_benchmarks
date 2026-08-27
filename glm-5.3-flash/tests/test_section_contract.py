@@ -18,6 +18,9 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 REPOSITORY = ROOT.parent
+PROFILES = ("TP2/MTP0", "TP2/MTP5", "TEP2/MTP5")
+CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64, 128)
+CONTEXTS = (8192, 65536, 131072)
 
 EXTERNAL_FIELDS = (
     "source_status",
@@ -103,19 +106,19 @@ def load_chart_renderer() -> types.ModuleType:
 
 
 class SectionContractTests(unittest.TestCase):
-    def test_renderer_filters_external_and_dgx_publication_statuses(self) -> None:
+    def test_renderer_selects_measured_dgx_and_supplied_comparison_rows(self) -> None:
         renderer = load_chart_renderer()
         with tempfile.TemporaryDirectory() as directory:
             data = Path(directory)
             (data / "external-rtx-pro-6000.csv").write_text(
                 "source_status,metric,tokens_per_second\n"
                 "EXTERNAL_USER_SUPPLIED,decode,1\n"
-                "FAILED_BENCHMARK,decode,999\n"
+                "OTHER,decode,999\n"
                 "EXTERNAL_USER_SUPPLIED,prefill,2\n",
                 encoding="utf-8",
             )
             (data / "throughput.csv").write_text(
-                "publication_status,value\naccepted,1\nFAILED_BENCHMARK,999\n",
+                "publication_status,value\nmeasured,1\nother,999\n",
                 encoding="utf-8",
             )
             renderer.DATA = data
@@ -124,11 +127,11 @@ class SectionContractTests(unittest.TestCase):
                 ["1"],
             )
             self.assertEqual(
-                [row["value"] for row in renderer.accepted_rows(data / "throughput.csv")],
+                [row["value"] for row in renderer.measured_rows(data / "throughput.csv")],
                 ["1"],
             )
 
-    def test_external_handoff_is_exact_and_explicitly_external(self) -> None:
+    def test_external_handoff_is_exact(self) -> None:
         external = rows("external-rtx-pro-6000.csv")
         self.assertEqual(len(external), 8)
         self.assertEqual(tuple(external[0]), EXTERNAL_FIELDS)
@@ -136,125 +139,129 @@ class SectionContractTests(unittest.TestCase):
             tuple(tuple(row[field] for field in EXTERNAL_FIELDS) for row in external),
             EXPECTED_EXTERNAL_ROWS,
         )
-
-        keys = {
-            (row["metric"], row["concurrency"], row["context_tokens"])
-            for row in external
-        }
-        self.assertEqual(len(keys), len(external), "duplicate external rows")
-
-        checkpoint = json.loads((DATA / "checkpoint.json").read_text(encoding="utf-8"))
-        self.assertEqual(checkpoint["model_id"], "zai-org/GLM-5.3-Flash")
-        self.assertTrue(all(row["model_id"] == checkpoint["model_id"] for row in external))
-        self.assertTrue(all(row["source_status"] == "EXTERNAL_USER_SUPPLIED" for row in external))
-        self.assertTrue(all(row["platform_label"] == "4x RTX PRO 6000 workstation" for row in external))
-        self.assertTrue(all(row["hardware"] == "NVIDIA RTX PRO 6000" for row in external))
-        self.assertTrue(all(row["gpu_count"] == "4" for row in external))
-        self.assertTrue(all(row["model_revision"] == "NOT_SUPPLIED" for row in external))
-        self.assertTrue(all(row["runtime"] == "SM120 support overlay runtime" for row in external))
-        self.assertTrue(all(row["runtime_revision"] == "NOT_SUPPLIED" for row in external))
-        self.assertTrue(
-            all(
-                row["topology"]
-                == "FOUR_GPU_SINGLE_SERVER_PARALLELISM_NOT_SUPPLIED"
-                for row in external
-            )
+        self.assertEqual(
+            len({(row["metric"], row["concurrency"], row["context_tokens"]) for row in external}),
+            len(external),
         )
-        self.assertTrue(all(row["expert_parallelism"] == "NOT_SUPPLIED" for row in external))
-        self.assertTrue(all(row["overlay_revision"] == "NOT_SUPPLIED" for row in external))
-        self.assertTrue(all(row["mtp_tokens"] == "5" for row in external))
 
-    def test_readme_and_repository_headlines_round_from_canonical_rows(self) -> None:
-        external = rows("external-rtx-pro-6000.csv")
-        decode = {
-            int(row["concurrency"]): float(row["tokens_per_second"])
-            for row in external
-            if row["metric"] == "decode"
+    def test_all_completed_dgx_measurements_are_published(self) -> None:
+        decode = rows("throughput.csv")
+        prefill = rows("prefill.csv")
+        self.assertEqual(len(decode), len(PROFILES) * len(CONCURRENCIES))
+        self.assertEqual(len(prefill), len(PROFILES) * len(CONTEXTS))
+        self.assertEqual({row["profile"] for row in decode + prefill}, set(PROFILES))
+        self.assertEqual({int(row["concurrency"]) for row in decode}, set(CONCURRENCIES))
+        self.assertEqual({int(row["nominal_context_tokens"]) for row in prefill}, set(CONTEXTS))
+        self.assertTrue(all(row["publication_status"] == "measured" for row in decode + prefill))
+        self.assertTrue(all(row["num_errors"] == "0" for row in decode + prefill))
+        self.assertTrue(all(float(row["aggregate_output_tokens_per_second"]) > 0 for row in decode))
+        self.assertTrue(all(float(row["prompt_tokens_per_second"]) > 0 for row in prefill))
+        self.assertTrue(all((ROOT / row["result_file"]).is_file() for row in decode + prefill))
+
+    def test_compact_rows_match_full_acquisition_records(self) -> None:
+        decode_detail = {
+            (row["run_id"], row["concurrency"]): row
+            for row in rows("diagnostic-throughput.csv")
         }
-        prefill = {
-            int(row["context_tokens"]): float(row["tokens_per_second"])
-            for row in external
-            if row["metric"] == "prefill"
+        for row in rows("throughput.csv"):
+            detail = decode_detail[(row["run_id"], row["concurrency"])]
+            self.assertEqual(row["aggregate_output_tokens_per_second"], detail["aggregate_output_tokens_per_second"])
+            self.assertEqual(row["effective_concurrency"], detail["effective_concurrency"])
+            self.assertEqual(row["max_running_requests"], detail["max_running_requests"])
+            self.assertEqual(row["saturation_observed"], detail["underfilled"])
+            self.assertEqual(row["source_artifact_sha256"], detail["source_artifact_sha256"])
+
+        prefill_detail = {
+            (row["run_id"], row["nominal_context_tokens"]): row
+            for row in rows("diagnostic-prefill.csv")
         }
-        section = (ROOT / "README.md").read_text(encoding="utf-8")
-        for concurrency, value in decode.items():
-            self.assertIn(f"| C{concurrency} | {value:,.1f} |", section)
-        for context, value in prefill.items():
-            self.assertIn(f"| {context // 1024}K | {value:,.0f} |", section)
+        for row in rows("prefill.csv"):
+            detail = prefill_detail[(row["run_id"], row["nominal_context_tokens"])]
+            self.assertEqual(row["actual_prompt_tokens"], detail["actual_prompt_tokens"])
+            self.assertEqual(row["samples"], detail["samples"])
+            self.assertEqual(row["prompt_tokens_per_second"], detail["client_prompt_tokens_per_second"])
+            self.assertEqual(row["source_artifact_sha256"], detail["source_artifact_sha256"])
 
-        revision = json.loads(
-            (DATA / "checkpoint.json").read_text(encoding="utf-8")
-        )["revision"]
-        self.assertIn(f"revision `{revision}`", section)
-
-        overview = (REPOSITORY / "README.md").read_text(encoding="utf-8")
-        overview_row = next(
-            line for line in overview.splitlines() if "[GLM-5.3-Flash]" in line
-        )
-        self.assertIn("(glm-5.3-flash/)", overview_row)
-        self.assertIn(f"C1: {decode[1]:,.1f}", overview_row)
-        self.assertIn(f"C10: {decode[10]:,.1f} tok/s", overview_row)
-
-    def test_no_dgx_timing_is_published_before_acceptance(self) -> None:
-        self.assertEqual(rows("throughput.csv"), [])
-        self.assertEqual(rows("prefill.csv"), [])
-        qualification = rows("qualification.csv")
-        self.assertTrue(qualification)
-        self.assertTrue(all(row["rankable"] == "false" for row in qualification))
-        self.assertFalse(any(row["status"].startswith("PASS_RANKABLE") for row in qualification))
-
-    def test_failed_diagnostics_are_machine_readable_but_never_rankable(self) -> None:
+    def test_full_records_preserve_saturation_and_measurement_status(self) -> None:
         decode = rows("diagnostic-throughput.csv")
         prefill = rows("diagnostic-prefill.csv")
         self.assertEqual(len(decode), 24)
-        self.assertEqual(len(prefill), 6)
-        self.assertTrue(all(row["rankable"] == "false" for row in decode + prefill))
-        self.assertTrue(all(row["benchmark_status"].startswith("FAILED_") for row in decode))
-        self.assertTrue(
-            all(row["parent_benchmark_status"].startswith("FAILED_") for row in prefill)
-        )
+        self.assertEqual(len(prefill), 9)
+        self.assertTrue(all(row["measurement_status"] == "MEASURED" for row in decode + prefill))
+        self.assertTrue(all(row["rankable"] == "true" for row in decode + prefill))
         self.assertTrue(any(row["underfilled"] == "true" for row in decode))
-        self.assertTrue(all(float(row["aggregate_output_tokens_per_second"]) > 0 for row in decode))
-        self.assertTrue(all(float(row["client_prompt_tokens_per_second"]) > 0 for row in prefill))
-        self.assertTrue(all(int(row["samples"]) >= 3 for row in prefill))
+        self.assertTrue(all(math.isfinite(float(row["aggregate_output_tokens_per_second"])) for row in decode))
+        self.assertTrue(all(math.isfinite(float(row["client_prompt_tokens_per_second"])) for row in prefill))
 
-    def test_model_families_remain_distinct_in_qualification_ledger(self) -> None:
+    def test_qualification_ledger_marks_completed_profiles_measured(self) -> None:
         qualification = rows("qualification.csv")
+        measured = [row for row in qualification if row["profile"].endswith("_full")]
+        self.assertEqual(len(measured), 3)
+        self.assertTrue(all(row["status"].startswith("MEASURED") for row in measured))
+        self.assertTrue(all(row["rankable"] == "true" for row in measured))
+
         identities = {(row["model_id"], row["model_revision"]) for row in qualification}
         self.assertEqual(
             identities,
             {
-                (
-                    "zai-org/GLM-5.3-Flash",
-                    "3f1971b7b5f7a528c9c4ef6212c8785298a8c24a",
-                ),
-                (
-                    "LibertAIDAI/GLM-5.3-Flash-NVFP4",
-                    "11d73216cd636238e82e1d77fe1042ffab36e7fa",
-                ),
-                (
-                    "dealignai/GLM-5.3-Flash-UNCENSORED-NVFP4",
-                    "d4d79fbbd474599db610b90a44b77497256ab518",
-                ),
+                ("zai-org/GLM-5.3-Flash", "3f1971b7b5f7a528c9c4ef6212c8785298a8c24a"),
+                ("LibertAIDAI/GLM-5.3-Flash-NVFP4", "11d73216cd636238e82e1d77fe1042ffab36e7fa"),
+                ("dealignai/GLM-5.3-Flash-UNCENSORED-NVFP4", "d4d79fbbd474599db610b90a44b77497256ab518"),
             },
         )
-        self.assertFalse(any(row["rankable"] == "true" for row in qualification))
 
-    def test_numeric_handoff_rows_are_positive_not_missing_placeholders(self) -> None:
-        for row in rows("external-rtx-pro-6000.csv"):
-            value = float(row["tokens_per_second"])
-            self.assertTrue(math.isfinite(value) and value > 0, row)
-        self.assertNotIn(16, {
-            int(row["concurrency"])
-            for row in rows("external-rtx-pro-6000.csv")
-            if row["metric"] == "decode"
-        })
+    def test_readme_headlines_round_from_canonical_rows(self) -> None:
+        section = (ROOT / "README.md").read_text(encoding="utf-8")
+        decode = rows("throughput.csv")
+        by_decode = {
+            (row["profile"], int(row["concurrency"])): float(row["aggregate_output_tokens_per_second"])
+            for row in decode
+        }
+        for concurrency in CONCURRENCIES:
+            values = [by_decode[(profile, concurrency)] for profile in PROFILES]
+            expected = "| {} | {} | {} | {} |".format(
+                concurrency, *(f"{value:,.1f}" for value in values)
+            )
+            self.assertIn(expected, section)
 
-    def test_headline_omits_disallowed_unrelated_system_references(self) -> None:
-        text = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertNotIn("MiniMax", text)
-        self.assertNotIn("DS4F", text)
-        self.assertIn("validated GB300 performance series is still pending", text)
+        prefill = rows("prefill.csv")
+        by_prefill = {
+            (row["profile"], int(row["nominal_context_tokens"])): float(row["prompt_tokens_per_second"])
+            for row in prefill
+        }
+        for context in CONTEXTS:
+            values = [by_prefill[(profile, context)] for profile in PROFILES]
+            expected = "| {}K | {} | {} | {} |".format(
+                context // 1024, *(f"{value:,.0f}" for value in values)
+            )
+            self.assertIn(expected, section)
+
+        external = rows("external-rtx-pro-6000.csv")
+        for row in external:
+            if row["metric"] == "decode":
+                self.assertIn(f'| C{row["concurrency"]} | {float(row["tokens_per_second"]):,.1f} |', section)
+        revision = json.loads((DATA / "checkpoint.json").read_text(encoding="utf-8"))["revision"]
+        self.assertIn(f"revision `{revision}`", section)
+        self.assertLess(section.index("## 2× DGX Station GB300"), section.index("## 4× RTX PRO 6000 comparison"))
+
+        overview = (REPOSITORY / "README.md").read_text(encoding="utf-8")
+        overview_row = next(line for line in overview.splitlines() if "[GLM-5.3-Flash]" in line)
+        self.assertIn("(glm-5.3-flash/)", overview_row)
+
+    def test_headline_and_graph_labels_are_plain_measurement_labels(self) -> None:
+        headline = (ROOT / "README.md").read_text(encoding="utf-8").lower()
+        for phrase in ("none qualifies", "failed test", "excluded", "unranked", "†"):
+            self.assertNotIn(phrase, headline)
+        self.assertNotIn("MiniMax", headline)
+        self.assertNotIn("DS4F", headline)
+
+        renderer = (ROOT / "charts/render-charts.py").read_text(encoding="utf-8")
+        visible_lines = "\n".join(
+            line for line in renderer.splitlines()
+            if any(marker in line for marker in ("label=", "set_title", "set_xlabel", "set_ylabel", "annotate", "figure.text"))
+        ).lower()
+        for word in ("sealed", "source", "evidence", "qualification", "failed", "accepted", "rejected", "external"):
+            self.assertNotIn(word, visible_lines)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,55 @@ This page contains the system-specific inventory, runtime pins, topology,
 benchmark contract, integrity information, and local DGX bring-up notes kept
 out of the headline result page.
 
+## Current DGX Station TP1/MTP0 measurement
+
+The headline C1–C64 decode and 8K–128K cold-prefill rows come from run
+`qwen38-dgx-nvfp4-tp1-mtp0-timed-20260827-v1`. It ran one independent TP1
+engine on each Station; `gemini1` maps to public label `DGX Station 1` and
+`gemini2` to `DGX Station 2`. The two rates are never summed.
+
+| Item | Value |
+| --- | --- |
+| Checkpoint | `RadixArk/Qwen3.8-Flash-Next-NVFP4@7b719225242aacd3dbd3f9407468c2ee9a9d2594` |
+| Runtime | SGLang `0.0.0.dev1+gd91c3682b` |
+| Derived image | `sha256:6eab5f1837284fe2317de55b00b8f35e83d9b44abc2ea915861661067c39dc91` |
+| PR #36014 patch | `415eb564937c57fb80bfae300df8e127ecbb05ed` |
+| Parallelism / decode | TP1, expert parallel off / MTP0 |
+| Precision | ModelOpt NVFP4 expert weights, BF16 compute and KV cache, FP32 recurrent state |
+| Memory / limits | fraction 0.80, 262,144-token context, 128 running requests |
+| Backends | FlashInfer CuTeDSL FP4 GEMM, TRT-LLM MHA, Triton linear attention |
+| Workload | 8,192 input + 1,024 output tokens; `C` warmups and `5 × C` measured requests |
+| Cold prefill | C1; 8K, 32K, 64K, and 128K targets; one output token; 30 seconds per target |
+
+Every imported C1–C64 file completed exactly `5 × C` requests with zero
+errors. C64 averaged 62.0 and 62.2 resident requests at offered C64 with no
+reported queueing; that is observed capacity behavior, not a failed cell.
+The cold-prefill profiles completed 59, 30, 15, and 8 samples per Station at
+8K, 32K, 64K, and 128K respectively.
+
+The controller completed collection, graceful container cleanup, and host
+postflight. Its top-level `STATUS.txt` says `FAILED` only because the telemetry
+validator compared the GPU UUID literally and rejected the leading space in
+the monitor CSV field; it exited before writing its telemetry summary.
+`cleanup-verdict.txt` is `PASS_GRACEFUL` and `postflight/verdict.txt` is
+`PASS`. This telemetry-format validation issue does not negate the completed
+measurement JSONs.
+
+The launch used the earlier hardcoded C1–C128 loop and entered C128 immediately
+after C64. It was not interrupted mid-cell. C128 is outside the current
+publication ceiling and is not imported.
+
+Raw sources were read from:
+
+- Station 1: `/home/catid/frontier-bench/results/qwen38-flash-next-sglang/qwen38-dgx-nvfp4-tp1-mtp0-timed-20260827-v1/benchmark/gemini1/`
+- Station 2 original: `/home/catid/frontier-bench/qwen38-timed-work-pr36014-ep-evidence-6eab5f-v9/runtime-evidence/qwen38-dgx-nvfp4-tp1-mtp0-timed-20260827-v1/benchmark-gemini2/`
+- Station 2 controller mirror: `/home/catid/frontier-bench/results/qwen38-flash-next-sglang/qwen38-dgx-nvfp4-tp1-mtp0-timed-20260827-v1/benchmark/gemini2/`
+
+All published source hashes were checked against the Station 1 raw files and
+the controller's Station 2 mirror. Per-cell paths, hashes, timing, TTFT, ITL,
+effective concurrency, queue fraction, and prefill sample counts are in
+[`../data/dgx-overlays.csv`](../data/dgx-overlays.csv).
+
 ## External source system
 
 The 2026-08-27 handoff came from one serving instance and endpoint using all
@@ -206,7 +255,7 @@ The supplied natural-output diagnostic is not headline throughput: all 3,860
 outputs hit the 1,024-token cap with nonempty reasoning and empty final-answer
 content. Its nominal C128 client was also capped at 100 HTTP connections.
 
-## Local DGX qualification and future overlays
+## DGX qualification history and pending lanes
 
 The separate local staging lane uses the third-party NVFP4 checkpoint at the
 same revision with:
@@ -216,33 +265,34 @@ same revision with:
 | Runtime image index | `sha256:12d3392bdc8be8d35e9a95f191df6aef99c5114bdbefd41bfdc7e760e6d25ec1` |
 | ARM64 child | `sha256:14ed582518584c5c830206b5318a2c2769e68229c3422e48a28b952b3a888bd4` |
 | Image config | `sha256:64c58f100438fa5f036bdfbeb3edd3136fb12c5d22d8ae52786c4a701263c55d` |
+| Current derived image | `sha256:6eab5f1837284fe2317de55b00b8f35e83d9b44abc2ea915861661067c39dc91` |
 | SGLang base | `d91c3682b0b429e4c70df63cd57f819588ce29b0` |
 | Support overlay | `Qiaolin-Yu/sglang-qwen-next#38`, commits `3ea3a37a1,12070370f` |
-| Local benchmark client | `84559d9183dc412a76d069eb273c730c113a4fde` |
+| PR #36014 patch | `415eb564937c57fb80bfae300df8e127ecbb05ed` |
+| Current benchmark client | `0b4185b5b435e948b199c9077a00b084864aa963` |
 
-TP1/MTP0 v15 is sealed `PASS_SMOKE_UNRANKED`; both replicas produced the same
-64-token stream (`b381629a…efd20`). MTP3 v1 was rejected by an over-broad
+The current timed run depends on TP1/MTP0 smoke v17, which completed
+`PASS_SMOKE_UNRANKED`; both replicas produced the same 64-token stream
+(`b381629a…efd20`). The earlier v15 smoke recorded the same stream. Historical
+MTP3 v1 was rejected by an over-broad
 online-quantization verifier and v2 by a false-positive Markdown-divider
 heuristic. The corrected v3 qualification reached the intended MTP path and
 reported 78 drafts, 37 accepted drafts, 26 verify calls, acceptance rate
 0.474359, and mean accepted length 2.461538. It was independently deterministic
 across replicas (`2a243cc3…4b30`) but failed exact MTP0 parity at output index 6
 (token 198 versus 271); 57 of 64 output positions differed. The
-unpatched MTP3 path is therefore `FAILED_CORRECTNESS`, not merely pending, and
-cannot contribute timed rows.
+unpatched MTP3 path is therefore `FAILED_CORRECTNESS` and contributes no timed
+row.
 
-The smallest repair candidate is the hash-pinned beta-parity change from
-[SGLang PR #36014](https://github.com/sgl-project/sglang/pull/36014). It aligns
-the non-KDA `TARGET_VERIFY` beta rounding with packed GDN decode. That patch
-must first pass an exact one-GPU output/state regression and the paired
-64-token MTP0/MTP3 gate; its upstream status or isolated author report is not
-runtime evidence. TP2/MTP3 remains pending that patched qualification.
+The current derived image includes the beta-parity change from
+[SGLang PR #36014](https://github.com/sgl-project/sglang/pull/36014), aligning
+non-KDA `TARGET_VERIFY` beta rounding with packed GDN decode. Patched MTP3 still
+needs its paired 64-token MTP0/MTP3 gate before timed publication. TP2 and TEP2
+also remain pending.
 
-For a comparable future matrix, retain the exact external harness contract
-above and import only validated rows into `../data/dgx-overlays.csv`. TP1
-replicas must remain separate engine rates unless intentionally reported as a
-load-balanced aggregate. A cross-node TP2 engine is a distinct topology and
-must include transport evidence.
+The current C1–C64 TP1 rows are in `../data/dgx-overlays.csv`. A future
+cross-node TP2 or TEP2 result is a distinct topology and must include transport
+evidence; it must not be merged with the independent per-Station TP1 rates.
 
 Before every memory-tight local launch, follow `/home/catid/AGENTS.md` and the
 repository safety checklist: verify ordinary idle HBM, remove named containers

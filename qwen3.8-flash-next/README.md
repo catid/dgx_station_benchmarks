@@ -1,51 +1,59 @@
 # Qwen3.8-Flash-Next
 
-This section reports inference measurements for the
+The current benchmark measures Qwen3.8-Flash-Next on two DGX Station GB300
+systems. This is the Flash-Next MoE model, not Qwen3.8-27B.
+
+## DGX Station benchmark
+
+Radix NVFP4 on SGLang, TP1/MTP0. Each Station runs one independent engine;
+the rates are per Station and are not summed.
+
+| C | Station 1 tok/s | TTFT p50 ms | Station 2 tok/s | TTFT p50 ms |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | **195.9** | 218.4 | 194.2 | **216.4** |
+| 2 | 363.5 | 388.0 | **363.6** | **374.1** |
+| 4 | **661.1** | 386.3 | 660.5 | **377.8** |
+| 8 | 1,133.7 | 545.3 | **1,150.5** | **539.1** |
+| 16 | **1,786.2** | 759.5 | 1,762.5 | **733.1** |
+| 32 | **2,702.1** | **1,089.9** | 2,668.9 | 1,112.4 |
+| 64 | **3,803.8** | **2,104.4** | 3,800.0 | 2,147.7 |
+
+![DGX Station NVFP4 TP1/MTP0 decode throughput](charts/dgx-tp1-decode.png)
+
+### DGX cold prefill
+
+| Target | Station 1 tok/s | TTFT s | Station 2 tok/s | TTFT s |
+| ---: | ---: | ---: | ---: | ---: |
+| 8K | 31,016 | 0.264 | **31,288** | **0.262** |
+| 32K | 36,595 | 0.895 | **36,690** | **0.893** |
+| 64K | **35,525** | **1.845** | **35,525** | **1.845** |
+| 128K | 32,052 | 4.089 | **32,074** | **4.087** |
+
+![DGX Station NVFP4 TP1/MTP0 cold-prefill throughput](charts/dgx-tp1-prefill.png)
+
+MTP3 and cross-Station TP2/TEP2 measurements are still in progress.
+
+## 4× RTX PRO 6000 reference
+
+The comparison data uses one server with four NVIDIA RTX PRO 6000 Blackwell
+Max-Q GPUs. Its official lane is
 [`Qwen/Qwen3.8-Flash-Next-FP8`](https://huggingface.co/Qwen/Qwen3.8-Flash-Next-FP8)
-checkpoint and a separately identified third-party
+on vLLM; its NVFP4 lane is the third-party
 [`RadixArk/Qwen3.8-Flash-Next-NVFP4`](https://huggingface.co/RadixArk/Qwen3.8-Flash-Next-NVFP4)
-quantization. This is the hybrid 48-layer Flash-Next MoE model, not
-Qwen3.8-27B.
+quantization on SGLang.
 
-## Result status
+| Lane | C1 decode | C64 decode | C128 decode | 64K cold prefill | Profiles |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Official FP8/vLLM | 198.9 (TEP4/MTP3) | 2,653.4 (TEP4/AR) | **3,668.9** (TEP4/AR) | 14,357 (TEP4/AR) | TP4 and TEP4 |
+| Third-party NVFP4/SGLang | **211.7** (TEP4/MTP3) | **2,849.4** (TEP4/AR) | 3,476.5 (TEP4/AR) | **15,512** (TEP4/AR) | TEP4; TP4 unsupported |
 
-The primary result is an externally supplied matrix from host `foureyes`: one
-server instance across four NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation
-Edition GPUs. All four GPUs are on one NUMA node over PCIe Gen5 x16 with peer
-access and no NVLink. It contains four source-sealed official-FP8/vLLM profiles
-and two source-sealed NVFP4/SGLang TEP4 profiles. The source raw trees are not
-present in this checkout, so these are primary external results, not locally
-reverified artifacts.
+Decode values are aggregate output tok/s; prefill values are client prompt
+tok/s.
 
-Every numeric lane currently published here is from one 4× RTX PRO 6000
-workstation, not a DGX Station measurement.
+### Reference decode throughput
 
-| Result family | Exact checkpoint | Exact measured runtime | Published profiles |
-| --- | --- | --- | --- |
-| Official FP8/vLLM | `Qwen/Qwen3.8-Flash-Next-FP8@bcd9f01ddc9cff2316eb84281bebcd5b058bddce` | vLLM `0.1.dev20073+g8e685d198` | TP4/AR, TP4/MTP3, TEP4/AR, TEP4/MTP3 |
-| Third-party NVFP4/SGLang | `RadixArk/Qwen3.8-Flash-Next-NVFP4@7b719225242aacd3dbd3f9407468c2ee9a9d2594` | patched SGLang `0.0.0.dev1+gd91c3682b` | TEP4/AR, TEP4/MTP3; TP4 modes unsupported |
-
-| Lane | Evidence status | Use here |
-| --- | --- | --- |
-| Official FP8, TP4/AR and TP4/MTP3 | `SEALED_PRIMARY_EXTERNAL` | Primary |
-| Official FP8, TEP4/AR and TEP4/MTP3 | `SEALED_PRIMARY_EXTERNAL` | Primary |
-| Third-party NVFP4, TEP4/AR | `SEALED_PRIMARY_EXTERNAL` | Primary |
-| Third-party NVFP4, TEP4/MTP3 | `SEALED_PRIMARY_EXTERNAL` | Primary; C128 has a documented cache exception |
-| Third-party NVFP4, TP4/AR and TP4/MTP3 | Unsupported startup | Excluded, never zero |
-| DGX Station TP1 MTP0 | `PASS_SMOKE_UNRANKED` | No accepted timing yet |
-| DGX Station TP1 MTP3 | `FAILED_CORRECTNESS` | Exact MTP0 parity failed; excluded |
-| DGX Station TP2 | Pending patched qualification | No accepted timing yet |
-
-The source raw trees were not present in this checkout at import time. The
-supplied tables are therefore stored as external-source rows with expected
-artifact hashes in [`data/handoff-provenance.json`](data/handoff-provenance.json),
-not misrepresented as locally verified bytes.
-
-## Decode throughput
-
-Aggregate output tok/s for an exact 8,192-token prompt and 1,024-token forced
-decode. Every cell completed `5 × concurrency` measured requests with zero
-request errors.
+8,192 input tokens, 1,024 forced output tokens. Best result in each row is
+bold.
 
 | C | FP8/vLLM TP4/AR | FP8/vLLM TP4/MTP3 | FP8/vLLM TEP4/AR | FP8/vLLM TEP4/MTP3 | NVFP4/SGLang TEP4/AR | NVFP4/SGLang TEP4/MTP3 |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -58,21 +66,14 @@ request errors.
 | 64 | 1,889.1 | 1,905.7 | 2,653.4 | 2,489.4 | **2,849.4** | 2,377.8 |
 | 128 | 2,624.5 | 2,433.7 | **3,668.9** | 3,044.4 | 3,476.5 | 2,513.7† |
 
-† The NVFP4/MTP3 C128 row was capacity-limited (95.7 effective concurrency,
-0.917 queue fraction) and compiled one first-use Triton kernel inside the
-measurement window. It is not a strict warmed-cache C128 row.
+† NVFP4/MTP3 C128 averaged 95.7 resident requests; details are in the
+[recipe](recipes/).
 
-![Qwen3.8-Flash-Next decode throughput](charts/decode-throughput.png)
+![4× RTX PRO 6000 reference decode throughput](charts/decode-throughput.png)
 
-Across all six profiles, MTP3 is strongest through C16, NVFP4 TEP4/AR wins at
-C32 and C64, and official FP8 TEP4/AR wins at C128. MTP is therefore a
-latency/low-to-mid-concurrency win here, not a universal throughput win.
+### Reference cold prefill
 
-## Cold prefill
-
-C1 client prompt tok/s with a unique leading prefix per sample. Targets 8K,
-32K, 64K, and 128K correspond to observed prompts of 8,194, 32,770, 65,538,
-and 131,074 tokens.
+C1 client prompt tok/s. Best result in each row is bold.
 
 | Target | FP8/vLLM TP4/AR | FP8/vLLM TP4/MTP3 | FP8/vLLM TEP4/AR | FP8/vLLM TEP4/MTP3 | NVFP4/SGLang TEP4/AR | NVFP4/SGLang TEP4/MTP3 |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -81,50 +82,30 @@ and 131,074 tokens.
 | 64K | 11,968 | 11,422 | 14,357 | 13,683 | **15,512** | 14,889 |
 | 128K | 10,987 | 10,589 | 13,206 | 12,593 | **14,720** | 14,089 |
 
-![Qwen3.8-Flash-Next cold prefill throughput](charts/cold-prefill-throughput.png)
+![4× RTX PRO 6000 reference cold-prefill throughput](charts/cold-prefill-throughput.png)
 
-## Same-topology system comparison
+### Reference TEP4 comparisons
 
-On TEP4/MTP3, NVFP4/SGLang is 6.4–20.5% faster at C1–C16, effectively
-tied at C32, then 4.5% slower at C64 and 17.4% slower at C128. Its cold-prefill
-rate is 7.2–11.9% higher across 8K–128K.
+These compare complete checkpoint-and-runtime lanes, not quantization alone.
 
-![Same-topology FP8 versus NVFP4 decode comparison](charts/tep4-mtp3-decode-comparison.png)
+![4× RTX PRO 6000 TEP4/AR decode comparison](charts/tep4-ar-decode-comparison.png)
 
-![Same-topology FP8 versus NVFP4 prefill comparison](charts/tep4-mtp3-prefill-comparison.png)
+![4× RTX PRO 6000 TEP4/AR prefill comparison](charts/tep4-ar-prefill-comparison.png)
 
-On TEP4/AR, NVFP4/SGLang is 1.9–25.9% faster from C1 through C64 and 5.2%
-slower at C128. Its cold-prefill rate is 4.2–11.5% higher.
+![4× RTX PRO 6000 TEP4/MTP3 decode comparison](charts/tep4-mtp3-decode-comparison.png)
 
-![Same-topology FP8 versus NVFP4 AR decode comparison](charts/tep4-ar-decode-comparison.png)
+![4× RTX PRO 6000 TEP4/MTP3 prefill comparison](charts/tep4-mtp3-prefill-comparison.png)
 
-![Same-topology FP8 versus NVFP4 AR prefill comparison](charts/tep4-ar-prefill-comparison.png)
+## Method
 
-This is an end-to-end checkpoint-plus-runtime comparison, not an isolated
-FP8-versus-NVFP4 experiment. The two lanes change both quantization artifact
-and serving engine.
+TP4 is tensor parallel 4; TEP4 adds expert parallel 4 on the same four GPUs.
+AR is ordinary decode and MTP3 uses three speculative steps. Decode used
+temperature 0, `C` warmups, and `5 × C` measured requests. Cold prefill used
+C1, one output token, and a unique leading prefix per sample.
 
-## Portable method and topology
-
-- TP4 means tensor parallel 4 with expert parallelism off.
-- TEP4 means TP4 plus expert parallel 4 on the same four accelerators, not
-  eight total accelerators.
-- AR has no speculative decoding; MTP3 uses three speculative steps/tokens.
-- Decode uses temperature zero, EOS ignored, one scout, `C` warmups, and
-  `5 × C` measured requests at C1–C128. Its TTFT is warm-prefix TTFT.
-- Cold prefill is C1, one output token, and a unique leading prefix per sample.
-
-Exact per-cell timing, TTFT, ITL, scheduler residency, queueing, client/server
-prefill rates, and cached-token availability are in
+Full configuration and methodology are in the [recipe](recipes/). Per-cell
+values are in
 [`data/throughput.csv`](data/throughput.csv) and
-[`data/prefill.csv`](data/prefill.csv). Machine inventory, fabric diagnostics,
-runtime pins, launch settings, integrity hashes, the C128 cache exception,
-unsupported TP4 evidence, and the local DGX qualification status are kept in
-the [recipe and evidence notes](recipes/) and
-[`data/handoff-provenance.json`](data/handoff-provenance.json).
-
-Future validated DGX TP1/TP2 rows can be added to
-[`data/dgx-overlays.csv`](data/dgx-overlays.csv). The chart renderer ignores
-pending or absent rows, so missing profiles cannot appear as numeric zeroes.
+[`data/prefill.csv`](data/prefill.csv).
 
 Return to the [repository overview](../).

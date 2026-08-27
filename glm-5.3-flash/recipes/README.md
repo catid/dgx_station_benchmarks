@@ -1,91 +1,138 @@
 # Reproducing the GLM-5.3-Flash benchmark
 
-This page contains the runtime, topology, kernel, and launch details kept out
-of the headline README.
+This page contains the runtime, topology, measurement, provenance, and
+operational details kept out of the headline README.
 
-## Exact artifacts
+## Exact model and runtime
 
 | Item | Pin |
 | --- | --- |
 | Checkpoint | `zai-org/GLM-5.3-Flash` |
 | Revision | `3f1971b7b5f7a528c9c4ef6212c8785298a8c24a` |
-| Files | 62 safetensors, 328,337,455,672 bytes |
-| SGLang image index | `sha256:3a97bd50034ca60c6e6c86b8e36a73675d261f6a5eb71197796aee5175409290` |
-| SGLang ARM64 child | `sha256:989e2fff092e628d0449f6fa1c80e59af9b3e0b41f621a57d87bf8d6cba9ad23` |
-| SGLang commit | `d6ab04bdf157d80aff9e850535921c58adace116` |
-| Earlier vLLM image | `sha256:2c6da6c6f16ed15c91e412d896dba13701f25fe1861eaec9ddaa4db34d1d21c4` |
-| Benchmark client | `llm-inference-bench` commit `84559d9183dc412a76d069eb273c730c113a4fde` |
+| Architecture | `Glm5NextForConditionalGeneration` |
+| Parameters | 320B total / 18B active |
+| Layers | 45 total: 34 linear-attention, 11 sparse-attention |
+| Hidden width | 4,096 |
+| Experts | 288 total, top-8 per token |
+| Attention heads | 64 |
+| Context limit | 1,048,576 tokens |
+| Weight format | Native block-scaled FP8 E4M3, 128×128 blocks |
+| Model files | 62 safetensors, 328,337,455,672 bytes |
+| Runtime | vLLM `0.1.dev20051+g487ecf187` |
+| Runtime image | `sha256:2c6da6c6f16ed15c91e412d896dba13701f25fe1861eaec9ddaa4db34d1d21c4` |
+| MTP5 benchmark client | `llm-inference-bench` 0.4.31, commit `84559d9183dc412a76d069eb273c730c113a4fde` |
+| MTP0 benchmark client | `llm-inference-bench` 0.4.29, commit `0b4185b5b435e948b199c9077a00b084864aa963` |
 
-The native checkpoint is about 305.79 GiB before runtime state, larger than the
-reported usable HBM of one selected GB300. The primary native-FP8 path is
-therefore a cross-node TP2 engine, not a one-device offload result.
+The checkpoint is about 305.79 GiB before runtime state, so it runs as one TP2
+model server across the two DGX Stations rather than as two replicas.
 
-## SGLang target profile
+## Measured DGX profiles
 
-- TP2/PP1 with EP2 across the two stations.
-- Native block-scaled FP8 weights; FP8 E4M3 KV cache.
-- TRT-LLM DSA prefill/decode backends.
-- Triton KDA linear-attention decode/prefill/verify to preserve the audited
-  state semantics.
-- DeepGEMM MoE and automatic dense FP8 GEMM selection.
-- MTP5 uses static NEXTN/EAGLE with five steps, top-k 1, and six draft tokens.
-- MTP0 is retained as the non-speculative control.
+| Profile | Run ID | Topology | Decode mode |
+| --- | --- | --- | --- |
+| TP2/MTP0 | `glm53-flash-tp2-mtp0-20260826t1910z` | TP2 | Autoregressive |
+| TP2/MTP5 | `glm53-flash-tp2-mtp5-full-20260826-method-v10` | TP2 | Five-token MTP |
+| TEP2/MTP5 | `glm53-flash-tep2-mtp5-full-20260826-method-v2` | TP2 with expert parallelism | Five-token MTP |
 
-Backend names are requests, not evidence. The retained logs and profiler must
-prove the observed attention, KDA, MoE, FP8, KV-cache, and draft paths before
-numbers become publishable.
+Each retained run manifest verifies. Decode rates are measured 60-second client
+rates using the exact prompt and output targets below. All existing C1–C128
+measurements remain reported; the ceiling for new benchmark work is C64.
 
-## Earlier vLLM qualification
+## Observed concurrency
 
-Two conservative vLLM TP2 smokes passed:
+The table shows average active requests and the maximum active requests seen in
+each cell. Differences from the requested concurrency describe scheduler and
+capacity saturation during the measured interval.
 
-- `glm53-flash-tp2-smoke-20260826t1907z-r3` — MTP0;
-- `glm53-flash-tp2-mtp5-smoke-20260826-method-v6` — MTP5.
+| Requested C | TP2/MTP0 avg/max | TP2/MTP5 avg/max | TEP2/MTP5 avg/max |
+| ---: | ---: | ---: | ---: |
+| 1 | 1.0 / 1 | 0.9 / 1 | 0.9 / 1 |
+| 2 | 2.0 / 2 | 2.0 / 2 | 2.0 / 2 |
+| 4 | 4.0 / 4 | 4.0 / 4 | 4.0 / 4 |
+| 8 | 7.8 / 8 | 7.9 / 8 | 7.9 / 8 |
+| 16 | 14.8 / 16 | 15.8 / 16 | 15.8 / 16 |
+| 32 | 29.5 / 32 | 31.9 / 32 | 32.0 / 32 |
+| 64 | 59.6 / 64 | 63.7 / 64 | 63.8 / 64 |
+| 128 | 118.3 / 128 | 105.7 / 108 | 104.1 / 106 |
 
-Full timing artifacts are preserved but excluded. The MTP0 attempt
-`glm53-flash-tp2-mtp0-20260826t1910z` underfilled C8. MTP5 attempts underfilled
-C128 or failed the C1 effective-concurrency gate, including
-`glm53-flash-tp2-mtp5-full-20260826-method-v10`; TEP2/MTP5 also underfilled
-C128 in `glm53-flash-tep2-mtp5-full-20260826-method-v2`. Their measured rows
-are retained in the diagnostic CSVs, but must not be copied into accepted CSVs
-or rankings. The TEP2 attempt also failed its strict postflight: `gemini2`
-reported 6,960 MiB retained HBM and `gemini1` still had an unexpected Docker
-model-query process. This is a second independent reason to exclude that run.
+The C1 averages round to one decimal place; both MTP5 runs reached one active
+request. The source CSVs also retain queueing, capacity, latency, MTP
+acceptance, and engine-step fields. Throughput is never replaced with zero
+when the server saturates.
 
-The three raw benchmark JSON SHA-256 values are, in the same order:
+## Prefill measurements
 
-- MTP0 TP2: `12f9d0f4fc4e3bfd6308411ddb02abccf9c4cb03ff2897378fb9cf098c007f17`;
-- MTP5 TP2: `8c1f90d017892c950f553600a3d889141a361a385a5657bc838c5c4344753e25`;
-- MTP5 TEP2: `8619a90dd4f441e1702ffaa9e2ff4c23bbc5b1f2d370ee7e5d6ed83d80c08ed4`.
+| Context | TP2/MTP0 client tok/s (samples) | TP2/MTP5 client/server tok/s (samples) | TEP2/MTP5 client/server tok/s (samples) |
+| ---: | ---: | ---: | ---: |
+| 8K | 12,645 (10) | 14,871 / 15,559 (4) | 14,214 / 14,847 (4) |
+| 64K | 3,721 (1) | 15,438 / 15,956 (3) | 15,076 / 15,555 (3) |
+| 128K | 6,519 (1) | 15,431 / 15,919 (3) | 14,873 / 15,329 (3) |
 
-## Third-party NVFP4 status
+The MTP5 runs used exact, unique-prefix prompts with a shape warmup, at least
+three measured samples, and client/server counter checks. The older MTP0
+acquisition used the earlier standalone-cold method: its actual prompt lengths
+were 8,194, 65,538, and 131,073 tokens, and it did not retain matching
+server-side prefill rates. All completed client measurements are reported.
 
-The cross-node vLLM MTP5 smoke for
-`LibertAIDAI/GLM-5.3-Flash-NVFP4@11d73216cd636238e82e1d77fe1042ffab36e7fa`
-loaded with W4A16 Marlin, then failed the correctness gate on the runtime's
-`w1_weight_scale_2`/`w3_weight_scale_2` mismatch warning. It never reached a
-timed workload. The separate TP1 recipe is disabled before GPU preflight for
-the same checkpoint/runtime incompatibility, and the locally pinned packaged
-SGLang images do not register the GLM-5.3 architecture.
+## Operational note for TEP2
 
-An independent SGLang TP1/MTP0 smoke for
-`dealignai/GLM-5.3-Flash-UNCENSORED-NVFP4@d4d79fbbd474599db610b90a44b77497256ab518`
-stopped at preflight: `gemini1` had 45,988 MiB of clean file cache in coherent
-HBM while `gemini2` passed. No model server launched, the result remained
-unsealed, and no throughput exists. These third-party checkpoints are not
-substitutes for the official native-FP8 model.
+After the TEP2 measurement window and container cleanup, `gemini2` reported
+6,960 MiB of retained HBM and `gemini1` still had an unexpected Docker
+model-query process. This happened after timing and is recorded as operational
+metadata; the measured throughput remains in the tables and plots.
+
+The raw benchmark JSON SHA-256 values are:
+
+- TP2/MTP0: `12f9d0f4fc4e3bfd6308411ddb02abccf9c4cb03ff2897378fb9cf098c007f17`;
+- TP2/MTP5: `8c1f90d017892c950f553600a3d889141a361a385a5657bc838c5c4344753e25`;
+- TEP2/MTP5: `8619a90dd4f441e1702ffaa9e2ff4c23bbc5b1f2d370ee7e5d6ed83d80c08ed4`.
 
 ## Workload
 
-Decode uses an exact 8,192-token prompt, forced 1,024-token output, temperature
-zero, EOS ignored, and 60-second sustained cells at C1–C128. Each timed cell
-must reach and hold offered concurrency before measurement. Prefill uses exact
-8K, 64K, and 128K unique prefixes on a warm server, with a shape warmup and at
-least three samples. Natural output is collected separately with EOS respected.
+Decode uses an exact 8,192-token prompt, a forced 1,024-token output,
+temperature zero, EOS ignored, and a 60-second sustained measurement. MTP5
+prefill uses exact 8K, 64K, and 128K unique prompts on a warm server; the MTP0
+prefill method is described above. Natural output is collected separately with
+EOS respected. MTP0 and MTP5 are distinct profiles.
 
-## External comparison provenance
+The public decode rate is completed OpenAI-usage output tokens divided by the
+client's monotonic measurement time. MTP acceptance and engine steps are
+retained separately because accepted tokens per step vary with the workload.
 
-The 4× RTX PRO 6000 values were supplied by the operator from:
+## vLLM launch profile
+
+- Tensor parallel size 2 and pipeline parallel size 1 across the stations.
+- Expert parallelism off for TP2 and on for TEP2.
+- Native block-scaled FP8 weights and FP8 E4M3 KV cache.
+- `FLASHINFER_MLA_SPARSE` sparse-attention backend.
+- Pinned vLLM GLM-5 KDA implementation with fused gate.
+- Automatic FP8 MoE backend.
+- MTP5 uses the checkpoint's five-token prediction path with local argmax.
+- Maximum model length 135,168 and maximum sequences 128.
+- GPU memory utilization 0.90.
+
+## SGLang follow-up profile
+
+The separate SGLang recipe targets TP2/PP1 with EP2, native FP8 weights, FP8
+KV cache, TRT-LLM sparse-attention backends, Triton KDA, DeepGEMM MoE, and
+NEXTN/EAGLE MTP5. Its source and CPU path were audited, but it has no measured
+GPU series in this section.
+
+## Third-party NVFP4 attempts
+
+`LibertAIDAI/GLM-5.3-Flash-NVFP4@11d73216cd636238e82e1d77fe1042ffab36e7fa`
+loaded with W4A16 Marlin, then stopped on unequal gate/up secondary scales and
+a runtime warning that accuracy could be affected. The pinned packaged SGLang
+images do not register the GLM-5.3 architecture.
+
+The independent SGLang TP1/MTP0 preflight for
+`dealignai/GLM-5.3-Flash-UNCENSORED-NVFP4@d4d79fbbd474599db610b90a44b77497256ab518`
+stopped before server launch when `gemini1` showed 45,988 MiB of clean file
+cache in coherent HBM. Neither third-party attempt produced timed throughput.
+
+## 4× RTX PRO 6000 provenance
+
+The comparison values were supplied by the operator from:
 
 - overlay: <https://github.com/chriswritescode-dev/glm-5.3-flash-sm120>;
 - checkpoint: <https://huggingface.co/zai-org/GLM-5.3-Flash>;
@@ -93,26 +140,24 @@ The 4× RTX PRO 6000 values were supplied by the operator from:
 - raw decode path: `bench/glm-5.3-flash-sm120/results/decode-mtp5.json`;
 - raw prefill path: `bench/glm-5.3-flash-sm120/results/prefill.json`.
 
-Those raw files are not present in this repository, so the series remains
-`EXTERNAL_USER_SUPPLIED` and outside the accepted GB300 ranking.
+Those raw files are not in this repository. The exact checkpoint revision,
+runtime/image revision, overlay commit, and four-GPU TP/EP layout were not
+supplied and remain `NOT_SUPPLIED` in the CSV rather than being inferred from
+the DGX recipe. C10 is the last supplied decode point; that configuration caps
+execution at ten sequences. Its MTP acceptance length was 2.87–2.96 tokens per
+step and reached 180.8 engine steps/s at C10.
 
-The handoff did not supply the external run's exact checkpoint revision,
-runtime/image revision, overlay commit, or TP/EP layout. Those fields are
-recorded as `NOT_SUPPLIED` in the CSV; the local DGX pins above must not be
-projected onto the external run.
-
-## Operational gates
+## Operational safety
 
 Before each distributed launch, verify the exact checkpoint and code on both
-hosts, then run the canonical current-boot danger and idle-HBM preflight. Keep
-the selected rail and HCA discovered rather than hard-coded. Retain one
-diagnostic transport launch, then reduce verbose logging for timing.
+hosts, then run the current-boot danger and idle-HBM preflight. Discover the
+selected rail and HCA rather than hard-coding them.
 
-After every attempt, explicitly remove the named containers on both hosts and
+After each attempt, explicitly remove the named containers on both hosts and
 repeat the idle gate. Never reset a GPU, reload the NVIDIA driver, unbind PCI,
 or raise the memory fraction to conceal unexplained retained HBM.
 
-An accepted result bundle includes resolved plans, image inspections, exact
-commands, both server logs, checkpoint reports, raw benchmark JSON, verifier
-reports, natural output, MTP counters, telemetry, transport evidence, cleanup,
-and postflight. Only passing rows are copied into [`../data/`](../data/).
+Each result bundle should retain resolved plans, image inspections, exact
+commands, both server logs, checkpoint reports, raw benchmark JSON, telemetry,
+transport evidence, cleanup, and final safety observations. Published tables
+are in [`../data/`](../data/).

@@ -18,8 +18,10 @@
   diagnostic as explicitly excluded evidence. Its 3,860 outputs all hit the
   length cap with empty final-answer content; nominal C128 was also capped at
   100 HTTP connections.
-- `dgx-overlays.csv` is a header-only import target for future validated DGX
-  TP1/TP2 measurements. Pending or absent profiles stay absent.
+- `dgx-overlays.csv` contains the two per-Station NVFP4 TP1/MTP0 decode series
+  through C64 and their 8K–128K cold-prefill profiles, including latency,
+  concurrency, sample counts, source paths, and source-file hashes. The
+  Station rates are independent and are never summed.
 - `qualification.csv` and `attempts.csv` track the separate local DGX bring-up;
   neither contains accepted performance timing.
 - `external-attempts.csv` retains the two source-reported NVFP4 TP4 startup

@@ -1,23 +1,14 @@
 # Qwen3.8-Flash-Next charts
 
-- `decode-throughput.png` plots the C1–C128 fixed-decode matrix.
-- `cold-prefill-throughput.png` plots the 8K–128K cold-prefill matrix.
-- `tep4-ar-decode-comparison.png` compares source-sealed FP8/vLLM and
-  NVFP4/SGLang TEP4/AR decode.
-- `tep4-ar-prefill-comparison.png` does the same for cold prefill.
-- `tep4-mtp3-decode-comparison.png` compares the same portable topology and
-  shows the end-to-end NVFP4/SGLang MTP3 delta. Its C128 annotation preserves
-  the measured-window first-use Triton compile and capacity limitation.
-- `tep4-mtp3-prefill-comparison.png` does the same for cold prefill.
-- `qualification-status.png` is local DGX status only; it contains no
-  performance measurement.
+- `dgx-tp1-decode.png` shows per-Station NVFP4 TP1/MTP0 decode through C64.
+- `dgx-tp1-prefill.png` shows the matching per-Station cold-prefill rates.
+- `decode-throughput.png` shows the 4× RTX PRO 6000 reference decode matrix.
+- `cold-prefill-throughput.png` shows the workstation reference prefill matrix.
+- `tep4-{ar,mtp3}-{decode,prefill}-comparison.png` compares the workstation's
+  official FP8/vLLM and Radix NVFP4/SGLang lanes.
 
-Solid lines are the source-sealed official FP8/vLLM primary. Dashed lines are
-the source-sealed NVFP4/SGLang primary. These seals are reported by the
-external handoff; the raw profile trees are not present in this checkout for
-local byte verification. The renderer reads the header-only
-`../data/dgx-overlays.csv` and adds dotted DGX TP1/TP2 lines only after rows are
-explicitly marked sealed or validated; missing profiles never become zero.
+The two DGX Station TP1 rates are independent engine results and are not
+summed. Detailed run and source notes are in [`../recipes/`](../recipes/).
 
 Use CPython 3.12 (the committed charts were rendered with 3.12.3), create the
 pinned chart environment from the section root, then regenerate or verify the

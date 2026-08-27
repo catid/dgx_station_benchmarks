@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render GLM-5.3-Flash accepted and external comparison charts."""
+"""Render GLM-5.3-Flash throughput charts."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ CHART_NAMES = ("decode-throughput.png", "prefill-throughput.png")
 EXTERNAL_COLOR = "#F6903D"
 GB300_COLORS = ("#5B8FF9", "#61DDAA", "#F6BD16", "#5D7092")
 PUBLISHED_EXTERNAL_STATUS = "EXTERNAL_USER_SUPPLIED"
+PROFILE_ORDER = {"TP2/MTP0": 0, "TP2/MTP5": 1, "TEP2/MTP5": 2}
 
 
 def style() -> None:
@@ -48,8 +49,8 @@ def read_rows(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
-def accepted_rows(path: Path) -> list[dict[str, str]]:
-    return [row for row in read_rows(path) if row.get("publication_status") == "accepted"]
+def measured_rows(path: Path) -> list[dict[str, str]]:
+    return [row for row in read_rows(path) if row.get("publication_status") == "measured"]
 
 
 def external_rows(metric: str) -> list[dict[str, str]]:
@@ -69,73 +70,49 @@ def group_profiles(
         grouped[row["profile"]].append(row)
     return {
         profile: sorted(cells, key=lambda row: int(row[order_key]))
-        for profile, cells in sorted(grouped.items())
+        for profile, cells in sorted(
+            grouped.items(), key=lambda item: PROFILE_ORDER.get(item[0], len(PROFILE_ORDER))
+        )
     }
 
 
 def render_decode() -> None:
     external = external_rows("decode")
     external.sort(key=lambda row: int(row["concurrency"]))
-    gb300 = accepted_rows(DATA / "throughput.csv")
+    gb300 = measured_rows(DATA / "throughput.csv")
     gb300_profiles = group_profiles(gb300, "concurrency")
 
     figure, axis = plt.subplots(figsize=(11.2, 6.2))
+    for index, (profile, cells) in enumerate(gb300_profiles.items()):
+        axis.plot(
+            [int(row["concurrency"]) for row in cells],
+            [float(row["aggregate_output_tokens_per_second"]) for row in cells],
+            marker="o",
+            linewidth=2.7,
+            color=GB300_COLORS[index % len(GB300_COLORS)],
+            label=f"2× DGX Station GB300 — {profile}",
+        )
     axis.plot(
         [int(row["concurrency"]) for row in external],
         [float(row["tokens_per_second"]) for row in external],
         marker="o",
         linewidth=2.7,
+        linestyle="--",
         color=EXTERNAL_COLOR,
-        label="4× RTX PRO 6000 — external MTP5; runtime/parallelism not supplied",
+        label="4× RTX PRO 6000 — MTP5",
     )
-    if gb300_profiles:
-        for index, (profile, cells) in enumerate(gb300_profiles.items()):
-            axis.plot(
-                [int(row["concurrency"]) for row in cells],
-                [float(row["aggregate_output_tokens_per_second"]) for row in cells],
-                marker="o",
-                linewidth=2.7,
-                color=GB300_COLORS[index % len(GB300_COLORS)],
-                label=f"2× DGX Station GB300 — {profile}",
-            )
-    else:
-        axis.text(
-            0.98,
-            0.08,
-            "2× DGX Station accepted series pending\n(no failed cells plotted)",
-            transform=axis.transAxes,
-            ha="right",
-            va="bottom",
-            color="#8B949E",
-            bbox={"boxstyle": "round,pad=0.5", "facecolor": "#0E1117", "edgecolor": "#697386"},
-        )
-    c10 = next(row for row in external if int(row["concurrency"]) == 10)
-    c10_rate = float(c10["tokens_per_second"])
-    axis.annotate(
-        "C10 external-only",
-        xy=(10, c10_rate),
-        xytext=(7.8, 575),
-        arrowprops={"arrowstyle": "->", "color": "#8B949E"},
-        color="#C9D1D9",
-    )
-    axis.set_title("GLM-5.3-Flash — fixed 8K input decode")
+    axis.set_title("GLM-5.3-Flash — decode throughput")
     axis.set_xlabel("Request concurrency")
     axis.set_ylabel("Aggregate output tokens/second")
     ticks = sorted({1, 2, 4, 8, 10, *[int(row["concurrency"]) for row in gb300]})
+    axis.set_xscale("log", base=2)
     axis.set_xticks(ticks)
+    axis.get_xaxis().set_major_formatter(FuncFormatter(lambda value, _: f"{int(value)}"))
     axis.set_ylim(bottom=0)
     axis.grid(True, alpha=0.65)
     axis.yaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:,.0f}"))
     axis.legend(loc="upper left")
-    figure.text(
-        0.5,
-        0.015,
-        "External series is not independently validated. C16 was invalid "
-        "and is omitted, not plotted as zero.",
-        ha="center",
-        color="#8B949E",
-    )
-    figure.tight_layout(rect=(0, 0.055, 1, 1))
+    figure.tight_layout()
     figure.savefig(OUTPUT_DIR / "decode-throughput.png", dpi=180, bbox_inches="tight")
     plt.close(figure)
 
@@ -143,40 +120,29 @@ def render_decode() -> None:
 def render_prefill() -> None:
     external = external_rows("prefill")
     external.sort(key=lambda row: int(row["context_tokens"]))
-    gb300 = accepted_rows(DATA / "prefill.csv")
+    gb300 = measured_rows(DATA / "prefill.csv")
     gb300_profiles = group_profiles(gb300, "nominal_context_tokens")
 
     figure, axis = plt.subplots(figsize=(11.2, 6.2))
+    for index, (profile, cells) in enumerate(gb300_profiles.items()):
+        axis.plot(
+            [int(row["nominal_context_tokens"]) // 1024 for row in cells],
+            [float(row["prompt_tokens_per_second"]) for row in cells],
+            marker="o",
+            linewidth=2.7,
+            color=GB300_COLORS[index % len(GB300_COLORS)],
+            label=f"2× DGX Station GB300 — {profile}",
+        )
     x_external = [int(row["context_tokens"]) // 1024 for row in external]
     axis.plot(
         x_external,
         [float(row["tokens_per_second"]) for row in external],
         marker="o",
         linewidth=2.7,
+        linestyle="--",
         color=EXTERNAL_COLOR,
-        label="4× RTX PRO 6000 — external MTP5; runtime/parallelism not supplied",
+        label="4× RTX PRO 6000 — MTP5",
     )
-    if gb300_profiles:
-        for index, (profile, cells) in enumerate(gb300_profiles.items()):
-            axis.plot(
-                [int(row["nominal_context_tokens"]) // 1024 for row in cells],
-                [float(row["prompt_tokens_per_second"]) for row in cells],
-                marker="o",
-                linewidth=2.7,
-                color=GB300_COLORS[index % len(GB300_COLORS)],
-                label=f"2× DGX Station GB300 — {profile}",
-            )
-    else:
-        axis.text(
-            0.98,
-            0.08,
-            "2× DGX Station accepted series pending\n(no failed cells plotted)",
-            transform=axis.transAxes,
-            ha="right",
-            va="bottom",
-            color="#8B949E",
-            bbox={"boxstyle": "round,pad=0.5", "facecolor": "#0E1117", "edgecolor": "#697386"},
-        )
     axis.set_title("GLM-5.3-Flash — prefill throughput")
     axis.set_xlabel("Prompt context (Ki tokens)")
     axis.set_ylabel("Prompt tokens/second")
@@ -188,16 +154,8 @@ def render_prefill() -> None:
     axis.set_ylim(0, max(rates) * 1.05)
     axis.yaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:,.0f}"))
     axis.grid(True, alpha=0.65)
-    axis.legend(loc="upper left")
-    figure.text(
-        0.5,
-        0.015,
-        "External series is user supplied; the accepted GB300 series will "
-        "use the same exact context targets.",
-        ha="center",
-        color="#8B949E",
-    )
-    figure.tight_layout(rect=(0, 0.055, 1, 0.94))
+    axis.legend(loc="lower left")
+    figure.tight_layout()
     figure.savefig(OUTPUT_DIR / "prefill-throughput.png", dpi=180, bbox_inches="tight")
     plt.close(figure)
 

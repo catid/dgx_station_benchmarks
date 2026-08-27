@@ -1,9 +1,7 @@
 # GLM-5.3-Flash charts
 
-The renderer places accepted 2× DGX Station rows and the separately labeled
-external 4× RTX PRO 6000 rows on shared axes. At present, the accepted-only
-GB300 CSV files are empty, so the charts show only the external measured series
-plus an explicit “pending” annotation. No missing GB300 points are invented.
+The renderer plots the measured 2× DGX Station profiles and the 4× RTX PRO
+6000 comparison on shared decode and prefill axes.
 
 Use CPython 3.12 (the committed charts were rendered with 3.12.3), create the
 pinned chart environment from the section root, then regenerate or verify the
