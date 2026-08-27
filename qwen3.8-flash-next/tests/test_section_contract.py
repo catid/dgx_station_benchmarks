@@ -193,14 +193,14 @@ class SectionContractTests(unittest.TestCase):
                 encoding="utf-8",
             )
             (data / "dgx-overlays.csv").write_text(
-                "publication_status,metric,throughput\n"
-                "MEASURED_CURRENT,decode,2\n"
-                "SEALED_RANKABLE,decode,3\n"
-                "VALIDATED_RANKABLE,decode,4\n"
-                "SEALED_RANKABLE_BUT_UNVERIFIED,decode,999\n"
-                "PENDING,decode,999\n"
-                "SEALED_RANKABLE,decode,\n"
-                "SEALED_RANKABLE,prefill,999\n",
+                "publication_status,metric,throughput,platform_label\n"
+                "MEASURED_CURRENT,decode,2,DGX Station 1\n"
+                "SEALED_RANKABLE,decode,3,DGX Station 2\n"
+                "VALIDATED_RANKABLE,decode,4,DGX Station 1\n"
+                "SEALED_RANKABLE_BUT_UNVERIFIED,decode,999,DGX Station 1\n"
+                "PENDING,decode,999,DGX Station 1\n"
+                "SEALED_RANKABLE,decode,,DGX Station 1\n"
+                "SEALED_RANKABLE,prefill,999,DGX Station 1\n",
                 encoding="utf-8",
             )
             renderer.DATA = data
@@ -212,6 +212,36 @@ class SectionContractTests(unittest.TestCase):
                 [row["throughput"] for row in renderer.accepted_overlay_rows("decode")],
                 ["2", "3", "4"],
             )
+            self.assertEqual(
+                [row["throughput"] for row in renderer.headline_dgx_rows("decode")],
+                ["2", "4"],
+            )
+            self.assertEqual(
+                renderer.DGX_HEADLINE_LABEL,
+                "1× DGX Station GB300 · NVFP4 TP1/MTP0",
+            )
+
+    def test_workstation_nvfp4_best_envelope_is_exact_and_stops_at_c64(self) -> None:
+        renderer = load_chart_renderer()
+        self.assertEqual(renderer.RTX_BEST_LABEL, "4× RTX PRO 6000 · NVFP4 best")
+        expected_decode = {
+            1: 211.707556,
+            2: 393.985297,
+            4: 674.751892,
+            8: 1049.006002,
+            16: 1524.156598,
+            32: 1997.580658,
+            64: 2849.433100,
+        }
+        decode = renderer.best_rtx_nvfp4_decode()
+        self.assertEqual(set(decode), set(expected_decode))
+        for concurrency, expected in expected_decode.items():
+            self.assertAlmostEqual(decode[concurrency], expected, places=6)
+        expected_prefill = {8192: 15547, 32768: 15799, 65536: 15512, 131072: 14720}
+        prefill = renderer.best_rtx_nvfp4_prefill()
+        self.assertEqual(set(prefill), set(expected_prefill))
+        for context, expected in expected_prefill.items():
+            self.assertEqual(prefill[context], expected)
 
     def test_decode_handoff_rows_are_exact_complete_and_unique(self) -> None:
         rows = csv_rows("throughput.csv")
@@ -273,13 +303,42 @@ class SectionContractTests(unittest.TestCase):
 
     def test_readme_and_repository_headlines_round_from_canonical_rows(self) -> None:
         section = (ROOT / "README.md").read_text(encoding="utf-8")
+        decode_rows = csv_rows("throughput.csv")
+        decode = {
+            (row["profile"], int(row["concurrency"])): row[
+                "aggregate_output_tokens_per_second"
+            ]
+            for row in decode_rows
+        }
+        rtx_decode_best = {
+            concurrency: max(
+                Decimal(decode[("nvfp4_tep4_ar", concurrency)]),
+                Decimal(decode[("nvfp4_tep4_mtp3", concurrency)]),
+            )
+            for concurrency in DGX_CONCURRENCIES
+        }
+        prefill_rows = csv_rows("prefill.csv")
+        prefill = {
+            (row["profile"], int(row["nominal_context_tokens"])): row[
+                "client_prompt_tokens_per_second"
+            ]
+            for row in prefill_rows
+        }
+        rtx_prefill_best = {
+            context: max(
+                Decimal(prefill[("nvfp4_tep4_ar", context)]),
+                Decimal(prefill[("nvfp4_tep4_mtp3", context)]),
+            )
+            for context in CONTEXTS
+        }
 
         dgx_rows = [
             row for row in csv_rows("dgx-overlays.csv") if row["metric"] == "decode"
         ]
         dgx = {
-            (row["platform_label"], int(row["concurrency"])): row
+            int(row["concurrency"]): row
             for row in dgx_rows
+            if row["platform_label"] == "DGX Station 1"
         }
         dgx_table = table_after_heading(section, "## DGX Station benchmark")
         self.assertEqual(len(dgx_table), len(DGX_CONCURRENCIES))
@@ -288,40 +347,38 @@ class SectionContractTests(unittest.TestCase):
         )
         for cells in dgx_table:
             concurrency = int(cells[0])
-            self.assertEqual(len(cells), 5)
-            for offset, platform in enumerate(("DGX Station 1", "DGX Station 2")):
-                row = dgx[(platform, concurrency)]
-                expected_tps = f"{Decimal(row['throughput']):,.1f}"
-                expected_ttft = f"{Decimal(row['ttft_p50_seconds']) * 1000:,.1f}"
-                self.assertEqual(unstyle_number(cells[1 + 2 * offset]), expected_tps)
-                self.assertEqual(unstyle_number(cells[2 + 2 * offset]), expected_ttft)
+            self.assertEqual(len(cells), 4)
+            row = dgx[concurrency]
+            expected_tps = f"{Decimal(row['throughput']):,.1f}"
+            expected_ttft = f"{Decimal(row['ttft_p50_seconds']) * 1000:,.1f}"
+            self.assertEqual(unstyle_number(cells[1]), expected_tps)
+            self.assertEqual(unstyle_number(cells[2]), expected_ttft)
+            self.assertEqual(
+                unstyle_number(cells[3]), f"{rtx_decode_best[concurrency]:,.1f}"
+            )
 
         dgx_prefill_rows = [
             row for row in csv_rows("dgx-overlays.csv") if row["metric"] == "prefill"
         ]
         dgx_prefill = {
-            (row["platform_label"], int(row["nominal_context_tokens"])): row
+            int(row["nominal_context_tokens"]): row
             for row in dgx_prefill_rows
+            if row["platform_label"] == "DGX Station 1"
         }
         dgx_prefill_table = table_after_heading(section, "### DGX cold prefill")
         self.assertEqual(len(dgx_prefill_table), len(CONTEXTS))
         for cells in dgx_prefill_table:
             context = int(cells[0][:-1]) * 1024
-            self.assertEqual(len(cells), 5)
-            for offset, platform in enumerate(("DGX Station 1", "DGX Station 2")):
-                row = dgx_prefill[(platform, context)]
-                expected_tps = f"{Decimal(row['throughput']):,.0f}"
-                expected_ttft = f"{Decimal(row['ttft_p50_seconds']):.3f}"
-                self.assertEqual(unstyle_number(cells[1 + 2 * offset]), expected_tps)
-                self.assertEqual(unstyle_number(cells[2 + 2 * offset]), expected_ttft)
+            self.assertEqual(len(cells), 4)
+            row = dgx_prefill[context]
+            expected_tps = f"{Decimal(row['throughput']):,.0f}"
+            expected_ttft = f"{Decimal(row['ttft_p50_seconds']):.3f}"
+            self.assertEqual(unstyle_number(cells[1]), expected_tps)
+            self.assertEqual(unstyle_number(cells[2]), expected_ttft)
+            self.assertEqual(
+                unstyle_number(cells[3]), f"{rtx_prefill_best[context]:,.0f}"
+            )
 
-        decode_rows = csv_rows("throughput.csv")
-        decode = {
-            (row["profile"], int(row["concurrency"])): row[
-                "aggregate_output_tokens_per_second"
-            ]
-            for row in decode_rows
-        }
         decode_table = table_after_heading(section, "### Reference decode throughput")
         self.assertEqual(len(decode_table), len(CONCURRENCIES))
         self.assertEqual(
@@ -334,13 +391,6 @@ class SectionContractTests(unittest.TestCase):
                 expected = f"{Decimal(decode[(profile, concurrency)]):,.1f}"
                 self.assertEqual(unstyle_number(cells[index]), expected)
 
-        prefill_rows = csv_rows("prefill.csv")
-        prefill = {
-            (row["profile"], int(row["nominal_context_tokens"])): row[
-                "client_prompt_tokens_per_second"
-            ]
-            for row in prefill_rows
-        }
         prefill_table = table_after_heading(section, "### Reference cold prefill")
         self.assertEqual(len(prefill_table), len(CONTEXTS))
         self.assertEqual(
@@ -361,8 +411,7 @@ class SectionContractTests(unittest.TestCase):
         )
         self.assertIn("(qwen3.8-flash-next/)", overview_row)
         self.assertIn(
-            "DGX TP1/MTP0 per station: C1 195.9 / 194.2; "
-            "C64 3,803.8 / 3,800.0 tok/s",
+            "DGX TP1/MTP0: C1 195.9; C64 3,803.8 tok/s",
             overview_row,
         )
 

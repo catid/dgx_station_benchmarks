@@ -118,17 +118,44 @@ KV cache, TRT-LLM sparse-attention backends, Triton KDA, DeepGEMM MoE, and
 NEXTN/EAGLE MTP5. Its source and CPU path were audited, but it has no measured
 GPU series in this section.
 
-## Third-party NVFP4 attempts
+## NVFP4 follow-up lane
 
-`LibertAIDAI/GLM-5.3-Flash-NVFP4@11d73216cd636238e82e1d77fe1042ffab36e7fa`
-loaded with W4A16 Marlin, then stopped on unequal gate/up secondary scales and
-a runtime warning that accuracy could be affected. The pinned packaged SGLang
-images do not register the GLM-5.3 architecture.
+### Current LibertAIDAI candidate
+
+| Item | Value |
+| --- | --- |
+| Checkpoint | [`LibertAIDAI/GLM-5.3-Flash-NVFP4`](https://huggingface.co/LibertAIDAI/GLM-5.3-Flash-NVFP4) |
+| Current revision | `aa28e1f54130286c95fee10d0705c74ce8743734` |
+| SGLang configuration fix | `cf5434c00bf69bd0e6b58420c9636999472a2291` |
+| Quantization | Routed-expert weights use NVFP4 with group size 16; activations and all remaining weights stay BF16 |
+| MTP | The BF16 MTP layer is retained |
+| Publisher-reported size | About 181 GiB |
+| Local benchmark status | Not yet measured |
+
+The current revision contains the configuration fix introduced in `cf5434c`:
+the fused module names were added to the quantization ignore list so SGLang
+can load the checkpoint correctly. The current model card documents an SGLang
+load and coherent-generation check on two GB10 systems, but it does not provide
+throughput. This repository will treat it as a benchmark candidate until a
+local timed run is completed.
+
+### Historical pre-fix attempt
+
+The earlier local attempt pinned
+`LibertAIDAI/GLM-5.3-Flash-NVFP4@11d73216cd636238e82e1d77fe1042ffab36e7fa`,
+which predates the `cf5434c` configuration fix. vLLM selected W4A16 Marlin and
+then reported unequal gate/up secondary scales with a warning that accuracy
+could be affected. The packaged SGLang images checked at the time did not
+register the GLM-5.3 architecture. Those observations apply only to that old
+checkpoint/runtime pairing; they do not show that the current checkpoint
+cannot load. No timed throughput was collected.
+
+### Other NVFP4 attempt
 
 The independent SGLang TP1/MTP0 preflight for
 `dealignai/GLM-5.3-Flash-UNCENSORED-NVFP4@d4d79fbbd474599db610b90a44b77497256ab518`
 stopped before server launch when `gemini1` showed 45,988 MiB of clean file
-cache in coherent HBM. Neither third-party attempt produced timed throughput.
+cache in coherent HBM. It did not produce timed throughput.
 
 ## 4× RTX PRO 6000 provenance
 

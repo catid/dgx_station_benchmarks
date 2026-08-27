@@ -21,6 +21,9 @@ REPOSITORY = ROOT.parent
 PROFILES = ("TP2/MTP0", "TP2/MTP5", "TEP2/MTP5")
 CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64, 128)
 CONTEXTS = (8192, 65536, 131072)
+NVFP4_CURRENT_REVISION = "aa28e1f54130286c95fee10d0705c74ce8743734"
+NVFP4_CONFIG_FIX_REVISION = "cf5434c00bf69bd0e6b58420c9636999472a2291"
+NVFP4_PRE_FIX_REVISION = "11d73216cd636238e82e1d77fe1042ffab36e7fa"
 
 EXTERNAL_FIELDS = (
     "source_status",
@@ -205,10 +208,47 @@ class SectionContractTests(unittest.TestCase):
             identities,
             {
                 ("zai-org/GLM-5.3-Flash", "3f1971b7b5f7a528c9c4ef6212c8785298a8c24a"),
-                ("LibertAIDAI/GLM-5.3-Flash-NVFP4", "11d73216cd636238e82e1d77fe1042ffab36e7fa"),
+                ("LibertAIDAI/GLM-5.3-Flash-NVFP4", NVFP4_CURRENT_REVISION),
+                ("LibertAIDAI/GLM-5.3-Flash-NVFP4", NVFP4_PRE_FIX_REVISION),
                 ("dealignai/GLM-5.3-Flash-UNCENSORED-NVFP4", "d4d79fbbd474599db610b90a44b77497256ab518"),
             },
         )
+
+    def test_current_nvfp4_lane_is_unmeasured_and_distinct_from_pre_fix_attempt(self) -> None:
+        headline = (ROOT / "README.md").read_text(encoding="utf-8")
+        nvfp4_section = headline.split("## Next lane: NVFP4", 1)[1].split("See the", 1)[0]
+        self.assertIn(
+            "https://huggingface.co/LibertAIDAI/GLM-5.3-Flash-NVFP4/tree/"
+            + NVFP4_CURRENT_REVISION,
+            nvfp4_section,
+        )
+        for phrase in ("routed experts use NVFP4", "remainder stays BF16", "MTP layer is retained"):
+            self.assertIn(phrase, nvfp4_section)
+        self.assertIn("SGLang loading", nvfp4_section)
+        self.assertIn("No throughput has been measured here yet", nvfp4_section)
+
+        qualification = rows("qualification.csv")
+        candidate = next(row for row in qualification if row["profile"] == "nvfp4_current_sglang_candidate")
+        self.assertEqual(candidate["model_revision"], NVFP4_CURRENT_REVISION)
+        self.assertEqual(candidate["status"], "CANDIDATE_NOT_MEASURED")
+        self.assertEqual(candidate["rankable"], "false")
+        self.assertEqual(candidate["evidence_run_id"], "")
+
+        historical = [
+            row
+            for row in qualification
+            if row["model_id"] == "LibertAIDAI/GLM-5.3-Flash-NVFP4"
+            and row["model_revision"] == NVFP4_PRE_FIX_REVISION
+        ]
+        self.assertEqual(len(historical), 3)
+        self.assertTrue(all(row["status"].startswith("HISTORICAL_PRE_FIX") for row in historical))
+
+        recipe = (ROOT / "recipes/README.md").read_text(encoding="utf-8")
+        self.assertIn(NVFP4_CURRENT_REVISION, recipe)
+        self.assertIn(NVFP4_CONFIG_FIX_REVISION, recipe)
+        self.assertIn(NVFP4_PRE_FIX_REVISION, recipe)
+        self.assertIn("predates the `cf5434c` configuration fix", recipe)
+        self.assertIn("do not show that the current checkpoint\ncannot load", recipe)
 
     def test_readme_headlines_round_from_canonical_rows(self) -> None:
         section = (ROOT / "README.md").read_text(encoding="utf-8")

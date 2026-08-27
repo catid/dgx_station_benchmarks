@@ -34,6 +34,10 @@ ACCEPTED_DGX_STATUSES = {
     "SEALED_RANKABLE",
     "VALIDATED_RANKABLE",
 }
+DGX_HEADLINE_PLATFORM = "DGX Station 1"
+DGX_HEADLINE_LABEL = "1× DGX Station GB300 · NVFP4 TP1/MTP0"
+RTX_BEST_LABEL = "4× RTX PRO 6000 · NVFP4 best"
+RTX_NVFP4_PROFILES = {"nvfp4_tep4_ar", "nvfp4_tep4_mtp3"}
 
 BACKGROUND = "#0E1117"
 PANEL = "#151A23"
@@ -104,6 +108,36 @@ def accepted_overlay_rows(metric: str) -> list[dict[str, str]]:
     ]
 
 
+def headline_dgx_rows(metric: str) -> list[dict[str, str]]:
+    return [
+        row
+        for row in accepted_overlay_rows(metric)
+        if row.get("platform_label") == DGX_HEADLINE_PLATFORM
+    ]
+
+
+def best_rtx_nvfp4_decode() -> dict[int, float]:
+    best: dict[int, float] = {}
+    for row in published_external_rows("throughput.csv"):
+        concurrency = int(row["concurrency"])
+        if row["profile"] not in RTX_NVFP4_PROFILES or concurrency > 64:
+            continue
+        throughput = float(row["aggregate_output_tokens_per_second"])
+        best[concurrency] = max(best.get(concurrency, 0.0), throughput)
+    return best
+
+
+def best_rtx_nvfp4_prefill() -> dict[int, float]:
+    best: dict[int, float] = {}
+    for row in published_external_rows("prefill.csv"):
+        if row["profile"] not in RTX_NVFP4_PROFILES:
+            continue
+        context = int(row["nominal_context_tokens"])
+        throughput = float(row["client_prompt_tokens_per_second"])
+        best[context] = max(best.get(context, 0.0), throughput)
+    return best
+
+
 def add_future_overlays(axis: plt.Axes, metric: str) -> None:
     """Plot only validated DGX overlays; header-only/pending data stays absent."""
     grouped: dict[tuple[str, str], list[dict[str, str]]] = defaultdict(list)
@@ -126,33 +160,39 @@ def add_future_overlays(axis: plt.Axes, metric: str) -> None:
 
 
 def render_dgx_decode() -> None:
-    grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
-    for row in accepted_overlay_rows("decode"):
-        grouped[row["platform_label"]].append(row)
-
+    rows = sorted(headline_dgx_rows("decode"), key=lambda row: int(row["concurrency"]))
+    rtx_best = best_rtx_nvfp4_decode()
     figure, axis = plt.subplots(figsize=(10.8, 6.6))
-    colors = ("#58A6FF", "#61DDAA")
-    markers = ("o", "s")
-    for index, (platform, rows) in enumerate(sorted(grouped.items())):
-        ordered = sorted(rows, key=lambda row: int(row["concurrency"]))
-        axis.plot(
-            [int(row["concurrency"]) for row in ordered],
-            [float(row["throughput"]) for row in ordered],
-            color=colors[index % len(colors)],
-            linewidth=2.8,
-            marker=markers[index % len(markers)],
-            markersize=6.5,
-            label=f"{platform} · NVFP4 TP1/MTP0",
-        )
+    axis.plot(
+        [int(row["concurrency"]) for row in rows],
+        [float(row["throughput"]) for row in rows],
+        color="#58A6FF",
+        linewidth=2.8,
+        marker="o",
+        markersize=6.5,
+        label=DGX_HEADLINE_LABEL,
+    )
 
     concurrencies = [1, 2, 4, 8, 16, 32, 64]
+    axis.plot(
+        concurrencies,
+        [rtx_best[concurrency] for concurrency in concurrencies],
+        color="#FFA657",
+        linestyle="--",
+        linewidth=2.8,
+        marker="D",
+        markersize=6.5,
+        markerfacecolor=BACKGROUND,
+        markeredgewidth=1.5,
+        label=RTX_BEST_LABEL,
+    )
     axis.set_xscale("log", base=2)
     axis.set_xticks(concurrencies, [str(value) for value in concurrencies])
     axis.set_xlim(0.85, 72)
     axis.set_ylim(0, 4200)
     axis.set_xlabel("Offered concurrency")
-    axis.set_ylabel("Output tokens/s per Station")
-    axis.set_title("Qwen3.8-Flash-Next · DGX Station · NVFP4 TP1/MTP0 fixed decode")
+    axis.set_ylabel("Output tokens/s")
+    axis.set_title("Qwen3.8-Flash-Next · NVFP4 fixed decode · hardware comparison")
     axis.legend(loc="upper left", framealpha=0.92)
     figure.tight_layout()
     figure.savefig(
@@ -165,35 +205,42 @@ def render_dgx_decode() -> None:
 
 
 def render_dgx_prefill() -> None:
-    grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
-    for row in accepted_overlay_rows("prefill"):
-        grouped[row["platform_label"]].append(row)
-
+    rows = headline_dgx_rows("prefill")
+    rtx_best = best_rtx_nvfp4_prefill()
     figure, axis = plt.subplots(figsize=(10.8, 6.6))
     contexts = (8192, 32768, 65536, 131072)
     positions = list(range(len(contexts)))
     context_labels = ("8K", "32K", "64K", "128K")
-    colors = ("#58A6FF", "#61DDAA")
-    markers = ("o", "s")
-    for index, (platform, rows) in enumerate(sorted(grouped.items())):
-        by_context = {int(row["nominal_context_tokens"]): row for row in rows}
-        axis.plot(
-            positions,
-            [float(by_context[context]["throughput"]) for context in contexts],
-            color=colors[index % len(colors)],
-            linewidth=2.8,
-            marker=markers[index % len(markers)],
-            markersize=6.5,
-            label=f"{platform} · NVFP4 TP1/MTP0",
-        )
+    by_context = {int(row["nominal_context_tokens"]): row for row in rows}
+    axis.plot(
+        positions,
+        [float(by_context[context]["throughput"]) for context in contexts],
+        color="#58A6FF",
+        linewidth=2.8,
+        marker="o",
+        markersize=6.5,
+        label=DGX_HEADLINE_LABEL,
+    )
+    axis.plot(
+        positions,
+        [rtx_best[context] for context in contexts],
+        color="#FFA657",
+        linestyle="--",
+        linewidth=2.8,
+        marker="D",
+        markersize=6.5,
+        markerfacecolor=BACKGROUND,
+        markeredgewidth=1.5,
+        label=RTX_BEST_LABEL,
+    )
 
     axis.set_xlim(-0.15, 3.15)
     axis.set_xticks(positions)
     axis.set_xticklabels(context_labels, ha="center")
-    axis.set_ylim(28000, 38000)
+    axis.set_ylim(0, 40000)
     axis.set_xlabel("Nominal cold-prefill target")
-    axis.set_ylabel("Client prompt tokens/s per Station")
-    axis.set_title("Qwen3.8-Flash-Next · DGX Station · NVFP4 TP1/MTP0 cold prefill")
+    axis.set_ylabel("Client prompt tokens/s")
+    axis.set_title("Qwen3.8-Flash-Next · NVFP4 cold prefill · hardware comparison")
     axis.legend(loc="lower center", framealpha=0.92)
     figure.tight_layout()
     figure.savefig(

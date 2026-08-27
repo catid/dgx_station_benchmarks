@@ -1,35 +1,34 @@
 # Qwen3.8-Flash-Next
 
-The current benchmark measures Qwen3.8-Flash-Next on two DGX Station GB300
-systems. This is the Flash-Next MoE model, not Qwen3.8-27B.
+The current benchmark measures Qwen3.8-Flash-Next on one DGX Station GB300.
+This is the Flash-Next MoE model, not Qwen3.8-27B.
 
 ## DGX Station benchmark
 
-Radix NVFP4 on SGLang, TP1/MTP0. Each Station runs one independent engine;
-the rates are per Station and are not summed.
+Radix NVFP4 on SGLang, TP1/MTP0. Results are for one engine on one GB300.
 
-| C | Station 1 tok/s | TTFT p50 ms | Station 2 tok/s | TTFT p50 ms |
-| ---: | ---: | ---: | ---: | ---: |
-| 1 | **195.9** | 218.4 | 194.2 | **216.4** |
-| 2 | 363.5 | 388.0 | **363.6** | **374.1** |
-| 4 | **661.1** | 386.3 | 660.5 | **377.8** |
-| 8 | 1,133.7 | 545.3 | **1,150.5** | **539.1** |
-| 16 | **1,786.2** | 759.5 | 1,762.5 | **733.1** |
-| 32 | **2,702.1** | **1,089.9** | 2,668.9 | 1,112.4 |
-| 64 | **3,803.8** | **2,104.4** | 3,800.0 | 2,147.7 |
+| C | 1× DGX tok/s | TTFT p50 ms | 4× RTX PRO 6000 NVFP4 best tok/s |
+| ---: | ---: | ---: | ---: |
+| 1 | 195.9 | 218.4 | 211.7 |
+| 2 | 363.5 | 388.0 | 394.0 |
+| 4 | 661.1 | 386.3 | 674.8 |
+| 8 | 1,133.7 | 545.3 | 1,049.0 |
+| 16 | 1,786.2 | 759.5 | 1,524.2 |
+| 32 | 2,702.1 | 1,089.9 | 1,997.6 |
+| 64 | 3,803.8 | 2,104.4 | 2,849.4 |
 
-![DGX Station NVFP4 TP1/MTP0 decode throughput](charts/dgx-tp1-decode.png)
+![1× DGX Station GB300 and 4× RTX PRO 6000 NVFP4 decode throughput](charts/dgx-tp1-decode.png)
 
 ### DGX cold prefill
 
-| Target | Station 1 tok/s | TTFT s | Station 2 tok/s | TTFT s |
-| ---: | ---: | ---: | ---: | ---: |
-| 8K | 31,016 | 0.264 | **31,288** | **0.262** |
-| 32K | 36,595 | 0.895 | **36,690** | **0.893** |
-| 64K | **35,525** | **1.845** | **35,525** | **1.845** |
-| 128K | 32,052 | 4.089 | **32,074** | **4.087** |
+| Target | 1× DGX tok/s | TTFT s | 4× RTX PRO 6000 NVFP4 best tok/s |
+| ---: | ---: | ---: | ---: |
+| 8K | 31,016 | 0.264 | 15,547 |
+| 32K | 36,595 | 0.895 | 15,799 |
+| 64K | 35,525 | 1.845 | 15,512 |
+| 128K | 32,052 | 4.089 | 14,720 |
 
-![DGX Station NVFP4 TP1/MTP0 cold-prefill throughput](charts/dgx-tp1-prefill.png)
+![1× DGX Station GB300 and 4× RTX PRO 6000 NVFP4 cold-prefill throughput](charts/dgx-tp1-prefill.png)
 
 MTP3 and cross-Station TP2/TEP2 measurements are still in progress.
 

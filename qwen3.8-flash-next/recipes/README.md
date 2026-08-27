@@ -8,8 +8,16 @@ out of the headline result page.
 
 The headline C1–C64 decode and 8K–128K cold-prefill rows come from run
 `qwen38-dgx-nvfp4-tp1-mtp0-timed-20260827-v1`. It ran one independent TP1
-engine on each Station; `gemini1` maps to public label `DGX Station 1` and
-`gemini2` to `DGX Station 2`. The two rates are never summed.
+engine on each Station. The displayed series is the actual `gemini1` result,
+whose local raw files are fully retained; it is not an average or synthetic
+value. The `gemini2` result closely replicated it—194.2 versus 195.9 tok/s at
+C1 and 3,800.0 versus 3,803.8 tok/s at C64—and remains in
+`../data/dgx-overlays.csv`. The two rates are never summed.
+
+The chart and table series labeled `4× RTX PRO 6000 · NVFP4 best` is a
+pointwise envelope over the workstation's TEP4/AR and TEP4/MTP3 measurements,
+not one fixed decode mode. MTP3 supplies C1–C16; AR supplies C32–C64. The
+prefill envelope uses AR at all four contexts.
 
 | Item | Value |
 | --- | --- |

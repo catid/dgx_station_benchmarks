@@ -50,6 +50,14 @@ Cold-prefill rates are prompt tokens per second.
 
 ![GLM-5.3-Flash prefill throughput](charts/prefill-throughput.png)
 
+## Next lane: NVFP4
+
+[`LibertAIDAI/GLM-5.3-Flash-NVFP4`](https://huggingface.co/LibertAIDAI/GLM-5.3-Flash-NVFP4/tree/aa28e1f54130286c95fee10d0705c74ce8743734)
+at revision `aa28e1f54130286c95fee10d0705c74ce8743734` is a third-party
+weight-only checkpoint: routed experts use NVFP4, the remainder stays BF16,
+and the BF16 MTP layer is retained. This revision includes the configuration
+update needed for SGLang loading. No throughput has been measured here yet.
+
 See the [reproduction recipe](recipes/) for workload details, runtime pins,
 provenance, observed concurrency, and operational notes. Machine-readable
 results are in [`data/`](data/).
