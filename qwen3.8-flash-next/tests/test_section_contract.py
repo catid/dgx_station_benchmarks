@@ -395,6 +395,7 @@ class SectionContractTests(unittest.TestCase):
             "NVFP4 TP2/MTP0": "TP2/AR",
             "NVFP4 TP2/MTP3": "TP2/MTP3",
             "NVFP4 TEP2/MTP0": "TEP2/AR",
+            "NVFP4 TEP2/MTP3": "TEP2/MTP3",
         }
         dgx_decode = {
             (row["profile"], int(row["concurrency"])): Decimal(row["throughput"])
@@ -457,7 +458,7 @@ class SectionContractTests(unittest.TestCase):
         )
         self.assertIn("(qwen3.8-flash-next/)", overview_row)
         self.assertIn(
-            "TP2/MTP3: 243.5 tok/s C1; TEP2/AR: 3,164.1 C64",
+            "TEP2/MTP3: 246.4 tok/s C1; TEP2/AR: 3,164.1 C64",
             overview_row,
         )
 
