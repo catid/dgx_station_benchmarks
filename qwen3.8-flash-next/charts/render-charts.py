@@ -63,8 +63,8 @@ DGX_HEADLINE_SERIES = {
         "^",
     ),
 }
-RTX_COMPARISON_LABEL = "4× RTX PRO 6000 · NVFP4 comparison"
-RTX_NVFP4_PROFILES = {"nvfp4_tep4_ar", "nvfp4_tep4_mtp3"}
+RTX_COMPARISON_LABEL = "4× RTX PRO 6000 · RadixArk NVFP4@7b719225 · TEP4/AR"
+RTX_NVFP4_PROFILE = "nvfp4_tep4_ar"
 
 BACKGROUND = "#0E1117"
 PANEL = "#151A23"
@@ -176,31 +176,29 @@ def dynamic_y_upper(values: list[float]) -> float:
     return max(1.0, max(values, default=0.0) * 1.12)
 
 
-def best_rtx_nvfp4_decode() -> dict[int, float]:
-    best: dict[int, float] = {}
+def rtx_nvfp4_ar_decode() -> dict[int, float]:
+    values: dict[int, float] = {}
     for row in published_external_rows("throughput.csv"):
         concurrency = int(row["concurrency"])
-        if row["profile"] not in RTX_NVFP4_PROFILES or concurrency > 64:
+        if row["profile"] != RTX_NVFP4_PROFILE or concurrency > 64:
             continue
-        throughput = float(row["aggregate_output_tokens_per_second"])
-        best[concurrency] = max(best.get(concurrency, 0.0), throughput)
-    return best
+        values[concurrency] = float(row["aggregate_output_tokens_per_second"])
+    return values
 
 
-def best_rtx_nvfp4_prefill() -> dict[int, float]:
-    best: dict[int, float] = {}
+def rtx_nvfp4_ar_prefill() -> dict[int, float]:
+    values: dict[int, float] = {}
     for row in published_external_rows("prefill.csv"):
-        if row["profile"] not in RTX_NVFP4_PROFILES:
+        if row["profile"] != RTX_NVFP4_PROFILE:
             continue
         context = int(row["nominal_context_tokens"])
-        throughput = float(row["client_prompt_tokens_per_second"])
-        best[context] = max(best.get(context, 0.0), throughput)
-    return best
+        values[context] = float(row["client_prompt_tokens_per_second"])
+    return values
 
 
 def render_dgx_decode() -> None:
     grouped = headline_dgx_series("decode")
-    rtx_best = best_rtx_nvfp4_decode()
+    rtx_comparison = rtx_nvfp4_ar_decode()
     figure, axis = plt.subplots(figsize=(10.8, 6.6))
     plotted_values: list[float] = []
     for profile, (label, color, linestyle, marker) in DGX_HEADLINE_SERIES.items():
@@ -220,9 +218,13 @@ def render_dgx_decode() -> None:
             label=label,
         )
 
-    rtx_concurrencies = [value for value in DGX_CONCURRENCIES if value in rtx_best]
+    rtx_concurrencies = [
+        value for value in DGX_CONCURRENCIES if value in rtx_comparison
+    ]
     if rtx_concurrencies:
-        rtx_values = [rtx_best[concurrency] for concurrency in rtx_concurrencies]
+        rtx_values = [
+            rtx_comparison[concurrency] for concurrency in rtx_concurrencies
+        ]
         plotted_values.extend(rtx_values)
         axis.plot(
             rtx_concurrencies,
@@ -247,10 +249,10 @@ def render_dgx_decode() -> None:
     figure.text(
         0.5,
         0.018,
-        "Each DGX curve is one distributed engine across both Stations",
+        "RTX comparison: patched SGLang · one 4-GPU server · 8,192 input + 1,024 output tokens · temperature 0",
         ha="center",
         color=MUTED,
-        fontsize=9.4,
+        fontsize=8.8,
     )
     figure.tight_layout(rect=(0, 0.045, 1, 1))
     figure.savefig(
@@ -264,7 +266,7 @@ def render_dgx_decode() -> None:
 
 def render_dgx_prefill() -> None:
     grouped = headline_dgx_series("prefill")
-    rtx_best = best_rtx_nvfp4_prefill()
+    rtx_comparison = rtx_nvfp4_ar_prefill()
     figure, axis = plt.subplots(figsize=(10.8, 6.6))
     positions = list(range(len(PREFILL_CONTEXTS)))
     context_labels = ("8K", "32K", "64K", "128K")
@@ -289,9 +291,11 @@ def render_dgx_prefill() -> None:
             label=label,
         )
 
-    rtx_contexts = [context for context in PREFILL_CONTEXTS if context in rtx_best]
+    rtx_contexts = [
+        context for context in PREFILL_CONTEXTS if context in rtx_comparison
+    ]
     if rtx_contexts:
-        rtx_values = [rtx_best[context] for context in rtx_contexts]
+        rtx_values = [rtx_comparison[context] for context in rtx_contexts]
         plotted_values.extend(rtx_values)
         axis.plot(
             [position_by_context[context] for context in rtx_contexts],
@@ -317,10 +321,10 @@ def render_dgx_prefill() -> None:
     figure.text(
         0.5,
         0.018,
-        "Each DGX curve is one distributed engine across both Stations",
+        "RTX comparison: patched SGLang · one 4-GPU server · C1 cold prefill · one output token",
         ha="center",
         color=MUTED,
-        fontsize=9.4,
+        fontsize=8.8,
     )
     figure.tight_layout(rect=(0, 0.045, 1, 1))
     figure.savefig(

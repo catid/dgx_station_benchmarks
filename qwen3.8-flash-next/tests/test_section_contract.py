@@ -276,27 +276,27 @@ class SectionContractTests(unittest.TestCase):
             renderer.dynamic_y_upper([1000.0]),
         )
 
-    def test_workstation_nvfp4_best_envelope_is_exact_and_stops_at_c64(self) -> None:
+    def test_workstation_nvfp4_tep4_ar_comparison_is_exact_and_stops_at_c64(self) -> None:
         renderer = load_chart_renderer()
         self.assertEqual(
             renderer.RTX_COMPARISON_LABEL,
-            "4× RTX PRO 6000 · NVFP4 comparison",
+            "4× RTX PRO 6000 · RadixArk NVFP4@7b719225 · TEP4/AR",
         )
         expected_decode = {
-            1: 211.707556,
-            2: 393.985297,
-            4: 674.751892,
-            8: 1049.006002,
-            16: 1524.156598,
+            1: 116.892021,
+            2: 223.256146,
+            4: 416.150994,
+            8: 750.218064,
+            16: 1299.416259,
             32: 1997.580658,
             64: 2849.433100,
         }
-        decode = renderer.best_rtx_nvfp4_decode()
+        decode = renderer.rtx_nvfp4_ar_decode()
         self.assertEqual(set(decode), set(expected_decode))
         for concurrency, expected in expected_decode.items():
             self.assertAlmostEqual(decode[concurrency], expected, places=6)
         expected_prefill = {8192: 15547, 32768: 15799, 65536: 15512, 131072: 14720}
-        prefill = renderer.best_rtx_nvfp4_prefill()
+        prefill = renderer.rtx_nvfp4_ar_prefill()
         self.assertEqual(set(prefill), set(expected_prefill))
         for context, expected in expected_prefill.items():
             self.assertEqual(prefill[context], expected)
@@ -379,6 +379,13 @@ class SectionContractTests(unittest.TestCase):
         self.assertIn("local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89", section)
         self.assertIn("one distributed engine across both Stations", section)
         self.assertIn("comparison point, not a DGX Station", section)
+        self.assertIn(
+            "RadixArk/Qwen3.8-Flash-Next-NVFP4@"
+            "7b719225242aacd3dbd3f9407468c2ee9a9d2594",
+            section,
+        )
+        self.assertIn("one TEP4/AR server across four RTX PRO 6000", section)
+        self.assertIn("8,192 input + 1,024 output tokens at temperature 0", section)
         headline = section.split("Exact checkpoint revisions", 1)[0]
         self.assertNotIn("source-sealed", headline.lower())
         self.assertNotIn("sealed", headline.lower())

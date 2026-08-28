@@ -20,9 +20,12 @@ on SGLang. This is one distributed engine across both Stations using TP2.
 
 ## RTX PRO 6000 comparison
 
-The dashed orange line is the best measured NVFP4 result from one server with
-four RTX PRO 6000 Blackwell GPUs. It is a comparison point, not a DGX Station
-headline.
+The dashed orange line is
+`RadixArk/Qwen3.8-Flash-Next-NVFP4@7b719225242aacd3dbd3f9407468c2ee9a9d2594`
+on patched SGLang: one TEP4/AR server across four RTX PRO 6000 Blackwell GPUs.
+Fixed decode is 8,192 input + 1,024 output tokens at temperature 0, shown from
+C1 through C64. Cold prefill is C1 at 8K, 32K, 64K, and 128K with one output
+token. This is a comparison point, not a DGX Station headline.
 
 Exact checkpoint revisions, launch settings, workload, and per-cell values are
 in the [recipe](recipes/) and [`data/`](data/).

@@ -39,10 +39,9 @@ Raw result roots are under
 C1–C64 publication pass; it also requires the launcher's completed cleanup and
 postflight marker.
 
-The chart series labeled `4× RTX PRO 6000 · NVFP4 comparison` is a pointwise
-envelope over the workstation's TEP4/AR and TEP4/MTP3 measurements, not one
-fixed decode mode. MTP3 supplies C1–C16; AR supplies C32–C64. The prefill
-envelope uses AR at all four contexts.
+The dashed chart comparison is the workstation's RadixArk NVFP4/SGLang
+TEP4/AR profile at every point. It is one server across all four RTX PRO 6000
+GPUs, shown at C1–C64 decode and all four cold-prefill contexts.
 
 ## RTX PRO 6000 comparison details
 
