@@ -55,7 +55,9 @@ def make_result(parent: Path) -> Path:
             "decode_concurrency": list(IMPORTER.CONCURRENCIES),
             "cold_prefill": ["8K", "64K", "128K"],
             "input_tokens": 8192,
+            "measured_requests": "5*C",
             "output_tokens": 1024,
+            "warmups": "C",
         },
     })
     for concurrency in IMPORTER.CONCURRENCIES:
@@ -80,9 +82,11 @@ def make_result(parent: Path) -> Path:
                 "request_count_target": target,
                 "request_count": target,
                 "completed_request_count": target,
+                "num_completed": target,
                 "num_errors": 0,
                 "client_output_tokens": target * 1024,
                 "measurement_seconds": seconds,
+                "aggregate_source": "openai_completed_usage",
                 "aggregate_tps": target * 1024 / seconds,
                 "ttft_p50": 0.2,
                 "inter_token_latency_p50": 0.008,
@@ -135,6 +139,56 @@ def make_result(parent: Path) -> Path:
     return root
 
 
+def make_dflash_result(parent: Path) -> Path:
+    ar_root = make_result(parent)
+    root = parent / "glm53-nvfp4-tp2-dflash2-test"
+    ar_root.rename(root)
+
+    manifest = json.loads((root / "run-manifest.json").read_text(encoding="utf-8"))
+    manifest["run_id"] = root.name
+    manifest["profile"] = IMPORTER.DFLASH_RUN_PROFILE
+    model = manifest.pop("model")
+    manifest.pop("mtp")
+    manifest.pop("runtime_image")
+    manifest["target"] = {
+        "repository": model["repository"],
+        "revision": model["revision"],
+        "weight_revision": model["weight_revision"],
+        "quantization": model["quantization"],
+        "kv_cache_dtype": "fp8_e4m3",
+    }
+    manifest["draft"] = {
+        "repository": IMPORTER.DFLASH_DRAFT_ID,
+        "revision": IMPORTER.DFLASH_DRAFT_REVISION,
+        "proposed_tokens": IMPORTER.DFLASH_PROPOSED_TOKENS,
+        "quantization": "unquant",
+        "dtype": "bfloat16",
+    }
+    manifest["runtime"] = {
+        "image": IMPORTER.DFLASH_RUNTIME_IMAGE,
+        "source_commit": IMPORTER.DFLASH_RUNTIME_COMMIT,
+    }
+    prefill_source = "/results/glm53-nvfp4-tp2-mtp0-v1/benchmark/raw/prefill/cold.json"
+    manifest["benchmark"]["cold_prefill"] = {
+        "rerun": False,
+        "source": prefill_source,
+        "sha256": IMPORTER.AR_PREFILL_SHA256,
+    }
+    write_json(root / "run-manifest.json", manifest)
+
+    (root / "benchmark/raw/prefill/cold.json").unlink()
+    write_json(root / "benchmark/raw/prefill/reused-base.json", {
+        "schema": "benchmark-prefill-reference/v1",
+        "rerun": False,
+        "source": prefill_source,
+        "sha256": IMPORTER.AR_PREFILL_SHA256,
+    })
+    (root / "STATUS.retry.txt").unlink()
+    (root / "STATUS.txt").write_text("COMPLETE_MEASURED_RAW\n", encoding="utf-8")
+    (root / "postflight/verdict.retry.txt").rename(root / "postflight/verdict.txt")
+    return root
+
+
 class ImportNvfp4ResultsTests(unittest.TestCase):
     def test_complete_result_maps_all_raw_cells(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -167,16 +221,68 @@ class ImportNvfp4ResultsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "postflight retry did not pass"):
                 IMPORTER.import_result(root)
 
-    def test_reimport_replaces_only_the_current_model_revision(self) -> None:
-        old_official = {"model_id": "zai-org/GLM-5.3-Flash", "model_revision": "official"}
-        old_current = {"model_id": IMPORTER.MODEL_ID,
-                       "model_revision": IMPORTER.MODEL_REVISION}
-        new_current = {"model_id": IMPORTER.MODEL_ID,
-                       "model_revision": IMPORTER.MODEL_REVISION, "value": "new"}
-        merged = IMPORTER.replace_model_rows(
-            [old_official, old_current], [new_current]
+    def test_complete_dflash_result_maps_decode_without_duplicate_prefill(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            imported = IMPORTER.import_result(make_dflash_result(Path(directory)))
+        self.assertEqual(len(imported["throughput"]), 7)
+        self.assertEqual(len(imported["prefill"]), 0)
+        self.assertEqual(len(imported["diagnostic_throughput"]), 7)
+        self.assertEqual(len(imported["diagnostic_prefill"]), 0)
+        self.assertEqual(
+            {row["profile"] for row in imported["throughput"]},
+            {IMPORTER.DFLASH_PUBLICATION_PROFILE},
         )
-        self.assertEqual(merged, [old_official, new_current])
+        self.assertEqual({row["mtp_tokens"] for row in imported["throughput"]}, {"0"})
+        self.assertEqual(
+            [int(row["completed_requests_in_window"])
+             for row in imported["diagnostic_throughput"]],
+            [5 * concurrency for concurrency in IMPORTER.CONCURRENCIES],
+        )
+
+    def test_dflash_result_requires_exact_draft_revision_and_direct_postflight(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_dflash_result(Path(directory))
+            manifest = json.loads((root / "run-manifest.json").read_text(encoding="utf-8"))
+            manifest["draft"]["revision"] = "wrong"
+            write_json(root / "run-manifest.json", manifest)
+            with self.assertRaisesRegex(ValueError, "draft revision differs"):
+                IMPORTER.import_result(root)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_dflash_result(Path(directory))
+            (root / "postflight/verdict.txt").write_text(
+                "outcome=BLOCKED_IDLE_GATE\n", encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ValueError, "DFlash2 postflight did not pass"):
+                IMPORTER.import_result(root)
+
+    def test_reimport_replaces_only_the_matching_publication_profile(self) -> None:
+        official = {"profile": "TP2/MTP0", "run_id": "official"}
+        old_ar = {"profile": IMPORTER.AR_PUBLICATION_PROFILE, "run_id": "old-ar"}
+        old_dflash = {
+            "profile": IMPORTER.DFLASH_PUBLICATION_PROFILE,
+            "run_id": "old-dflash",
+        }
+        new_dflash = {
+            "profile": IMPORTER.DFLASH_PUBLICATION_PROFILE,
+            "run_id": "new-dflash",
+        }
+        merged = IMPORTER.replace_profile_rows(
+            [official, old_ar, old_dflash], [new_dflash]
+        )
+        self.assertEqual(merged, [official, old_ar, new_dflash])
+
+    def test_diagnostic_reimport_preserves_other_nvfp4_run(self) -> None:
+        existing = [
+            {"run_id": "native"},
+            {"run_id": "ar"},
+            {"run_id": "old-dflash"},
+        ]
+        imported = [{"run_id": "new-dflash"}]
+        self.assertEqual(
+            IMPORTER.replace_run_rows(existing, imported, {"old-dflash"}),
+            [{"run_id": "native"}, {"run_id": "ar"}, {"run_id": "new-dflash"}],
+        )
 
 
 if __name__ == "__main__":

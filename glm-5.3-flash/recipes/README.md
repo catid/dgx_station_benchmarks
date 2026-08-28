@@ -35,10 +35,13 @@ model server across the two DGX Stations rather than as two replicas.
 | Weight payload revision | `11d73216cd636238e82e1d77fe1042ffab36e7fa` |
 | Runtime configuration SHA-256 | `5db46f44956e4a8a0cc8ed54b6d77bf99dd7c1ec90c58975d1952560768513d5` |
 | Quantization | ModelOpt NVFP4 routed-expert weights; remaining weights and activations BF16 |
-| Runtime | SGLang image `glm53-nvfp4-sglang:pr36507-c3b7482` |
+| AR runtime | SGLang image `glm53-nvfp4-sglang:pr36507-c3b7482` |
+| DFlash2 draft | `incoai/GLM-5.3-Flash-DFlash2@7d74cdd881ed7e32c31175984a67823127b66cfe` |
+| DFlash2 draft format | Unquantized BF16, seven proposed tokens |
+| DFlash2 runtime | Patched SGLang image `glm53-dflash2-sglang:5277926`, source commit `52779266e668039bed838fe25ef84ffb014d22f2` |
 | Benchmark client | `llm-inference-bench` 0.4.29, commit `0b4185b5b435e948b199c9077a00b084864aa963` |
 | Topology | TP2/PP1/EP1, one distributed engine across both DGX Stations |
-| Decode mode | Autoregressive (MTP0) |
+| Decode modes | Autoregressive (MTP0), or DFlash2 speculative decoding on the same NVFP4 target |
 
 ## Measured DGX profiles
 
@@ -48,12 +51,13 @@ model server across the two DGX Stations rather than as two replicas.
 | TP2/MTP5 | `glm53-flash-tp2-mtp5-full-20260826-method-v10` | TP2 | Five-token MTP |
 | TEP2/MTP5 | `glm53-flash-tep2-mtp5-full-20260826-method-v2` | TP2 with expert parallelism | Five-token MTP |
 | NVFP4 TP2/AR | `glm53-nvfp4-tp2-mtp0-v1` | TP2 | Autoregressive |
+| NVFP4 TP2/DFlash2 | `glm53-nvfp4-tp2-dflash2-v1` | TP2 | DFlash2 speculative decoding |
 
 Each retained run manifest verifies. Native-FP8 decode rates use 60-second
 client windows. The NVFP4 series uses completed request-count cells with `5*C`
 measured requests after `C` warmups. Both methods use the exact prompt and
 output targets below. All existing native-FP8 C1–C128 measurements remain
-reported; the current NVFP4 series and the ceiling for new work stop at C64.
+reported; the two current NVFP4 decode series stop at C64.
 
 ## Observed concurrency
 
@@ -61,21 +65,24 @@ The table shows average active requests and the maximum active requests seen in
 each cell. Differences from the requested concurrency describe scheduler and
 capacity saturation during the measured interval.
 
-| Requested C | FP8 TP2/MTP0 avg/max | FP8 TP2/MTP5 avg/max | FP8 TEP2/MTP5 avg/max | NVFP4 TP2/AR avg/max |
-| ---: | ---: | ---: | ---: | ---: |
-| 1 | 1.0 / 1 | 0.9 / 1 | 0.9 / 1 | 0.9 / 1 |
-| 2 | 2.0 / 2 | 2.0 / 2 | 2.0 / 2 | 1.7 / 2 |
-| 4 | 4.0 / 4 | 4.0 / 4 | 4.0 / 4 | 3.0 / 4 |
-| 8 | 7.8 / 8 | 7.9 / 8 | 7.9 / 8 | 5.8 / 8 |
-| 16 | 14.8 / 16 | 15.8 / 16 | 15.8 / 16 | 11.2 / 16 |
-| 32 | 29.5 / 32 | 31.9 / 32 | 32.0 / 32 | 30.4 / 32 |
-| 64 | 59.6 / 64 | 63.7 / 64 | 63.8 / 64 | 53.0 / 64 |
-| 128 | 118.3 / 128 | 105.7 / 108 | 104.1 / 106 | — |
+| Requested C | FP8 TP2/MTP0 avg/max | FP8 TP2/MTP5 avg/max | FP8 TEP2/MTP5 avg/max | NVFP4 TP2/AR avg/max | NVFP4 TP2/DFlash2 avg/max |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 1.0 / 1 | 0.9 / 1 | 0.9 / 1 | 0.9 / 1 | 0.8 / 1 |
+| 2 | 2.0 / 2 | 2.0 / 2 | 2.0 / 2 | 1.7 / 2 | 1.9 / 2 |
+| 4 | 4.0 / 4 | 4.0 / 4 | 4.0 / 4 | 3.0 / 4 | 3.7 / 4 |
+| 8 | 7.8 / 8 | 7.9 / 8 | 7.9 / 8 | 5.8 / 8 | 7.5 / 8 |
+| 16 | 14.8 / 16 | 15.8 / 16 | 15.8 / 16 | 11.2 / 16 | 15.1 / 16 |
+| 32 | 29.5 / 32 | 31.9 / 32 | 32.0 / 32 | 30.4 / 32 | 30.8 / 33 |
+| 64 | 59.6 / 64 | 63.7 / 64 | 63.8 / 64 | 53.0 / 64 | 52.2 / 56 |
+| 128 | 118.3 / 128 | 105.7 / 108 | 104.1 / 106 | — | — |
 
 The C1 averages round to one decimal place; both MTP5 runs reached one active
 request. The source CSVs also retain queueing, capacity, latency, MTP
 acceptance, and engine-step fields. Throughput is never replaced with zero
 when the server saturates.
+
+At DFlash2 C64, effective concurrency was 52.2 and the observed active-request
+cap was 56 under the offered concurrency of 64.
 
 ## Prefill measurements
 
@@ -89,9 +96,11 @@ The MTP5 runs used exact, unique-prefix prompts with a shape warmup, at least
 three measured samples, and client/server counter checks. The older MTP0
 acquisition used the earlier standalone-cold method: its actual prompt lengths
 were 8,194, 65,538, and 131,073 tokens, and it did not retain matching
-server-side prefill rates. The NVFP4 run also used standalone cold prefill; its
-actual prompt lengths were 8,194, 65,538, and 131,073, with all completed
-client measurements reported.
+server-side prefill rates. The NVFP4 TP2/AR run also used standalone cold
+prefill; its actual prompt lengths were 8,194, 65,538, and 131,073, with all
+completed client measurements reported. DFlash2 changes only decode, so its
+result bundle references that matching target/topology prefill artifact by
+SHA-256 rather than presenting a second measurement.
 
 ## Operational note for TEP2
 
@@ -110,22 +119,31 @@ The retained canonical gate retry then passed at 3 MiB used on `gemini1` and
 6 MiB on `gemini2`. This transient postflight detail did not alter the completed
 raw measurements.
 
+## Operational note for NVFP4 TP2/DFlash2
+
+The raw benchmark status was `COMPLETE`; every C1–C64 request target completed
+with zero errors. Exact-name container cleanup and the direct postflight gates
+passed on both Stations.
+
 The raw benchmark JSON SHA-256 values are:
 
 - TP2/MTP0: `12f9d0f4fc4e3bfd6308411ddb02abccf9c4cb03ff2897378fb9cf098c007f17`;
 - TP2/MTP5: `8c1f90d017892c950f553600a3d889141a361a385a5657bc838c5c4344753e25`;
 - TEP2/MTP5: `8619a90dd4f441e1702ffaa9e2ff4c23bbc5b1f2d370ee7e5d6ed83d80c08ed4`;
 - NVFP4 TP2/AR: each raw JSON SHA-256 is retained on its imported diagnostic
-  row rather than replacing the seven decode artifacts with one bundle hash.
+  row rather than replacing the seven decode artifacts with one bundle hash;
+- NVFP4 TP2/DFlash2: each raw JSON SHA-256 is likewise retained on its imported
+  diagnostic row.
 
 ## Workload
 
 Decode uses an exact 8,192-token prompt, a forced 1,024-token output,
 temperature zero, and EOS ignored. Native FP8 uses 60-second sustained windows;
-NVFP4 uses exact request-count cells. MTP5 prefill uses exact 8K, 64K, and 128K
-unique prompts on a warm server; the MTP0 methods are described above. Natural
-output is collected separately with EOS respected. MTP0 and MTP5 are distinct
-profiles.
+NVFP4 uses exact request-count cells. DFlash2 proposes seven draft tokens and
+the NVFP4 target verifies accepted tokens. MTP5 prefill uses exact 8K, 64K, and
+128K unique prompts on a warm server; the MTP0 methods are described above.
+Natural output is collected separately with EOS respected. AR, DFlash2, and
+MTP5 are distinct decode profiles.
 
 The public decode rate is completed OpenAI-usage output tokens divided by the
 client's monotonic measurement time. MTP acceptance and engine steps are
@@ -150,9 +168,10 @@ KV cache, TRT-LLM sparse-attention backends, Triton KDA, DeepGEMM MoE, and
 NEXTN/EAGLE MTP5. Its source and CPU path were audited, but it has no measured
 GPU series in this section.
 
-The measured NVFP4 profile instead uses TP2/PP1/EP1, ModelOpt FP4 loading,
+The measured NVFP4 profiles instead use TP2/PP1/EP1, ModelOpt FP4 loading,
 TRT-LLM sparse attention, FlashInfer TRT-LLM expert GEMM, and Triton linear
-attention. It is autoregressive and does not enable the retained MTP layer.
+attention. The AR profile does not enable the retained MTP layer. The DFlash2
+profile attaches the exact BF16 draft pinned above to that same NVFP4 base.
 
 ## NVFP4 lane
 
@@ -166,15 +185,15 @@ attention. It is autoregressive and does not enable the retained MTP layer.
 | Quantization | Routed-expert weights use NVFP4 with group size 16; activations and all remaining weights stay BF16 |
 | MTP | The BF16 MTP layer is retained |
 | Publisher-reported size | About 181 GiB |
-| Local benchmark status | Measured TP2/AR, C1–C64 and 8K/64K/128K cold prefill |
-| Evidence run | `glm53-nvfp4-tp2-mtp0-v1` |
+| Local benchmark status | Measured TP2/AR and TP2/DFlash2 C1–C64; TP2/AR 8K/64K/128K cold prefill |
+| Evidence runs | `glm53-nvfp4-tp2-mtp0-v1`, `glm53-nvfp4-tp2-dflash2-v1` |
 
 The current revision contains the configuration fix introduced in `cf5434c`:
 the fused module names were added to the quantization ignore list so SGLang
 can load the checkpoint correctly. The current model card documents an SGLang
 load and coherent-generation check on two GB10 systems, but it does not provide
-throughput. The local SGLang TP2/AR result above is the measured publication for
-that exact current revision.
+throughput. The local SGLang TP2/AR and TP2/DFlash2 results above are the
+measured publication for that exact current target revision.
 
 ### Historical pre-fix attempt
 

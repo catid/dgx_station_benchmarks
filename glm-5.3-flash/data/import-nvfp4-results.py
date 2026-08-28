@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Import the completed GLM-5.3 NVFP4 TP2/AR raw result bundle.
+"""Import completed GLM-5.3 NVFP4 TP2 raw result bundles.
 
-The importer validates the pinned manifest, completion/retry seals, exact
-request-count decode cells, and standalone cold-prefill cells before replacing
-the matching model rows in the section's compact and diagnostic CSVs.
+The importer validates pinned manifests, completion records, exact request-count
+decode cells, and the standalone TP2/AR cold-prefill cells before replacing the
+matching publication profiles in the section's compact and diagnostic CSVs.
 """
 
 from __future__ import annotations
@@ -30,14 +30,29 @@ MODEL_ID = "LibertAIDAI/GLM-5.3-Flash-NVFP4"
 MODEL_REVISION = "aa28e1f54130286c95fee10d0705c74ce8743734"
 WEIGHT_REVISION = "11d73216cd636238e82e1d77fe1042ffab36e7fa"
 RUNTIME_CONFIG_SHA256 = "5db46f44956e4a8a0cc8ed54b6d77bf99dd7c1ec90c58975d1952560768513d5"
-RUNTIME_IMAGE = "glm53-nvfp4-sglang:pr36507-c3b7482"
 BENCH_VERSION = "0.4.29"
 BENCH_COMMIT = "0b4185b5b435e948b199c9077a00b084864aa963"
-RUN_PROFILE = "tp2-mtp0"
-PUBLICATION_PROFILE = "NVFP4 TP2/AR"
 TOPOLOGY = "cross_node_tp2"
 CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64)
 PREFILL_CONTEXTS = (8192, 65536, 131072)
+
+AR_RUNTIME_IMAGE = "glm53-nvfp4-sglang:pr36507-c3b7482"
+AR_RUN_PROFILE = "tp2-mtp0"
+AR_PUBLICATION_PROFILE = "NVFP4 TP2/AR"
+AR_PREFILL_SHA256 = "d624a68252542bd06e7422d204decac5fec25d33b7856e9630af82c152b17b90"
+
+DFLASH_RUN_PROFILE = "tp2-dflash2"
+DFLASH_PUBLICATION_PROFILE = "NVFP4 TP2/DFlash2"
+DFLASH_RUNTIME_IMAGE = "glm53-dflash2-sglang:5277926"
+DFLASH_RUNTIME_COMMIT = "52779266e668039bed838fe25ef84ffb014d22f2"
+DFLASH_DRAFT_ID = "incoai/GLM-5.3-Flash-DFlash2"
+DFLASH_DRAFT_REVISION = "7d74cdd881ed7e32c31175984a67823127b66cfe"
+DFLASH_PROPOSED_TOKENS = 7
+
+# Backwards-compatible names used by the importer tests and downstream callers.
+RUNTIME_IMAGE = AR_RUNTIME_IMAGE
+RUN_PROFILE = AR_RUN_PROFILE
+PUBLICATION_PROFILE = AR_PUBLICATION_PROFILE
 
 THROUGHPUT_FIELDS = (
     "run_id",
@@ -188,55 +203,113 @@ def key_values(path: Path, label: str) -> dict[str, str]:
     return result
 
 
-def validate_result_root(root_arg: Path) -> tuple[Path, dict[str, Any]]:
+def validate_result_root(
+    root_arg: Path,
+) -> tuple[Path, dict[str, Any], str, int, bool]:
     require(root_arg.is_dir() and not root_arg.is_symlink(), f"unsafe result root: {root_arg}")
     root = root_arg.resolve(strict=True)
     manifest = json_object(root / "run-manifest.json", "run manifest")
     require(manifest.get("schema_version") == 1, "run-manifest schema differs")
     require(manifest.get("run_id") == root.name, "run-manifest ID differs")
-    require(manifest.get("profile") == RUN_PROFILE, "run-manifest profile differs")
-
-    model = manifest.get("model")
-    require(isinstance(model, dict), "run-manifest model is absent")
-    require(model.get("repository") == MODEL_ID, "model repository differs")
-    require(model.get("revision") == MODEL_REVISION, "model revision differs")
-    require(model.get("weight_revision") == WEIGHT_REVISION, "weight revision differs")
-    require(model.get("runtime_config_sha256") == RUNTIME_CONFIG_SHA256,
-            "runtime configuration hash differs")
-    require(model.get("quantization") == "modelopt_fp4", "quantization differs")
-    require(manifest.get("runtime_image") == RUNTIME_IMAGE, "runtime image differs")
+    profile = manifest.get("profile")
+    require(profile in (AR_RUN_PROFILE, DFLASH_RUN_PROFILE),
+            "run-manifest profile differs")
 
     topology = manifest.get("topology")
     require(isinstance(topology, dict), "run-manifest topology is absent")
     require(topology == {"nodes": 2, "tp": 2, "ep": 1},
             "run-manifest is not the two-Station TP2/EP1 topology")
 
-    mtp = manifest.get("mtp")
-    require(isinstance(mtp, dict), "run-manifest MTP configuration is absent")
-    require(mtp.get("enabled") is False and mtp.get("steps") == 0,
-            "run-manifest is not autoregressive MTP0")
-
     benchmark = manifest.get("benchmark")
     require(isinstance(benchmark, dict), "run-manifest benchmark contract is absent")
     require(benchmark.get("commit") == BENCH_COMMIT, "benchmark client commit differs")
     require(benchmark.get("decode_concurrency") == list(CONCURRENCIES),
             "decode concurrency contract differs")
-    require(benchmark.get("cold_prefill") == ["8K", "64K", "128K"],
-            "cold-prefill contract differs")
     require(benchmark.get("input_tokens") == 8192, "decode input contract differs")
     require(benchmark.get("output_tokens") == 1024, "decode output contract differs")
+    require(benchmark.get("measured_requests") == "5*C", "decode request contract differs")
+    require(benchmark.get("warmups") == "C", "decode warmup contract differs")
 
     raw = root / "benchmark/raw"
     require(raw.is_dir() and not raw.is_symlink(), "raw benchmark directory is absent")
     require(first_line(raw / "STATUS.txt", "benchmark status") == "COMPLETE",
             "benchmark client has not completed")
-    require(first_line(root / "STATUS.retry.txt", "launcher retry status")
-            == "COMPLETE_MEASURED_RAW", "retained launcher retry is not complete")
-    require(key_values(root / "runtime/cleanup-verdict.txt", "cleanup verdict").get("outcome")
-            == "PASS_FORCED_EXACT_NAMES", "exact-name cleanup did not pass")
-    require(key_values(root / "postflight/verdict.retry.txt", "postflight retry verdict").get("outcome")
-            == "PASS", "retained postflight retry did not pass")
-    return root, manifest
+
+    if profile == AR_RUN_PROFILE:
+        model = manifest.get("model")
+        require(isinstance(model, dict), "run-manifest model is absent")
+        require(model.get("repository") == MODEL_ID, "model repository differs")
+        require(model.get("revision") == MODEL_REVISION, "model revision differs")
+        require(model.get("weight_revision") == WEIGHT_REVISION, "weight revision differs")
+        require(model.get("runtime_config_sha256") == RUNTIME_CONFIG_SHA256,
+                "runtime configuration hash differs")
+        require(model.get("quantization") == "modelopt_fp4", "quantization differs")
+        require(manifest.get("runtime_image") == AR_RUNTIME_IMAGE, "runtime image differs")
+        mtp = manifest.get("mtp")
+        require(isinstance(mtp, dict), "run-manifest MTP configuration is absent")
+        require(mtp.get("enabled") is False and mtp.get("steps") == 0,
+                "run-manifest is not autoregressive MTP0")
+        require(benchmark.get("cold_prefill") == ["8K", "64K", "128K"],
+                "cold-prefill contract differs")
+        require(first_line(root / "STATUS.retry.txt", "launcher retry status")
+                == "COMPLETE_MEASURED_RAW", "retained launcher retry is not complete")
+        require(key_values(
+            root / "runtime/cleanup-verdict.txt", "cleanup verdict"
+        ).get("outcome") == "PASS_FORCED_EXACT_NAMES", "exact-name cleanup did not pass")
+        require(key_values(
+            root / "postflight/verdict.retry.txt", "postflight retry verdict"
+        ).get("outcome") == "PASS", "retained postflight retry did not pass")
+        return root, manifest, AR_PUBLICATION_PROFILE, 0, True
+
+    target = manifest.get("target")
+    require(isinstance(target, dict), "run-manifest target is absent")
+    require(target.get("repository") == MODEL_ID, "target repository differs")
+    require(target.get("revision") == MODEL_REVISION, "target revision differs")
+    require(target.get("weight_revision") == WEIGHT_REVISION, "weight revision differs")
+    require(target.get("quantization") == "modelopt_fp4", "target quantization differs")
+    require(target.get("kv_cache_dtype") == "fp8_e4m3", "target KV-cache dtype differs")
+
+    draft = manifest.get("draft")
+    require(isinstance(draft, dict), "run-manifest DFlash2 draft is absent")
+    require(draft.get("repository") == DFLASH_DRAFT_ID, "DFlash2 draft repository differs")
+    require(draft.get("revision") == DFLASH_DRAFT_REVISION, "DFlash2 draft revision differs")
+    require(draft.get("proposed_tokens") == DFLASH_PROPOSED_TOKENS,
+            "DFlash2 proposal width differs")
+    require(draft.get("quantization") == "unquant", "DFlash2 draft quantization differs")
+    require(draft.get("dtype") == "bfloat16", "DFlash2 draft dtype differs")
+
+    runtime = manifest.get("runtime")
+    require(isinstance(runtime, dict), "run-manifest runtime is absent")
+    require(runtime.get("image") == DFLASH_RUNTIME_IMAGE, "DFlash2 runtime image differs")
+    require(runtime.get("source_commit") == DFLASH_RUNTIME_COMMIT,
+            "DFlash2 runtime commit differs")
+
+    cold_prefill = benchmark.get("cold_prefill")
+    require(isinstance(cold_prefill, dict), "DFlash2 prefill reference is absent")
+    require(cold_prefill.get("rerun") is False, "DFlash2 unexpectedly reran prefill")
+    require(cold_prefill.get("sha256") == AR_PREFILL_SHA256,
+            "DFlash2 prefill reference hash differs")
+    prefill_reference = json_object(raw / "prefill/reused-base.json", "prefill reference")
+    require(prefill_reference.get("schema") == "benchmark-prefill-reference/v1",
+            "DFlash2 prefill reference schema differs")
+    require(prefill_reference.get("rerun") is False,
+            "DFlash2 prefill reference claims a rerun")
+    require(prefill_reference.get("source") == cold_prefill.get("source"),
+            "DFlash2 prefill reference source differs")
+    require(prefill_reference.get("sha256") == AR_PREFILL_SHA256,
+            "DFlash2 prefill reference artifact differs")
+    require(not (raw / "prefill/cold.json").exists(),
+            "DFlash2 bundle unexpectedly contains a fresh prefill result")
+
+    require(first_line(root / "STATUS.txt", "launcher status") == "COMPLETE_MEASURED_RAW",
+            "DFlash2 launcher status is not complete")
+    require(key_values(
+        root / "runtime/cleanup-verdict.txt", "cleanup verdict"
+    ).get("outcome") == "PASS_FORCED_EXACT_NAMES", "exact-name cleanup did not pass")
+    require(key_values(
+        root / "postflight/verdict.txt", "postflight verdict"
+    ).get("outcome") == "PASS", "DFlash2 postflight did not pass")
+    return root, manifest, DFLASH_PUBLICATION_PROFILE, 0, False
 
 
 def validate_metadata(metadata: Any, *, max_tokens: int, label: str) -> dict[str, Any]:
@@ -251,7 +324,13 @@ def validate_metadata(metadata: Any, *, max_tokens: int, label: str) -> dict[str
     return metadata
 
 
-def decode_rows(root: Path, concurrency: int, path: Path) -> tuple[dict[str, str], dict[str, str]]:
+def decode_rows(
+    root: Path,
+    concurrency: int,
+    path: Path,
+    publication_profile: str,
+    mtp_tokens: int,
+) -> tuple[dict[str, str], dict[str, str]]:
     data = json_object(path, f"C{concurrency} decode result")
     metadata = validate_metadata(data.get("metadata"), max_tokens=1024,
                                  label=f"C{concurrency} decode")
@@ -274,8 +353,12 @@ def decode_rows(root: Path, concurrency: int, path: Path) -> tuple[dict[str, str
     for field in ("request_count_target", "request_count", "completed_request_count"):
         require(exact_int(cell.get(field), f"decode {field}") == target,
                 f"decode {field} differs")
+    require(exact_int(cell.get("num_completed"), "decode num_completed") == target,
+            "decode num_completed differs")
     require(exact_int(cell.get("num_errors"), "decode errors") == 0,
             "decode cell has request errors")
+    require(cell.get("aggregate_source") == "openai_completed_usage",
+            "decode aggregate source differs")
     output_tokens = exact_int(cell.get("client_output_tokens"), "decode output tokens")
     require(output_tokens == target * 1024, "decode output-token total differs")
     seconds = finite_number(cell.get("measurement_seconds"), "decode measurement seconds")
@@ -300,7 +383,7 @@ def decode_rows(root: Path, concurrency: int, path: Path) -> tuple[dict[str, str
         "model_revision": MODEL_REVISION,
         "runtime": "sglang",
         "topology": TOPOLOGY,
-        "mtp_tokens": "0",
+        "mtp_tokens": str(mtp_tokens),
         "run_id": root.name,
         "measurement_status": "MEASURED",
         "rankable": "true",
@@ -323,12 +406,12 @@ def decode_rows(root: Path, concurrency: int, path: Path) -> tuple[dict[str, str
     }
     compact = {
         "run_id": root.name,
-        "profile": PUBLICATION_PROFILE,
+        "profile": publication_profile,
         "publication_status": "measured",
         "model_id": MODEL_ID,
         "model_revision": MODEL_REVISION,
         "topology": TOPOLOGY,
-        "mtp_tokens": "0",
+        "mtp_tokens": str(mtp_tokens),
         "input_tokens": "8192",
         "target_output_tokens": "1024",
         "duration_seconds": str(cell["measurement_seconds"]),
@@ -421,20 +504,27 @@ def prefill_rows(root: Path, path: Path) -> tuple[list[dict[str, str]], list[dic
 
 
 def import_result(root_arg: Path) -> dict[str, list[dict[str, str]]]:
-    root, _manifest = validate_result_root(root_arg)
+    root, _manifest, publication_profile, mtp_tokens, has_prefill = validate_result_root(
+        root_arg
+    )
     raw = root / "benchmark/raw"
     throughput: list[dict[str, str]] = []
     diagnostic_throughput: list[dict[str, str]] = []
     for concurrency in CONCURRENCIES:
         compact, diagnostic = decode_rows(
             root, concurrency, regular_file(raw / f"fixed/c{concurrency}.json",
-                                            f"C{concurrency} decode result")
+                                            f"C{concurrency} decode result"),
+            publication_profile,
+            mtp_tokens,
         )
         throughput.append(compact)
         diagnostic_throughput.append(diagnostic)
-    prefill, diagnostic_prefill = prefill_rows(
-        root, regular_file(raw / "prefill/cold.json", "cold-prefill result")
-    )
+    if has_prefill:
+        prefill, diagnostic_prefill = prefill_rows(
+            root, regular_file(raw / "prefill/cold.json", "cold-prefill result")
+        )
+    else:
+        prefill, diagnostic_prefill = [], []
     return {
         "throughput": throughput,
         "prefill": prefill,
@@ -451,10 +541,33 @@ def read_rows(path: Path, fields: tuple[str, ...]) -> list[dict[str, str]]:
         return list(reader)
 
 
-def replace_model_rows(existing: list[dict[str, str]], imported: list[dict[str, str]]) -> list[dict[str, str]]:
+def replace_profile_rows(
+    existing: list[dict[str, str]], imported: list[dict[str, str]]
+) -> list[dict[str, str]]:
+    if not imported:
+        return existing
+    profiles = {row["profile"] for row in imported}
+    require(len(profiles) == len({(row["profile"], row["run_id"]) for row in imported}),
+            "one imported profile maps to multiple run IDs")
     rows = [
         row for row in existing
-        if not (row.get("model_id") == MODEL_ID and row.get("model_revision") == MODEL_REVISION)
+        if row.get("profile") not in profiles
+    ]
+    rows.extend(imported)
+    return rows
+
+
+def replace_run_rows(
+    existing: list[dict[str, str]],
+    imported: list[dict[str, str]],
+    replaced_run_ids: set[str],
+) -> list[dict[str, str]]:
+    if not imported:
+        return existing
+    imported_run_ids = {row["run_id"] for row in imported}
+    rows = [
+        row for row in existing
+        if row.get("run_id") not in replaced_run_ids | imported_run_ids
     ]
     rows.extend(imported)
     return rows
@@ -486,22 +599,53 @@ def atomic_write(path: Path, text: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("result_root", type=Path)
+    parser.add_argument("result_roots", nargs="+", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    imported = import_result(args.result_root)
-    outputs = (
-        (DEFAULT_THROUGHPUT, THROUGHPUT_FIELDS, imported["throughput"]),
-        (DEFAULT_PREFILL, PREFILL_FIELDS, imported["prefill"]),
-        (DEFAULT_DIAGNOSTIC_THROUGHPUT, DIAGNOSTIC_THROUGHPUT_FIELDS,
-         imported["diagnostic_throughput"]),
-        (DEFAULT_DIAGNOSTIC_PREFILL, DIAGNOSTIC_PREFILL_FIELDS,
-         imported["diagnostic_prefill"]),
+    imported_sets = [import_result(root) for root in args.result_roots]
+    imported = {
+        key: [row for result in imported_sets for row in result[key]]
+        for key in (
+            "throughput", "prefill", "diagnostic_throughput", "diagnostic_prefill"
+        )
+    }
+    imported_profiles = {row["profile"] for row in imported["throughput"]}
+    require(len(imported_profiles) == len(args.result_roots),
+            "result roots contain duplicate publication profiles")
+
+    existing_throughput = read_rows(DEFAULT_THROUGHPUT, THROUGHPUT_FIELDS)
+    replaced_decode_run_ids = {
+        row["run_id"] for row in existing_throughput
+        if row.get("profile") in imported_profiles
+    }
+    merged_throughput = replace_profile_rows(existing_throughput, imported["throughput"])
+    merged_diagnostic_throughput = replace_run_rows(
+        read_rows(DEFAULT_DIAGNOSTIC_THROUGHPUT, DIAGNOSTIC_THROUGHPUT_FIELDS),
+        imported["diagnostic_throughput"],
+        replaced_decode_run_ids,
     )
-    rendered: list[tuple[Path, str]] = []
-    for path, fields, new_rows in outputs:
-        merged = replace_model_rows(read_rows(path, fields), new_rows)
-        rendered.append((path, render_csv(merged, fields)))
+
+    existing_prefill = read_rows(DEFAULT_PREFILL, PREFILL_FIELDS)
+    imported_prefill_profiles = {row["profile"] for row in imported["prefill"]}
+    replaced_prefill_run_ids = {
+        row["run_id"] for row in existing_prefill
+        if row.get("profile") in imported_prefill_profiles
+    }
+    merged_prefill = replace_profile_rows(existing_prefill, imported["prefill"])
+    merged_diagnostic_prefill = replace_run_rows(
+        read_rows(DEFAULT_DIAGNOSTIC_PREFILL, DIAGNOSTIC_PREFILL_FIELDS),
+        imported["diagnostic_prefill"],
+        replaced_prefill_run_ids,
+    )
+
+    rendered = (
+        (DEFAULT_THROUGHPUT, render_csv(merged_throughput, THROUGHPUT_FIELDS)),
+        (DEFAULT_PREFILL, render_csv(merged_prefill, PREFILL_FIELDS)),
+        (DEFAULT_DIAGNOSTIC_THROUGHPUT,
+         render_csv(merged_diagnostic_throughput, DIAGNOSTIC_THROUGHPUT_FIELDS)),
+        (DEFAULT_DIAGNOSTIC_PREFILL,
+         render_csv(merged_diagnostic_prefill, DIAGNOSTIC_PREFILL_FIELDS)),
+    )
     if args.check:
         changed = [
             str(path) for path, text in rendered
@@ -513,7 +657,7 @@ def main() -> None:
             atomic_write(path, text)
     print(json.dumps({
         "mode": "check" if args.check else "write",
-        "run_id": args.result_root.name,
+        "run_ids": [root.name for root in args.result_roots],
         "decode_rows": len(imported["throughput"]),
         "prefill_rows": len(imported["prefill"]),
     }, indent=2, sort_keys=True))

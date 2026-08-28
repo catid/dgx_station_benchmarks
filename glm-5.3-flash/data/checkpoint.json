@@ -36,6 +36,16 @@
     "runtime_config_sha256": "5db46f44956e4a8a0cc8ed54b6d77bf99dd7c1ec90c58975d1952560768513d5",
     "quantization": "modelopt_fp4 routed-expert weights; remaining weights and activations BF16",
     "runtime": "SGLang",
-    "runtime_image": "glm53-nvfp4-sglang:pr36507-c3b7482"
+    "runtime_image": "glm53-nvfp4-sglang:pr36507-c3b7482",
+    "dflash2": {
+      "draft_model_id": "incoai/GLM-5.3-Flash-DFlash2",
+      "draft_revision": "7d74cdd881ed7e32c31175984a67823127b66cfe",
+      "draft_dtype": "bfloat16",
+      "proposed_tokens": 7,
+      "runtime_image": "glm53-dflash2-sglang:5277926",
+      "runtime_source_commit": "52779266e668039bed838fe25ef84ffb014d22f2",
+      "decode_run_id": "glm53-nvfp4-tp2-dflash2-v1",
+      "prefill": "reuses TP2/AR cold-prefill artifact d624a68252542bd06e7422d204decac5fec25d33b7856e9630af82c152b17b90"
+    }
   }
 }

@@ -13,19 +13,20 @@ which are selected per token.
 
 Decode uses an exact 8,192-token prompt and 1,024-token output. Every DGX
 column reports one distributed model server across both Stations. Native FP8
-uses vLLM; the NVFP4 TP2/AR column uses SGLang with routed-expert NVFP4 weights
-and the remaining weights and activations in BF16.
+uses vLLM. The NVFP4 columns use SGLang with routed-expert NVFP4 weights and
+the remaining weights and activations in BF16; DFlash2 is speculative decoding
+on that same NVFP4 base.
 
-| C | FP8 TP2/MTP0 | FP8 TP2/MTP5 | FP8 TEP2/MTP5 | NVFP4 TP2/AR |
-| ---: | ---: | ---: | ---: | ---: |
-| 1 | 119.0 | 181.2 | 174.1 | 124.0 |
-| 2 | 193.7 | 272.4 | 267.4 | 222.8 |
-| 4 | 340.8 | 285.9 | 292.7 | 331.2 |
-| 8 | 532.2 | 490.9 | 485.0 | 587.7 |
-| 16 | 792.7 | 728.1 | 718.4 | 863.1 |
-| 32 | 1,001.4 | 519.5 | 516.4 | 1,729.8 |
-| 64 | 1,582.1 | 1,021.6 | 1,038.2 | 2,100.4 |
-| 128 | 2,019.5 | 1,569.3 | 1,549.3 | — |
+| C | FP8 TP2/MTP0 | FP8 TP2/MTP5 | FP8 TEP2/MTP5 | NVFP4 TP2/AR | NVFP4 TP2/DFlash2 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 119.0 | 181.2 | 174.1 | 124.0 | 198.0 |
+| 2 | 193.7 | 272.4 | 267.4 | 222.8 | 336.5 |
+| 4 | 340.8 | 285.9 | 292.7 | 331.2 | 513.4 |
+| 8 | 532.2 | 490.9 | 485.0 | 587.7 | 806.5 |
+| 16 | 792.7 | 728.1 | 718.4 | 863.1 | 1,138.9 |
+| 32 | 1,001.4 | 519.5 | 516.4 | 1,729.8 | 1,415.3 |
+| 64 | 1,582.1 | 1,021.6 | 1,038.2 | 2,100.4 | 1,738.6 |
+| 128 | 2,019.5 | 1,569.3 | 1,549.3 | — | — |
 
 Cold-prefill rates are prompt tokens per second.
 
@@ -34,6 +35,9 @@ Cold-prefill rates are prompt tokens per second.
 | 8K | 12,645 | 14,871 | 14,214 | 15,088 |
 | 64K | 3,721 | 15,438 | 15,076 | 17,245 |
 | 128K | 6,519 | 15,431 | 14,873 | 17,622 |
+
+DFlash2 changes decode only, so its matching cold-prefill baseline is the
+NVFP4 TP2/AR column rather than a duplicate DFlash2 prefill series.
 
 ## 4× RTX PRO 6000 comparison
 

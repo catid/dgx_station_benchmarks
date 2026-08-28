@@ -19,18 +19,23 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 REPOSITORY = ROOT.parent
 NATIVE_PROFILES = ("TP2/MTP0", "TP2/MTP5", "TEP2/MTP5")
-NVFP4_PROFILE = "NVFP4 TP2/AR"
-PROFILES = NATIVE_PROFILES + (NVFP4_PROFILE,)
+NVFP4_AR_PROFILE = "NVFP4 TP2/AR"
+NVFP4_DFLASH2_PROFILE = "NVFP4 TP2/DFlash2"
+PROFILES = NATIVE_PROFILES + (NVFP4_AR_PROFILE, NVFP4_DFLASH2_PROFILE)
+PREFILL_PROFILES = NATIVE_PROFILES + (NVFP4_AR_PROFILE,)
 CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64, 128)
 NVFP4_CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64)
 PROFILE_CONCURRENCIES = {
     **{profile: CONCURRENCIES for profile in NATIVE_PROFILES},
-    NVFP4_PROFILE: NVFP4_CONCURRENCIES,
+    NVFP4_AR_PROFILE: NVFP4_CONCURRENCIES,
+    NVFP4_DFLASH2_PROFILE: NVFP4_CONCURRENCIES,
 }
 CONTEXTS = (8192, 65536, 131072)
 NVFP4_CURRENT_REVISION = "aa28e1f54130286c95fee10d0705c74ce8743734"
 NVFP4_CONFIG_FIX_REVISION = "cf5434c00bf69bd0e6b58420c9636999472a2291"
 NVFP4_PRE_FIX_REVISION = "11d73216cd636238e82e1d77fe1042ffab36e7fa"
+DFLASH2_DRAFT_REVISION = "7d74cdd881ed7e32c31175984a67823127b66cfe"
+DFLASH2_RUNTIME_COMMIT = "52779266e668039bed838fe25ef84ffb014d22f2"
 
 EXTERNAL_FIELDS = (
     "source_status",
@@ -159,8 +164,10 @@ class SectionContractTests(unittest.TestCase):
         decode = rows("throughput.csv")
         prefill = rows("prefill.csv")
         self.assertEqual(len(decode), sum(len(values) for values in PROFILE_CONCURRENCIES.values()))
-        self.assertEqual(len(prefill), len(PROFILES) * len(CONTEXTS))
-        self.assertEqual({row["profile"] for row in decode + prefill}, set(PROFILES))
+        self.assertEqual(len(prefill), len(PREFILL_PROFILES) * len(CONTEXTS))
+        self.assertEqual({row["profile"] for row in decode}, set(PROFILES))
+        self.assertEqual({row["profile"] for row in prefill}, set(PREFILL_PROFILES))
+        self.assertNotIn(NVFP4_DFLASH2_PROFILE, {row["profile"] for row in prefill})
         self.assertEqual(
             {(row["profile"], int(row["concurrency"])) for row in decode},
             {
@@ -203,7 +210,7 @@ class SectionContractTests(unittest.TestCase):
     def test_full_records_preserve_saturation_and_measurement_status(self) -> None:
         decode = rows("diagnostic-throughput.csv")
         prefill = rows("diagnostic-prefill.csv")
-        self.assertEqual(len(decode), 31)
+        self.assertEqual(len(decode), 38)
         self.assertEqual(len(prefill), 12)
         self.assertTrue(all(row["measurement_status"] == "MEASURED" for row in decode + prefill))
         self.assertTrue(all(row["rankable"] == "true" for row in decode + prefill))
@@ -217,7 +224,7 @@ class SectionContractTests(unittest.TestCase):
             row for row in qualification
             if row["rankable"] == "true" and row["status"].startswith("MEASURED")
         ]
-        self.assertEqual(len(measured), 4)
+        self.assertEqual(len(measured), 5)
         self.assertTrue(all(row["status"].startswith("MEASURED") for row in measured))
         self.assertTrue(all(row["rankable"] == "true" for row in measured))
 
@@ -232,14 +239,17 @@ class SectionContractTests(unittest.TestCase):
             },
         )
 
-    def test_current_nvfp4_lane_is_measured_and_distinct_from_pre_fix_attempt(self) -> None:
+    def test_current_nvfp4_lanes_are_measured_and_distinct_from_pre_fix_attempt(self) -> None:
         headline = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn(
             "https://huggingface.co/LibertAIDAI/GLM-5.3-Flash-NVFP4/tree/"
             + NVFP4_CURRENT_REVISION,
             headline,
         )
-        for phrase in ("NVFP4 TP2/AR", "uses SGLang", "across both Stations"):
+        for phrase in (
+            "NVFP4 TP2/AR", "NVFP4 TP2/DFlash2", "use SGLang",
+            "across both Stations", "DFlash2 is speculative decoding",
+        ):
             self.assertIn(phrase, headline)
         self.assertNotIn("No throughput has been measured here yet", headline)
 
@@ -256,11 +266,36 @@ class SectionContractTests(unittest.TestCase):
         self.assertEqual(measured["rankable"], "true")
         self.assertEqual(measured["evidence_run_id"], "glm53-nvfp4-tp2-mtp0-v1")
 
-        decode = [row for row in rows("throughput.csv") if row["profile"] == NVFP4_PROFILE]
-        prefill = [row for row in rows("prefill.csv") if row["profile"] == NVFP4_PROFILE]
-        self.assertEqual([int(row["concurrency"]) for row in decode], list(NVFP4_CONCURRENCIES))
+        dflash = next(
+            row for row in qualification
+            if row["profile"] == "nvfp4_current_sglang_tp2_dflash2"
+        )
+        self.assertEqual(dflash["model_revision"], NVFP4_CURRENT_REVISION)
+        self.assertEqual(dflash["runtime"], "sglang")
+        self.assertEqual(dflash["topology"], "cross_node_tp2")
+        self.assertEqual(dflash["mtp_tokens"], "0")
+        self.assertEqual(dflash["status"], "MEASURED")
+        self.assertEqual(dflash["rankable"], "true")
+        self.assertEqual(dflash["evidence_run_id"], "glm53-nvfp4-tp2-dflash2-v1")
+
+        ar_decode = [
+            row for row in rows("throughput.csv") if row["profile"] == NVFP4_AR_PROFILE
+        ]
+        dflash_decode = [
+            row for row in rows("throughput.csv")
+            if row["profile"] == NVFP4_DFLASH2_PROFILE
+        ]
+        prefill = [
+            row for row in rows("prefill.csv") if row["profile"] == NVFP4_AR_PROFILE
+        ]
         self.assertEqual(
-            [float(row["aggregate_output_tokens_per_second"]) for row in decode],
+            [int(row["concurrency"]) for row in ar_decode], list(NVFP4_CONCURRENCIES)
+        )
+        self.assertEqual(
+            [int(row["concurrency"]) for row in dflash_decode], list(NVFP4_CONCURRENCIES)
+        )
+        self.assertEqual(
+            [float(row["aggregate_output_tokens_per_second"]) for row in ar_decode],
             [
                 123.98549346121582,
                 222.76035879305732,
@@ -272,24 +307,48 @@ class SectionContractTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
+            [float(row["aggregate_output_tokens_per_second"]) for row in dflash_decode],
+            [
+                197.95525425811238,
+                336.5023033775982,
+                513.3514107305358,
+                806.4639528478376,
+                1138.949595639626,
+                1415.251024426854,
+                1738.6241552277602,
+            ],
+        )
+        self.assertEqual(
             [float(row["prompt_tokens_per_second"]) for row in prefill],
             [15088.0, 17245.0, 17622.0],
         )
         self.assertTrue(all(row["model_id"] == "LibertAIDAI/GLM-5.3-Flash-NVFP4"
-                            for row in decode + prefill))
+                            for row in ar_decode + dflash_decode + prefill))
         self.assertTrue(all(row["model_revision"] == NVFP4_CURRENT_REVISION
-                            for row in decode + prefill))
-        diagnostic = [
+                            for row in ar_decode + dflash_decode + prefill))
+        ar_diagnostic = [
             row for row in rows("diagnostic-throughput.csv")
-            if row["model_id"] == "LibertAIDAI/GLM-5.3-Flash-NVFP4"
-            and row["model_revision"] == NVFP4_CURRENT_REVISION
+            if row["run_id"] == "glm53-nvfp4-tp2-mtp0-v1"
         ]
         self.assertEqual(
-            [int(row["completed_requests_in_window"]) for row in diagnostic],
+            [int(row["completed_requests_in_window"]) for row in ar_diagnostic],
             [5 * concurrency for concurrency in NVFP4_CONCURRENCIES],
         )
-        self.assertTrue(all(row["num_errors"] == "0" for row in diagnostic))
-        self.assertTrue(all(row["runtime"] == "sglang" for row in diagnostic))
+        dflash_diagnostic = [
+            row for row in rows("diagnostic-throughput.csv")
+            if row["run_id"] == "glm53-nvfp4-tp2-dflash2-v1"
+        ]
+        self.assertEqual(
+            [int(row["completed_requests_in_window"]) for row in dflash_diagnostic],
+            [5 * concurrency for concurrency in NVFP4_CONCURRENCIES],
+        )
+        self.assertTrue(all(row["num_errors"] == "0"
+                            for row in ar_diagnostic + dflash_diagnostic))
+        self.assertTrue(all(row["runtime"] == "sglang"
+                            for row in ar_diagnostic + dflash_diagnostic))
+        self.assertEqual(dflash_diagnostic[-1]["effective_concurrency"], "52.2")
+        self.assertEqual(dflash_diagnostic[-1]["max_running_requests"], "56")
+        self.assertEqual(dflash_diagnostic[-1]["capacity_limited"], "true")
 
         historical = [
             row
@@ -309,6 +368,10 @@ class SectionContractTests(unittest.TestCase):
         self.assertIn("Exact-name\ncontainer cleanup passed", recipe)
         self.assertIn("3 MiB used on `gemini1`", recipe)
         self.assertIn("6 MiB on `gemini2`", recipe)
+        self.assertIn(DFLASH2_DRAFT_REVISION, recipe)
+        self.assertIn(DFLASH2_RUNTIME_COMMIT, recipe)
+        self.assertIn("effective concurrency was 52.2", recipe)
+        self.assertIn("cap was 56", recipe)
 
     def test_readme_headlines_round_from_canonical_rows(self) -> None:
         section = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -332,7 +395,7 @@ class SectionContractTests(unittest.TestCase):
             for row in prefill
         }
         for context in CONTEXTS:
-            values = [by_prefill[(profile, context)] for profile in PROFILES]
+            values = [by_prefill[(profile, context)] for profile in PREFILL_PROFILES]
             expected = "| {}K | {} | {} | {} | {} |".format(
                 context // 1024, *(f"{value:,.0f}" for value in values)
             )
@@ -350,11 +413,21 @@ class SectionContractTests(unittest.TestCase):
         overview_row = next(line for line in overview.splitlines() if "[GLM-5.3-Flash]" in line)
         self.assertIn("(glm-5.3-flash/)", overview_row)
         self.assertIn("LibertAIDAI/GLM-5.3-Flash-NVFP4", overview_row)
-        self.assertIn("NVFP4 TP2/AR: 124.0 tok/s C1, 2,100.4 C64", overview_row)
+        self.assertIn("DFlash2 speculative decoding uses that NVFP4 base", overview_row)
+        self.assertIn("NVFP4 DFlash2: 198.0 tok/s C1, 1,738.6 C64", overview_row)
+        self.assertIn("AR: 2,100.4 C64", overview_row)
 
         checkpoint = json.loads((DATA / "checkpoint.json").read_text(encoding="utf-8"))
         self.assertEqual(
             checkpoint["nvfp4_publication"]["revision"], NVFP4_CURRENT_REVISION
+        )
+        self.assertEqual(
+            checkpoint["nvfp4_publication"]["dflash2"]["draft_revision"],
+            DFLASH2_DRAFT_REVISION,
+        )
+        self.assertEqual(
+            checkpoint["nvfp4_publication"]["dflash2"]["runtime_source_commit"],
+            DFLASH2_RUNTIME_COMMIT,
         )
 
     def test_headline_and_graph_labels_are_plain_measurement_labels(self) -> None:
