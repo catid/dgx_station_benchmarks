@@ -39,6 +39,12 @@ Raw result roots are under
 C1–C64 publication pass; it also requires the launcher's completed cleanup and
 postflight marker.
 
+TEP2/AR run `qwen38-4p89-tep2-mtp0-v1` completed its measurements and exact
+container cleanup. Its first local postflight gate overlapped an `nvidia-smi`
+child from a pre-existing `watch -n1 nvidia-smi`; fresh canonical idle gates
+then passed on both hosts without changing measurements or relaunching the
+model. The retry note and both gate outputs remain in the result root.
+
 The dashed chart comparison is the workstation's RadixArk NVFP4/SGLang
 TEP4/AR profile at every point. It is one server across all four RTX PRO 6000
 GPUs, shown at C1–C64 decode and all four cold-prefill contexts.
