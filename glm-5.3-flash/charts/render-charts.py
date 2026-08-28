@@ -23,7 +23,12 @@ CHART_NAMES = ("decode-throughput.png", "prefill-throughput.png")
 EXTERNAL_COLOR = "#F6903D"
 GB300_COLORS = ("#5B8FF9", "#61DDAA", "#F6BD16", "#5D7092")
 PUBLISHED_EXTERNAL_STATUS = "EXTERNAL_USER_SUPPLIED"
-PROFILE_ORDER = {"TP2/MTP0": 0, "TP2/MTP5": 1, "TEP2/MTP5": 2}
+PROFILE_ORDER = {
+    "TP2/MTP0": 0,
+    "TP2/MTP5": 1,
+    "TEP2/MTP5": 2,
+    "NVFP4 TP2/AR": 3,
+}
 
 
 def style() -> None:

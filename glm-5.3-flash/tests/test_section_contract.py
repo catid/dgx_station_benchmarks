@@ -18,8 +18,15 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 REPOSITORY = ROOT.parent
-PROFILES = ("TP2/MTP0", "TP2/MTP5", "TEP2/MTP5")
+NATIVE_PROFILES = ("TP2/MTP0", "TP2/MTP5", "TEP2/MTP5")
+NVFP4_PROFILE = "NVFP4 TP2/AR"
+PROFILES = NATIVE_PROFILES + (NVFP4_PROFILE,)
 CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64, 128)
+NVFP4_CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64)
+PROFILE_CONCURRENCIES = {
+    **{profile: CONCURRENCIES for profile in NATIVE_PROFILES},
+    NVFP4_PROFILE: NVFP4_CONCURRENCIES,
+}
 CONTEXTS = (8192, 65536, 131072)
 NVFP4_CURRENT_REVISION = "aa28e1f54130286c95fee10d0705c74ce8743734"
 NVFP4_CONFIG_FIX_REVISION = "cf5434c00bf69bd0e6b58420c9636999472a2291"
@@ -111,6 +118,7 @@ def load_chart_renderer() -> types.ModuleType:
 class SectionContractTests(unittest.TestCase):
     def test_renderer_selects_measured_dgx_and_supplied_comparison_rows(self) -> None:
         renderer = load_chart_renderer()
+        self.assertEqual(tuple(renderer.PROFILE_ORDER), PROFILES)
         with tempfile.TemporaryDirectory() as directory:
             data = Path(directory)
             (data / "external-rtx-pro-6000.csv").write_text(
@@ -150,10 +158,17 @@ class SectionContractTests(unittest.TestCase):
     def test_all_completed_dgx_measurements_are_published(self) -> None:
         decode = rows("throughput.csv")
         prefill = rows("prefill.csv")
-        self.assertEqual(len(decode), len(PROFILES) * len(CONCURRENCIES))
+        self.assertEqual(len(decode), sum(len(values) for values in PROFILE_CONCURRENCIES.values()))
         self.assertEqual(len(prefill), len(PROFILES) * len(CONTEXTS))
         self.assertEqual({row["profile"] for row in decode + prefill}, set(PROFILES))
-        self.assertEqual({int(row["concurrency"]) for row in decode}, set(CONCURRENCIES))
+        self.assertEqual(
+            {(row["profile"], int(row["concurrency"])) for row in decode},
+            {
+                (profile, concurrency)
+                for profile, concurrencies in PROFILE_CONCURRENCIES.items()
+                for concurrency in concurrencies
+            },
+        )
         self.assertEqual({int(row["nominal_context_tokens"]) for row in prefill}, set(CONTEXTS))
         self.assertTrue(all(row["publication_status"] == "measured" for row in decode + prefill))
         self.assertTrue(all(row["num_errors"] == "0" for row in decode + prefill))
@@ -188,8 +203,8 @@ class SectionContractTests(unittest.TestCase):
     def test_full_records_preserve_saturation_and_measurement_status(self) -> None:
         decode = rows("diagnostic-throughput.csv")
         prefill = rows("diagnostic-prefill.csv")
-        self.assertEqual(len(decode), 24)
-        self.assertEqual(len(prefill), 9)
+        self.assertEqual(len(decode), 31)
+        self.assertEqual(len(prefill), 12)
         self.assertTrue(all(row["measurement_status"] == "MEASURED" for row in decode + prefill))
         self.assertTrue(all(row["rankable"] == "true" for row in decode + prefill))
         self.assertTrue(any(row["underfilled"] == "true" for row in decode))
@@ -198,8 +213,11 @@ class SectionContractTests(unittest.TestCase):
 
     def test_qualification_ledger_marks_completed_profiles_measured(self) -> None:
         qualification = rows("qualification.csv")
-        measured = [row for row in qualification if row["profile"].endswith("_full")]
-        self.assertEqual(len(measured), 3)
+        measured = [
+            row for row in qualification
+            if row["rankable"] == "true" and row["status"].startswith("MEASURED")
+        ]
+        self.assertEqual(len(measured), 4)
         self.assertTrue(all(row["status"].startswith("MEASURED") for row in measured))
         self.assertTrue(all(row["rankable"] == "true" for row in measured))
 
@@ -214,25 +232,64 @@ class SectionContractTests(unittest.TestCase):
             },
         )
 
-    def test_current_nvfp4_lane_is_unmeasured_and_distinct_from_pre_fix_attempt(self) -> None:
+    def test_current_nvfp4_lane_is_measured_and_distinct_from_pre_fix_attempt(self) -> None:
         headline = (ROOT / "README.md").read_text(encoding="utf-8")
-        nvfp4_section = headline.split("## Next lane: NVFP4", 1)[1].split("See the", 1)[0]
         self.assertIn(
             "https://huggingface.co/LibertAIDAI/GLM-5.3-Flash-NVFP4/tree/"
             + NVFP4_CURRENT_REVISION,
-            nvfp4_section,
+            headline,
         )
-        for phrase in ("routed experts use NVFP4", "remainder stays BF16", "MTP layer is retained"):
-            self.assertIn(phrase, nvfp4_section)
-        self.assertIn("SGLang loading", nvfp4_section)
-        self.assertIn("No throughput has been measured here yet", nvfp4_section)
+        for phrase in ("NVFP4 TP2/AR", "uses SGLang", "across both Stations"):
+            self.assertIn(phrase, headline)
+        self.assertNotIn("No throughput has been measured here yet", headline)
 
         qualification = rows("qualification.csv")
-        candidate = next(row for row in qualification if row["profile"] == "nvfp4_current_sglang_candidate")
-        self.assertEqual(candidate["model_revision"], NVFP4_CURRENT_REVISION)
-        self.assertEqual(candidate["status"], "CANDIDATE_NOT_MEASURED")
-        self.assertEqual(candidate["rankable"], "false")
-        self.assertEqual(candidate["evidence_run_id"], "")
+        measured = next(
+            row for row in qualification
+            if row["profile"] == "nvfp4_current_sglang_tp2_mtp0"
+        )
+        self.assertEqual(measured["model_revision"], NVFP4_CURRENT_REVISION)
+        self.assertEqual(measured["runtime"], "sglang")
+        self.assertEqual(measured["topology"], "cross_node_tp2")
+        self.assertEqual(measured["mtp_tokens"], "0")
+        self.assertEqual(measured["status"], "MEASURED")
+        self.assertEqual(measured["rankable"], "true")
+        self.assertEqual(measured["evidence_run_id"], "glm53-nvfp4-tp2-mtp0-v1")
+
+        decode = [row for row in rows("throughput.csv") if row["profile"] == NVFP4_PROFILE]
+        prefill = [row for row in rows("prefill.csv") if row["profile"] == NVFP4_PROFILE]
+        self.assertEqual([int(row["concurrency"]) for row in decode], list(NVFP4_CONCURRENCIES))
+        self.assertEqual(
+            [float(row["aggregate_output_tokens_per_second"]) for row in decode],
+            [
+                123.98549346121582,
+                222.76035879305732,
+                331.17393410331493,
+                587.7056306215425,
+                863.0949338889085,
+                1729.833742430233,
+                2100.394760635453,
+            ],
+        )
+        self.assertEqual(
+            [float(row["prompt_tokens_per_second"]) for row in prefill],
+            [15088.0, 17245.0, 17622.0],
+        )
+        self.assertTrue(all(row["model_id"] == "LibertAIDAI/GLM-5.3-Flash-NVFP4"
+                            for row in decode + prefill))
+        self.assertTrue(all(row["model_revision"] == NVFP4_CURRENT_REVISION
+                            for row in decode + prefill))
+        diagnostic = [
+            row for row in rows("diagnostic-throughput.csv")
+            if row["model_id"] == "LibertAIDAI/GLM-5.3-Flash-NVFP4"
+            and row["model_revision"] == NVFP4_CURRENT_REVISION
+        ]
+        self.assertEqual(
+            [int(row["completed_requests_in_window"]) for row in diagnostic],
+            [5 * concurrency for concurrency in NVFP4_CONCURRENCIES],
+        )
+        self.assertTrue(all(row["num_errors"] == "0" for row in diagnostic))
+        self.assertTrue(all(row["runtime"] == "sglang" for row in diagnostic))
 
         historical = [
             row
@@ -249,6 +306,9 @@ class SectionContractTests(unittest.TestCase):
         self.assertIn(NVFP4_PRE_FIX_REVISION, recipe)
         self.assertIn("predates the `cf5434c` configuration fix", recipe)
         self.assertIn("do not show that the current checkpoint\ncannot load", recipe)
+        self.assertIn("Exact-name\ncontainer cleanup passed", recipe)
+        self.assertIn("3 MiB used on `gemini1`", recipe)
+        self.assertIn("6 MiB on `gemini2`", recipe)
 
     def test_readme_headlines_round_from_canonical_rows(self) -> None:
         section = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -258,10 +318,12 @@ class SectionContractTests(unittest.TestCase):
             for row in decode
         }
         for concurrency in CONCURRENCIES:
-            values = [by_decode[(profile, concurrency)] for profile in PROFILES]
-            expected = "| {} | {} | {} | {} |".format(
-                concurrency, *(f"{value:,.1f}" for value in values)
-            )
+            values = [
+                f"{by_decode[(profile, concurrency)]:,.1f}"
+                if (profile, concurrency) in by_decode else "—"
+                for profile in PROFILES
+            ]
+            expected = f'| {concurrency} | {" | ".join(values)} |'
             self.assertIn(expected, section)
 
         prefill = rows("prefill.csv")
@@ -271,7 +333,7 @@ class SectionContractTests(unittest.TestCase):
         }
         for context in CONTEXTS:
             values = [by_prefill[(profile, context)] for profile in PROFILES]
-            expected = "| {}K | {} | {} | {} |".format(
+            expected = "| {}K | {} | {} | {} | {} |".format(
                 context // 1024, *(f"{value:,.0f}" for value in values)
             )
             self.assertIn(expected, section)
@@ -287,10 +349,25 @@ class SectionContractTests(unittest.TestCase):
         overview = (REPOSITORY / "README.md").read_text(encoding="utf-8")
         overview_row = next(line for line in overview.splitlines() if "[GLM-5.3-Flash]" in line)
         self.assertIn("(glm-5.3-flash/)", overview_row)
+        self.assertIn("LibertAIDAI/GLM-5.3-Flash-NVFP4", overview_row)
+        self.assertIn("NVFP4 TP2/AR: 124.0 tok/s C1, 2,100.4 C64", overview_row)
+
+        checkpoint = json.loads((DATA / "checkpoint.json").read_text(encoding="utf-8"))
+        self.assertEqual(
+            checkpoint["nvfp4_publication"]["revision"], NVFP4_CURRENT_REVISION
+        )
 
     def test_headline_and_graph_labels_are_plain_measurement_labels(self) -> None:
         headline = (ROOT / "README.md").read_text(encoding="utf-8").lower()
-        for phrase in ("none qualifies", "failed test", "excluded", "unranked", "†"):
+        for phrase in (
+            "none qualifies",
+            "failed test",
+            "excluded",
+            "unranked",
+            "source-sealed",
+            "sealed",
+            "†",
+        ):
             self.assertNotIn(phrase, headline)
         self.assertNotIn("MiniMax", headline)
         self.assertNotIn("DS4F", headline)

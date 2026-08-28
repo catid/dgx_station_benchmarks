@@ -28,5 +28,14 @@
     "vocab_size": 154880,
     "max_position_embeddings": 1048576,
     "num_nextn_predict_layers": 1
+  },
+  "nvfp4_publication": {
+    "model_id": "LibertAIDAI/GLM-5.3-Flash-NVFP4",
+    "revision": "aa28e1f54130286c95fee10d0705c74ce8743734",
+    "weight_revision": "11d73216cd636238e82e1d77fe1042ffab36e7fa",
+    "runtime_config_sha256": "5db46f44956e4a8a0cc8ed54b6d77bf99dd7c1ec90c58975d1952560768513d5",
+    "quantization": "modelopt_fp4 routed-expert weights; remaining weights and activations BF16",
+    "runtime": "SGLang",
+    "runtime_image": "glm53-nvfp4-sglang:pr36507-c3b7482"
   }
 }
