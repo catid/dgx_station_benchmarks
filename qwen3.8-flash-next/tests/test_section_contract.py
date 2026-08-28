@@ -384,28 +384,38 @@ class SectionContractTests(unittest.TestCase):
         self.assertNotIn("sealed", headline.lower())
 
         dgx_rows = csv_rows("dgx-overlays.csv")
+        profile_labels = {
+            "NVFP4 TP2/MTP0": "TP2/AR",
+            "NVFP4 TP2/MTP3": "TP2/MTP3",
+        }
         dgx_decode = {
-            int(row["concurrency"]): Decimal(row["throughput"])
+            (row["profile"], int(row["concurrency"])): Decimal(row["throughput"])
             for row in dgx_rows
-            if row["profile"] == "NVFP4 TP2/MTP0" and row["metric"] == "decode"
+            if row["profile"] in profile_labels and row["metric"] == "decode"
         }
         dgx_prefill = {
-            int(row["nominal_context_tokens"]): Decimal(row["throughput"])
+            (row["profile"], int(row["nominal_context_tokens"])): Decimal(
+                row["throughput"]
+            )
             for row in dgx_rows
-            if row["profile"] == "NVFP4 TP2/MTP0" and row["metric"] == "prefill"
+            if row["profile"] in profile_labels and row["metric"] == "prefill"
         }
         dgx_table = table_after_heading(section, "## DGX Station results")
-        self.assertEqual(len(dgx_table), 1)
-        self.assertEqual(dgx_table[0][0], "TP2/AR")
-        self.assertEqual(
-            [unstyle_number(cell).removesuffix(" tok/s") for cell in dgx_table[0][1:]],
-            [
-                f"{dgx_decode[1]:,.1f}",
-                f"{dgx_decode[16]:,.1f}",
-                f"{dgx_decode[64]:,.1f}",
-                f"{dgx_prefill[65536]:,.0f}",
-            ],
-        )
+        self.assertEqual(len(dgx_table), len(profile_labels))
+        for cells, (profile, label) in zip(dgx_table, profile_labels.items()):
+            self.assertEqual(cells[0], label)
+            self.assertEqual(
+                [
+                    unstyle_number(cell).removesuffix(" tok/s")
+                    for cell in cells[1:]
+                ],
+                [
+                    f"{dgx_decode[(profile, 1)]:,.1f}",
+                    f"{dgx_decode[(profile, 16)]:,.1f}",
+                    f"{dgx_decode[(profile, 64)]:,.1f}",
+                    f"{dgx_prefill[(profile, 65536)]:,.0f}",
+                ],
+            )
 
         decode_table = table_after_heading(recipe, "### Workstation decode throughput")
         self.assertEqual(len(decode_table), len(CONCURRENCIES))
@@ -439,7 +449,7 @@ class SectionContractTests(unittest.TestCase):
         )
         self.assertIn("(qwen3.8-flash-next/)", overview_row)
         self.assertIn(
-            "TP2/AR: 142.4 tok/s C1; 3,055.9 C64",
+            "TP2: MTP3 243.5 tok/s C1; AR 3,055.9 C64",
             overview_row,
         )
 
