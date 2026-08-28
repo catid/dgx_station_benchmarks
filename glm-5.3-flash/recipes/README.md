@@ -125,6 +125,22 @@ The raw benchmark status was `COMPLETE`; every C1–C64 request target completed
 with zero errors. Exact-name container cleanup and the direct postflight gates
 passed on both Stations.
 
+## NVFP4 TP1/MTP5 attempt
+
+A single-Station SGLang attempt used the current NVFP4 checkpoint with its
+packed NextN layer, five speculative steps, DSA draft attention, and the
+FlashInfer TRT-LLM expert backend. The server failed during its first warmup in
+the DSA indexer path with a CUDA out-of-bounds gather, before the benchmark
+client ran. There is no C1 throughput result from this attempt.
+
+The failure raised Xid 43 on `gemini2`. The named container was removed, the
+safety check stopped before making another NVIDIA driver query, and the host
+was quarantined until the operator rebooted it. A retry after that reboot,
+with FP4 expert autotuning disabled, reproduced the same warmup failure and
+Xid 43. It also produced no timed result, and `gemini2` was quarantined again
+pending another operator-controlled reboot. The retry rules out FP4 expert
+autotuning as the cause; no TP1/MTP5 row is included in the headline results.
+
 The raw benchmark JSON SHA-256 values are:
 
 - TP2/MTP0: `12f9d0f4fc4e3bfd6308411ddb02abccf9c4cb03ff2897378fb9cf098c007f17`;
