@@ -50,38 +50,10 @@ DGX_HEADLINE_SERIES = {
         "-",
         "X",
     ),
-    "NVFP4 TP2/MTP0": (
-        "2× DGX Station GB300 · TP2/AR",
-        "#58A6FF",
-        "-",
-        "o",
-    ),
-    "NVFP4 TP2/MTP3": (
-        "2× DGX Station GB300 · TP2/MTP3",
-        "#D2A8FF",
-        "-",
-        "o",
-    ),
-    "NVFP4 TEP2/MTP0": (
-        "2× DGX Station GB300 · TEP2/AR",
-        "#61DDAA",
-        "-",
-        "s",
-    ),
-    "NVFP4 TEP2/MTP3": (
-        "2× DGX Station GB300 · TEP2/MTP3",
-        "#F6BD16",
-        "-",
-        "^",
-    ),
 }
 DGX_HEADLINE_PLATFORMS = {
     "NVFP4 TP1/MTP0": "DGX Station",
     "NVFP4 TP1/MTP3": "DGX Station",
-    "NVFP4 TP2/MTP0": "DGX Station pair",
-    "NVFP4 TP2/MTP3": "DGX Station pair",
-    "NVFP4 TEP2/MTP0": "DGX Station pair",
-    "NVFP4 TEP2/MTP3": "DGX Station pair",
 }
 RTX_COMPARISON_SERIES = {
     "nvfp4_tep4_ar": (
@@ -167,7 +139,7 @@ def accepted_overlay_rows(metric: str) -> list[dict[str, str]]:
 
 
 def headline_dgx_rows(metric: str) -> list[dict[str, str]]:
-    """Select measured C1-C64 rows from the one- and two-Station lanes."""
+    """Select measured C1-C64 rows from the one-Station headline lanes."""
     selected: list[dict[str, str]] = []
     seen: set[tuple[str, int]] = set()
     axis_value = "concurrency" if metric == "decode" else "nominal_context_tokens"

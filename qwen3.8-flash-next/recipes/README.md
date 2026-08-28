@@ -47,6 +47,45 @@ runtime limited resident requests to 47 because of Mamba-state capacity. Its
 C64 cell is the measured offered-load result: 2,590.4 tok/s at 45.1 effective
 concurrency and 0.911 queue fraction.
 
+### Initial two-Station optimization baselines
+
+The first TP2 and TEP2 layouts are retained here as measured optimization
+baselines, but excluded from the headline tables and charts. They are slower
+than TP1, so they are not representative two-Station results. The current
+layer placement shards communication-heavy parts of Qwen3.8-Flash-Next's
+hybrid architecture across the two hosts; a revised TEP2 layout will keep the
+poor-scaling layers local while distributing the routed experts.
+
+#### Two-Station decode throughput
+
+Output tok/s:
+
+| C | TP2/AR | TP2/MTP3 | TEP2/AR | TEP2/MTP3 |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 142.4 | 243.5 | 142.3 | 246.4 |
+| 2 | 265.8 | 443.7 | 265.9 | 438.7 |
+| 4 | 486.9 | 678.7 | 489.7 | 696.3 |
+| 8 | 897.0 | 954.1 | 906.9 | 971.5 |
+| 16 | 1,473.0 | 1,258.9 | 1,502.3 | 1,289.2 |
+| 32 | 2,099.7 | 1,793.2 | 2,164.0 | 1,876.7 |
+| 64 | 3,055.9 | 2,342.4 | 3,164.1 | 2,360.1 |
+
+#### Two-Station cold-prefill throughput
+
+C1 client prompt tok/s:
+
+| Target | TP2/AR | TP2/MTP3 | TEP2/AR | TEP2/MTP3 |
+| ---: | ---: | ---: | ---: | ---: |
+| 8K | 20,455 | 19,756 | 21,043 | 20,104 |
+| 32K | 24,717 | 24,858 | 25,610 | 24,610 |
+| 64K | 24,437 | 24,363 | 25,210 | 24,170 |
+| 128K | 22,681 | 22,375 | 23,417 | 22,345 |
+
+The retained roots are `qwen38-4p89-tp2-mtp0-v11`,
+`qwen38-4p89-tp2-mtp3-v1`, `qwen38-4p89-tep2-mtp0-v1`, and
+`qwen38-4p89-tep2-mtp3-v1`. All four completed the C1–C64 decode matrix and
+the four cold-prefill cells with zero request errors.
+
 TEP2/AR run `qwen38-4p89-tep2-mtp0-v1` completed its measurements and exact
 container cleanup. Its first local postflight gate overlapped an `nvidia-smi`
 child from a pre-existing `watch -n1 nvidia-smi`; fresh canonical idle gates
@@ -374,6 +413,7 @@ benchmark harness:
 ```bash
 python3 data/import-dgx-results.py --require-all \
   /path/to/nvfp4-tp1-mtp0-result \
+  /path/to/nvfp4-tp1-mtp3-result \
   /path/to/nvfp4-tp2-mtp0-result \
   /path/to/nvfp4-tp2-mtp3-result \
   /path/to/nvfp4-tep2-mtp0-result \
@@ -386,7 +426,8 @@ With `--require-complete`, the importer accepts only roots whose launcher wrote
 `COMPLETE` after all C1–C64 and cold-prefill cells. Queueing or lower effective
 concurrency remains a measured property of a completed cell. TP1 represents one
 engine on one Station; TP2 and TEP2 each represent one distributed engine
-across both Stations. AR and MTP3 are plotted as separate curves.
+across both Stations. The current TP2 and TEP2 rows remain in machine-readable
+data and the optimization-baseline tables above, but are not plotted.
 
 Final timed status supersedes the corresponding smoke status in performance
 tables only after the completed timed root passes this import. Smoke status by

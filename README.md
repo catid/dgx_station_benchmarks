@@ -19,7 +19,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 
 | Experiment | Checkpoint / precision | Headline result |
 | --- | --- | --- |
-| [Qwen3.8-Flash-Next](qwen3.8-flash-next/) | local-inference-lab NVFP4-4p89/SGLang on 1× or 2× DGX Station GB300; 4× RTX PRO 6000 comparison | 1× TP1/MTP3: 342.7 tok/s C1; TP1/AR: 4,090.4 C64, 38,653 tok/s 64K prefill |
+| [Qwen3.8-Flash-Next](qwen3.8-flash-next/) | local-inference-lab NVFP4-4p89/SGLang on 1× DGX Station GB300; 4× RTX PRO 6000 comparison | 1× TP1/MTP3: 342.7 tok/s C1; TP1/AR: 4,090.4 C64, 38,653 tok/s 64K prefill |
 | [Qwen3.8-27B](qwen3.8-27b/) | BF16 plus unofficial Huginn FP8 and NVFP4A16 targets; BF16 KV/Mamba state | DFlash2: 265.8 tok/s C1; MTP: 6,348.8 C128. Quant AR C128: FP8 5,494.4 (+8.7% vs BF16), NVFP4A16 3,607.4 (−28.6%) |
 | [Qwen2.5-72B LoRA FSDP training](qwen72b-lora-fsdp/) | BF16 LoRA SFT; FSDP2 over 2× GB300; packed UltraChat 10K at 2,048 tokens | 4,453.19 tokens/s; 29.433 s/optimizer step; global batch 131,072 tokens |
 | [RF-DETR Large training](rfdetr-training/) | BF16 fine-tuning on the 1.17M-image MLPerf OpenImages subset; 2× GB300 DDP | Optimized global-batch-128 epoch: 220.45 images/s and 1:46:52 end to end (2.44× faster than control) |
@@ -41,8 +41,8 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 
 ![Qwen3.8-Flash-Next cold-prefill throughput](qwen3.8-flash-next/charts/dgx-nvfp4-prefill.png)
 
-Solid curves show one serving engine on one or two DGX Stations. Dashed curves
-show two separate comparison runs on one 4× RTX PRO 6000 server: TEP4/AR and
+Solid curves show one serving engine on one DGX Station. Dashed curves show
+two separate comparison runs on one 4× RTX PRO 6000 server: TEP4/AR and
 TEP4/MTP3, using `RadixArk/Qwen3.8-Flash-Next-NVFP4@7b719225` and patched
 SGLang. No envelope is used.
 

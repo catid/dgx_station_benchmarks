@@ -248,30 +248,20 @@ class SectionContractTests(unittest.TestCase):
             )
             self.assertEqual(
                 [row["throughput"] for row in renderer.headline_dgx_rows("decode")],
-                ["9", "2", "4", "5", "6", "7"],
+                ["9"],
             )
             self.assertEqual(
                 list(renderer.headline_dgx_series("decode")),
-                [
-                    "NVFP4 TP1/MTP0",
-                    "NVFP4 TP2/MTP0",
-                    "NVFP4 TP2/MTP3",
-                    "NVFP4 TEP2/MTP0",
-                    "NVFP4 TEP2/MTP3",
-                ],
+                ["NVFP4 TP1/MTP0"],
             )
 
-    def test_renderer_current_partial_data_omits_missing_future_series(self) -> None:
+    def test_renderer_headline_excludes_two_station_optimization_baselines(self) -> None:
         renderer = load_chart_renderer()
         self.assertEqual(
             tuple(renderer.DGX_HEADLINE_SERIES),
             (
                 "NVFP4 TP1/MTP0",
                 "NVFP4 TP1/MTP3",
-                "NVFP4 TP2/MTP0",
-                "NVFP4 TP2/MTP3",
-                "NVFP4 TEP2/MTP0",
-                "NVFP4 TEP2/MTP3",
             ),
         )
         visible_labels = [
@@ -420,7 +410,8 @@ class SectionContractTests(unittest.TestCase):
         }
         self.assertIn("local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89", section)
         self.assertIn("TP1/AR and TP1/MTP3 each use one\nStation", section)
-        self.assertIn("TP2 and TEP2 span both Stations", section)
+        self.assertNotIn("TP2/", section)
+        self.assertNotIn("TEP2/", section)
         self.assertIn("comparison points, not DGX\nStation", section)
         self.assertIn(
             "RadixArk/Qwen3.8-Flash-Next-NVFP4@"
@@ -435,29 +426,34 @@ class SectionContractTests(unittest.TestCase):
         self.assertNotIn("sealed", headline.lower())
 
         dgx_rows = csv_rows("dgx-overlays.csv")
-        profile_labels = {
+        headline_profile_labels = {
             "NVFP4 TP1/MTP0": "1× DGX Station · TP1/AR",
             "NVFP4 TP1/MTP3": "1× DGX Station · TP1/MTP3",
+        }
+        baseline_profile_labels = {
             "NVFP4 TP2/MTP0": "2× DGX Stations · TP2/AR",
             "NVFP4 TP2/MTP3": "2× DGX Stations · TP2/MTP3",
             "NVFP4 TEP2/MTP0": "2× DGX Stations · TEP2/AR",
             "NVFP4 TEP2/MTP3": "2× DGX Stations · TEP2/MTP3",
         }
+        all_dgx_profiles = headline_profile_labels | baseline_profile_labels
         dgx_decode = {
             (row["profile"], int(row["concurrency"])): Decimal(row["throughput"])
             for row in dgx_rows
-            if row["profile"] in profile_labels and row["metric"] == "decode"
+            if row["profile"] in all_dgx_profiles and row["metric"] == "decode"
         }
         dgx_prefill = {
             (row["profile"], int(row["nominal_context_tokens"])): Decimal(
                 row["throughput"]
             )
             for row in dgx_rows
-            if row["profile"] in profile_labels and row["metric"] == "prefill"
+            if row["profile"] in all_dgx_profiles and row["metric"] == "prefill"
         }
         dgx_table = table_after_heading(section, "## DGX Station results")
-        self.assertEqual(len(dgx_table), len(profile_labels))
-        for cells, (profile, label) in zip(dgx_table, profile_labels.items()):
+        self.assertEqual(len(dgx_table), len(headline_profile_labels))
+        for cells, (profile, label) in zip(
+            dgx_table, headline_profile_labels.items()
+        ):
             self.assertEqual(cells[0], label)
             self.assertEqual(
                 [
@@ -471,6 +467,32 @@ class SectionContractTests(unittest.TestCase):
                     f"{dgx_prefill[(profile, 65536)]:,.0f}",
                 ],
             )
+
+        baseline_decode_table = table_after_heading(
+            recipe, "#### Two-Station decode throughput"
+        )
+        self.assertEqual(len(baseline_decode_table), len(DGX_CONCURRENCIES))
+        for cells in baseline_decode_table:
+            concurrency = int(cells[0])
+            self.assertEqual(len(cells), len(baseline_profile_labels) + 1)
+            for index, profile in enumerate(baseline_profile_labels, start=1):
+                self.assertEqual(
+                    unstyle_number(cells[index]),
+                    f"{dgx_decode[(profile, concurrency)]:,.1f}",
+                )
+
+        baseline_prefill_table = table_after_heading(
+            recipe, "#### Two-Station cold-prefill throughput"
+        )
+        self.assertEqual(len(baseline_prefill_table), len(CONTEXTS))
+        for cells in baseline_prefill_table:
+            context = int(cells[0][:-1]) * 1024
+            self.assertEqual(len(cells), len(baseline_profile_labels) + 1)
+            for index, profile in enumerate(baseline_profile_labels, start=1):
+                self.assertEqual(
+                    unstyle_number(cells[index]),
+                    f"{dgx_prefill[(profile, context)]:,.0f}",
+                )
 
         decode_table = table_after_heading(recipe, "### Workstation decode throughput")
         self.assertEqual(len(decode_table), len(CONCURRENCIES))
@@ -507,6 +529,7 @@ class SectionContractTests(unittest.TestCase):
             "1× TP1/MTP3: 342.7 tok/s C1; TP1/AR: 4,090.4 C64, 38,653 tok/s 64K prefill",
             overview_row,
         )
+        self.assertNotIn("2× DGX", overview_row)
         self.assertIn(
             "![Qwen3.8-Flash-Next fixed decode throughput]"
             "(qwen3.8-flash-next/charts/dgx-nvfp4-decode.png)",
