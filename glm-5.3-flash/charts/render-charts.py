@@ -21,7 +21,9 @@ CHARTS = ROOT / "charts"
 OUTPUT_DIR = CHARTS
 CHART_NAMES = ("decode-throughput.png", "prefill-throughput.png")
 EXTERNAL_COLOR = "#F6903D"
-GB300_COLORS = ("#5B8FF9", "#61DDAA", "#F6BD16", "#5D7092", "#E8684A")
+GB300_COLORS = (
+    "#5B8FF9", "#61DDAA", "#F6BD16", "#5D7092", "#E8684A", "#6DC8EC", "#9270CA"
+)
 PUBLISHED_EXTERNAL_STATUS = "EXTERNAL_USER_SUPPLIED"
 PROFILE_ORDER = {
     "TP2/MTP0": 0,
@@ -29,6 +31,8 @@ PROFILE_ORDER = {
     "TEP2/MTP5": 2,
     "NVFP4 TP2/AR": 3,
     "NVFP4 TP2/DFlash2": 4,
+    "NVFP4 TP1/AR": 5,
+    "NVFP4 TP1/DFlash2": 6,
 }
 
 
@@ -82,6 +86,11 @@ def group_profiles(
     }
 
 
+def dgx_label(row: dict[str, str]) -> str:
+    stations = "1×" if row["topology"] == "single_node_tp1" else "2×"
+    return f"{stations} DGX Station GB300"
+
+
 def render_decode() -> None:
     external = external_rows("decode")
     external.sort(key=lambda row: int(row["concurrency"]))
@@ -96,7 +105,7 @@ def render_decode() -> None:
             marker="o",
             linewidth=2.7,
             color=GB300_COLORS[index % len(GB300_COLORS)],
-            label=f"2× DGX Station GB300 — {profile}",
+            label=f"{dgx_label(cells[0])} — {profile}",
         )
     axis.plot(
         [int(row["concurrency"]) for row in external],
@@ -137,7 +146,7 @@ def render_prefill() -> None:
             marker="o",
             linewidth=2.7,
             color=GB300_COLORS[index % len(GB300_COLORS)],
-            label=f"2× DGX Station GB300 — {profile}",
+            label=f"{dgx_label(cells[0])} — {profile}",
         )
     x_external = [int(row["context_tokens"]) // 1024 for row in external]
     axis.plot(

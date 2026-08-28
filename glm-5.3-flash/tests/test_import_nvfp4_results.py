@@ -189,7 +189,87 @@ def make_dflash_result(parent: Path) -> Path:
     return root
 
 
+def make_tp1_result(parent: Path) -> Path:
+    root = make_result(parent)
+    renamed = parent / "glm53-nvfp4-tp1-ar-test"
+    root.rename(renamed)
+    root = renamed
+    manifest = json.loads((root / "run-manifest.json").read_text(encoding="utf-8"))
+    model = manifest.pop("model")
+    manifest.pop("runtime_image")
+    manifest.pop("mtp")
+    manifest.update({
+        "run_id": root.name,
+        "profile": IMPORTER.TP1_AR_RUN_PROFILE,
+        "target": {
+            "repository": model["repository"],
+            "revision": model["revision"],
+            "quantization": model["quantization"],
+            "kv_cache_dtype": "fp8_e4m3",
+        },
+        "draft": None,
+        "runtime": {"image": IMPORTER.AR_RUNTIME_IMAGE},
+        "topology": {"nodes": 1, "tp": 1, "pp": 1, "ep": 1},
+    })
+    manifest["benchmark"]["cold_prefill"] = {"measured": True, "source": None}
+    write_json(root / "run-manifest.json", manifest)
+    (root / "STATUS.retry.txt").rename(root / "STATUS.txt")
+    (root / "runtime/cleanup-verdict.txt").write_text(
+        "outcome=PASS_GRACEFUL_OR_ABSENT\n", encoding="utf-8"
+    )
+    (root / "postflight/verdict.retry.txt").rename(root / "postflight/verdict.txt")
+    return root
+
+
+def make_tp1_dflash_result(parent: Path) -> Path:
+    root = make_tp1_result(parent)
+    renamed = parent / "glm53-nvfp4-tp1-dflash2-test"
+    root.rename(renamed)
+    root = renamed
+    manifest = json.loads((root / "run-manifest.json").read_text(encoding="utf-8"))
+    manifest["run_id"] = root.name
+    manifest["profile"] = IMPORTER.TP1_DFLASH_RUN_PROFILE
+    manifest["draft"] = {
+        "repository": IMPORTER.DFLASH_DRAFT_ID,
+        "revision": IMPORTER.DFLASH_DRAFT_REVISION,
+        "proposed_tokens": IMPORTER.DFLASH_PROPOSED_TOKENS,
+        "quantization": "unquant",
+        "dtype": "bfloat16",
+    }
+    manifest["runtime"] = {"image": IMPORTER.DFLASH_RUNTIME_IMAGE}
+    prefill_source = "/results/glm53-nvfp4-tp1-ar-v1/benchmark/raw/prefill/cold.json"
+    manifest["benchmark"]["cold_prefill"] = {
+        "measured": False,
+        "source": prefill_source,
+    }
+    write_json(root / "run-manifest.json", manifest)
+    (root / "benchmark/raw/prefill/cold.json").unlink()
+    write_json(root / "benchmark/raw/prefill/reused-ar.json", {
+        "schema": "benchmark-prefill-reference/v1",
+        "rerun": False,
+        "source": prefill_source,
+        "sha256": IMPORTER.TP1_AR_PREFILL_SHA256,
+    })
+    return root
+
+
 class ImportNvfp4ResultsTests(unittest.TestCase):
+    def test_complete_tp1_profiles_map_single_station_topology(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            parent = Path(directory)
+            ar = IMPORTER.import_result(make_tp1_result(parent))
+        self.assertEqual({row["profile"] for row in ar["throughput"]},
+                         {IMPORTER.TP1_AR_PUBLICATION_PROFILE})
+        self.assertTrue(all(row["topology"] == IMPORTER.TP1_TOPOLOGY
+                            for row in ar["throughput"] + ar["prefill"]))
+
+        with tempfile.TemporaryDirectory() as directory:
+            dflash = IMPORTER.import_result(make_tp1_dflash_result(Path(directory)))
+        self.assertEqual({row["profile"] for row in dflash["throughput"]},
+                         {IMPORTER.TP1_DFLASH_PUBLICATION_PROFILE})
+        self.assertEqual(len(dflash["throughput"]), 7)
+        self.assertEqual(dflash["prefill"], [])
+
     def test_complete_result_maps_all_raw_cells(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             imported = IMPORTER.import_result(make_result(Path(directory)))

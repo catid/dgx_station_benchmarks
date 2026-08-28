@@ -45,7 +45,16 @@
       "runtime_image": "glm53-dflash2-sglang:5277926",
       "runtime_source_commit": "52779266e668039bed838fe25ef84ffb014d22f2",
       "decode_run_id": "glm53-nvfp4-tp2-dflash2-v1",
-      "prefill": "reuses TP2/AR cold-prefill artifact d624a68252542bd06e7422d204decac5fec25d33b7856e9630af82c152b17b90"
+      "tp1_decode_run_ids": [
+        "glm53-nvfp4-tp1-dflash2-v1",
+        "glm53-nvfp4-tp1-dflash2-c64-v1"
+      ],
+      "prefill": "reuses the matching AR cold-prefill artifact for each topology"
+    },
+    "tp1": {
+      "ar_run_id": "glm53-nvfp4-tp1-ar-v1",
+      "topology": "single_node_tp1",
+      "cold_prefill_sha256": "8b4802a6bd5ad97a9574d536b728dc7c9fb08d912665b6db57bbffa39bd11aa6"
     }
   }
 }

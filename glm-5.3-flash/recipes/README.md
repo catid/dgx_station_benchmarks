@@ -40,7 +40,7 @@ model server across the two DGX Stations rather than as two replicas.
 | DFlash2 draft format | Unquantized BF16, seven proposed tokens |
 | DFlash2 runtime | Patched SGLang image `glm53-dflash2-sglang:5277926`, source commit `52779266e668039bed838fe25ef84ffb014d22f2` |
 | Benchmark client | `llm-inference-bench` 0.4.29, commit `0b4185b5b435e948b199c9077a00b084864aa963` |
-| Topology | TP2/PP1/EP1, one distributed engine across both DGX Stations |
+| Topologies | TP1/PP1/EP1 on one DGX Station; TP2/PP1/EP1 across two Stations |
 | Decode modes | Autoregressive (MTP0), or DFlash2 speculative decoding on the same NVFP4 target |
 
 ## Measured DGX profiles
@@ -52,6 +52,8 @@ model server across the two DGX Stations rather than as two replicas.
 | TEP2/MTP5 | `glm53-flash-tep2-mtp5-full-20260826-method-v2` | TP2 with expert parallelism | Five-token MTP |
 | NVFP4 TP2/AR | `glm53-nvfp4-tp2-mtp0-v1` | TP2 | Autoregressive |
 | NVFP4 TP2/DFlash2 | `glm53-nvfp4-tp2-dflash2-v1` | TP2 | DFlash2 speculative decoding |
+| NVFP4 TP1/AR | `glm53-nvfp4-tp1-ar-v1` | TP1 | Autoregressive |
+| NVFP4 TP1/DFlash2 | `glm53-nvfp4-tp1-dflash2-v1` plus C64 supplement `glm53-nvfp4-tp1-dflash2-c64-v1` | TP1 | DFlash2 speculative decoding |
 
 Each retained run manifest verifies. Native-FP8 decode rates use 60-second
 client windows. The NVFP4 series uses completed request-count cells with `5*C`
@@ -81,16 +83,32 @@ request. The source CSVs also retain queueing, capacity, latency, MTP
 acceptance, and engine-step fields. Throughput is never replaced with zero
 when the server saturates.
 
-At DFlash2 C64, effective concurrency was 52.2 and the observed active-request
+At TP2/DFlash2 C64, effective concurrency was 52.2 and the observed active-request
 cap was 56 under the offered concurrency of 64.
+
+The single-Station NVFP4 profiles had the following observed concurrency:
+
+| Requested C | TP1/AR avg/max | TP1/DFlash2 avg/max |
+| ---: | ---: | ---: |
+| 1 | 0.9 / 1 | 0.8 / 1 |
+| 2 | 1.9 / 2 | 1.9 / 2 |
+| 4 | 3.0 / 4 | 2.7 / 4 |
+| 8 | 5.2 / 8 | 3.7 / 4 |
+| 16 | 12.4 / 14 | 3.8 / 4 |
+| 32 | 13.3 / 14 | 3.7 / 4 |
+| 64 | 13.7 / 14 | 3.7 / 4 |
+
+TP1/AR was capacity-limited from C16 and TP1/DFlash2 from C8. These are
+completed offered-load measurements; the table reports how many requests were
+actually resident rather than treating queued requests as resident work.
 
 ## Prefill measurements
 
-| Context | FP8 TP2/MTP0 client tok/s (samples) | FP8 TP2/MTP5 client/server tok/s (samples) | FP8 TEP2/MTP5 client/server tok/s (samples) | NVFP4 TP2/AR client tok/s (samples) |
-| ---: | ---: | ---: | ---: | ---: |
-| 8K | 12,645 (10) | 14,871 / 15,559 (4) | 14,214 / 14,847 (4) | 15,088 (30) |
-| 64K | 3,721 (1) | 15,438 / 15,956 (3) | 15,076 / 15,555 (3) | 17,245 (8) |
-| 128K | 6,519 (1) | 15,431 / 15,919 (3) | 14,873 / 15,329 (3) | 17,622 (4) |
+| Context | FP8 TP2/MTP0 client tok/s (samples) | FP8 TP2/MTP5 client/server tok/s (samples) | FP8 TEP2/MTP5 client/server tok/s (samples) | NVFP4 TP2/AR client tok/s (samples) | NVFP4 TP1/AR client tok/s (samples) |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 8K | 12,645 (10) | 14,871 / 15,559 (4) | 14,214 / 14,847 (4) | 15,088 (30) | 26,313 (59) |
+| 64K | 3,721 (1) | 15,438 / 15,956 (3) | 15,076 / 15,555 (3) | 17,245 (8) | 27,782 (12) |
+| 128K | 6,519 (1) | 15,431 / 15,919 (3) | 14,873 / 15,329 (3) | 17,622 (4) | 28,663 (7) |
 
 The MTP5 runs used exact, unique-prefix prompts with a shape warmup, at least
 three measured samples, and client/server counter checks. The older MTP0
@@ -98,9 +116,10 @@ acquisition used the earlier standalone-cold method: its actual prompt lengths
 were 8,194, 65,538, and 131,073 tokens, and it did not retain matching
 server-side prefill rates. The NVFP4 TP2/AR run also used standalone cold
 prefill; its actual prompt lengths were 8,194, 65,538, and 131,073, with all
-completed client measurements reported. DFlash2 changes only decode, so its
-result bundle references that matching target/topology prefill artifact by
-SHA-256 rather than presenting a second measurement.
+completed client measurements reported. TP1/AR used the same method and prompt
+lengths, with 59, 12, and 7 samples respectively. DFlash2 changes only decode,
+so its result bundle references that matching target/topology prefill artifact
+by SHA-256 rather than presenting a second measurement.
 
 ## Operational note for TEP2
 
@@ -124,6 +143,16 @@ raw measurements.
 The raw benchmark status was `COMPLETE`; every C1–C64 request target completed
 with zero errors. Exact-name container cleanup and the direct postflight gates
 passed on both Stations.
+
+## Operational note for NVFP4 TP1/DFlash2
+
+The main TP1 run completed C1–C32. Its C64 client was initially skipped because
+the nominal offered workload exceeded the server's startup capacity estimate.
+A C64-only supplement explicitly bypassed that client-side precheck while
+retaining the measured server capacity. The server admitted at most four
+requests at once, completed all 320 measured requests with zero errors, and
+delivered 512.723 output tok/s at effective concurrency 3.7. Exact-name
+container cleanup and postflight passed after both the main run and supplement.
 
 ## NVFP4 TP1/MTP5 attempt
 
@@ -149,7 +178,9 @@ The raw benchmark JSON SHA-256 values are:
 - NVFP4 TP2/AR: each raw JSON SHA-256 is retained on its imported diagnostic
   row rather than replacing the seven decode artifacts with one bundle hash;
 - NVFP4 TP2/DFlash2: each raw JSON SHA-256 is likewise retained on its imported
-  diagnostic row.
+  diagnostic row;
+- NVFP4 TP1/AR and TP1/DFlash2: each raw JSON SHA-256 is retained on its
+  imported diagnostic row, including the separate TP1/DFlash2 C64 supplement.
 
 ## Workload
 
@@ -184,7 +215,8 @@ KV cache, TRT-LLM sparse-attention backends, Triton KDA, DeepGEMM MoE, and
 NEXTN/EAGLE MTP5. Its source and CPU path were audited, but it has no measured
 GPU series in this section.
 
-The measured NVFP4 profiles instead use TP2/PP1/EP1, ModelOpt FP4 loading,
+The measured NVFP4 profiles use either TP1/PP1/EP1 on one Station or
+TP2/PP1/EP1 across two, with ModelOpt FP4 loading,
 TRT-LLM sparse attention, FlashInfer TRT-LLM expert GEMM, and Triton linear
 attention. The AR profile does not enable the retained MTP layer. The DFlash2
 profile attaches the exact BF16 draft pinned above to that same NVFP4 base.
@@ -201,14 +233,14 @@ profile attaches the exact BF16 draft pinned above to that same NVFP4 base.
 | Quantization | Routed-expert weights use NVFP4 with group size 16; activations and all remaining weights stay BF16 |
 | MTP | The BF16 MTP layer is retained |
 | Publisher-reported size | About 181 GiB |
-| Local benchmark status | Measured TP2/AR and TP2/DFlash2 C1–C64; TP2/AR 8K/64K/128K cold prefill |
-| Evidence runs | `glm53-nvfp4-tp2-mtp0-v1`, `glm53-nvfp4-tp2-dflash2-v1` |
+| Local benchmark status | Measured TP1 and TP2 AR and DFlash2 C1–C64; matching AR 8K/64K/128K cold prefill |
+| Evidence runs | `glm53-nvfp4-tp2-mtp0-v1`, `glm53-nvfp4-tp2-dflash2-v1`, `glm53-nvfp4-tp1-ar-v1`, `glm53-nvfp4-tp1-dflash2-v1`, `glm53-nvfp4-tp1-dflash2-c64-v1` |
 
 The current revision contains the configuration fix introduced in `cf5434c`:
 the fused module names were added to the quantization ignore list so SGLang
 can load the checkpoint correctly. The current model card documents an SGLang
 load and coherent-generation check on two GB10 systems, but it does not provide
-throughput. The local SGLang TP2/AR and TP2/DFlash2 results above are the
+throughput. The local SGLang TP1 and TP2 AR and DFlash2 results above are the
 measured publication for that exact current target revision.
 
 ### Historical pre-fix attempt

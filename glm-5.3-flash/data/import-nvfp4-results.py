@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Import completed GLM-5.3 NVFP4 TP2 raw result bundles.
+"""Import completed GLM-5.3 NVFP4 TP1 and TP2 raw result bundles.
 
 The importer validates pinned manifests, completion records, exact request-count
-decode cells, and the standalone TP2/AR cold-prefill cells before replacing the
+decode cells, and standalone AR cold-prefill cells before replacing the
 matching publication profiles in the section's compact and diagnostic CSVs.
 """
 
@@ -32,7 +32,9 @@ WEIGHT_REVISION = "11d73216cd636238e82e1d77fe1042ffab36e7fa"
 RUNTIME_CONFIG_SHA256 = "5db46f44956e4a8a0cc8ed54b6d77bf99dd7c1ec90c58975d1952560768513d5"
 BENCH_VERSION = "0.4.29"
 BENCH_COMMIT = "0b4185b5b435e948b199c9077a00b084864aa963"
-TOPOLOGY = "cross_node_tp2"
+TP2_TOPOLOGY = "cross_node_tp2"
+TP1_TOPOLOGY = "single_node_tp1"
+TOPOLOGY = TP2_TOPOLOGY
 CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64)
 PREFILL_CONTEXTS = (8192, 65536, 131072)
 
@@ -48,6 +50,12 @@ DFLASH_RUNTIME_COMMIT = "52779266e668039bed838fe25ef84ffb014d22f2"
 DFLASH_DRAFT_ID = "incoai/GLM-5.3-Flash-DFlash2"
 DFLASH_DRAFT_REVISION = "7d74cdd881ed7e32c31175984a67823127b66cfe"
 DFLASH_PROPOSED_TOKENS = 7
+
+TP1_AR_RUN_PROFILE = "ar"
+TP1_AR_PUBLICATION_PROFILE = "NVFP4 TP1/AR"
+TP1_DFLASH_RUN_PROFILE = "dflash2"
+TP1_DFLASH_PUBLICATION_PROFILE = "NVFP4 TP1/DFlash2"
+TP1_AR_PREFILL_SHA256 = "8b4802a6bd5ad97a9574d536b728dc7c9fb08d912665b6db57bbffa39bd11aa6"
 
 # Backwards-compatible names used by the importer tests and downstream callers.
 RUNTIME_IMAGE = AR_RUNTIME_IMAGE
@@ -205,26 +213,38 @@ def key_values(path: Path, label: str) -> dict[str, str]:
 
 def validate_result_root(
     root_arg: Path,
-) -> tuple[Path, dict[str, Any], str, int, bool]:
+) -> tuple[Path, dict[str, Any], str, int, bool, str, tuple[int, ...]]:
     require(root_arg.is_dir() and not root_arg.is_symlink(), f"unsafe result root: {root_arg}")
     root = root_arg.resolve(strict=True)
     manifest = json_object(root / "run-manifest.json", "run manifest")
     require(manifest.get("schema_version") == 1, "run-manifest schema differs")
     require(manifest.get("run_id") == root.name, "run-manifest ID differs")
-    profile = manifest.get("profile")
-    require(profile in (AR_RUN_PROFILE, DFLASH_RUN_PROFILE),
-            "run-manifest profile differs")
-
     topology = manifest.get("topology")
     require(isinstance(topology, dict), "run-manifest topology is absent")
-    require(topology == {"nodes": 2, "tp": 2, "ep": 1},
-            "run-manifest is not the two-Station TP2/EP1 topology")
+    is_tp2 = topology == {"nodes": 2, "tp": 2, "ep": 1}
+    is_tp1 = topology == {"nodes": 1, "tp": 1, "pp": 1, "ep": 1}
+    require(is_tp1 or is_tp2, "run-manifest topology differs")
+    profile = manifest.get("profile")
+    expected_profiles = (
+        (TP1_AR_RUN_PROFILE, TP1_DFLASH_RUN_PROFILE)
+        if is_tp1 else (AR_RUN_PROFILE, DFLASH_RUN_PROFILE)
+    )
+    require(profile in expected_profiles, "run-manifest profile differs")
 
     benchmark = manifest.get("benchmark")
     require(isinstance(benchmark, dict), "run-manifest benchmark contract is absent")
     require(benchmark.get("commit") == BENCH_COMMIT, "benchmark client commit differs")
-    require(benchmark.get("decode_concurrency") == list(CONCURRENCIES),
-            "decode concurrency contract differs")
+    decode_concurrency = benchmark.get("decode_concurrency")
+    require(isinstance(decode_concurrency, list), "decode concurrency contract is absent")
+    decode_concurrencies = tuple(
+        exact_int(value, "decode concurrency contract") for value in decode_concurrency
+    )
+    require(
+        decode_concurrencies == CONCURRENCIES
+        or (is_tp1 and profile == TP1_DFLASH_RUN_PROFILE
+            and decode_concurrencies == (64,)),
+        "decode concurrency contract differs",
+    )
     require(benchmark.get("input_tokens") == 8192, "decode input contract differs")
     require(benchmark.get("output_tokens") == 1024, "decode output contract differs")
     require(benchmark.get("measured_requests") == "5*C", "decode request contract differs")
@@ -235,7 +255,7 @@ def validate_result_root(
     require(first_line(raw / "STATUS.txt", "benchmark status") == "COMPLETE",
             "benchmark client has not completed")
 
-    if profile == AR_RUN_PROFILE:
+    if is_tp2 and profile == AR_RUN_PROFILE:
         model = manifest.get("model")
         require(isinstance(model, dict), "run-manifest model is absent")
         require(model.get("repository") == MODEL_ID, "model repository differs")
@@ -259,7 +279,75 @@ def validate_result_root(
         require(key_values(
             root / "postflight/verdict.retry.txt", "postflight retry verdict"
         ).get("outcome") == "PASS", "retained postflight retry did not pass")
-        return root, manifest, AR_PUBLICATION_PROFILE, 0, True
+        return (
+            root, manifest, AR_PUBLICATION_PROFILE, 0, True,
+            TP2_TOPOLOGY, decode_concurrencies,
+        )
+
+    if is_tp1:
+        target = manifest.get("target")
+        require(isinstance(target, dict), "run-manifest target is absent")
+        require(target.get("repository") == MODEL_ID, "target repository differs")
+        require(target.get("revision") == MODEL_REVISION, "target revision differs")
+        require(target.get("quantization") == "modelopt_fp4", "target quantization differs")
+        require(target.get("kv_cache_dtype") == "fp8_e4m3", "target KV-cache dtype differs")
+        runtime = manifest.get("runtime")
+        require(isinstance(runtime, dict), "run-manifest runtime is absent")
+        require(first_line(root / "STATUS.txt", "launcher status")
+                == "COMPLETE_MEASURED_RAW", "launcher status is not complete")
+        require(key_values(
+            root / "runtime/cleanup-verdict.txt", "cleanup verdict"
+        ).get("outcome") == "PASS_GRACEFUL_OR_ABSENT", "exact-name cleanup did not pass")
+        require(key_values(
+            root / "postflight/verdict.txt", "postflight verdict"
+        ).get("outcome") == "PASS", "postflight did not pass")
+
+        if profile == TP1_AR_RUN_PROFILE:
+            require(manifest.get("draft") is None, "AR run unexpectedly has a draft")
+            require(runtime.get("image") == AR_RUNTIME_IMAGE, "runtime image differs")
+            cold_prefill = benchmark.get("cold_prefill")
+            require(cold_prefill == {"measured": True, "source": None},
+                    "cold-prefill contract differs")
+            return (
+                root, manifest, TP1_AR_PUBLICATION_PROFILE, 0, True,
+                TP1_TOPOLOGY, decode_concurrencies,
+            )
+
+        draft = manifest.get("draft")
+        require(isinstance(draft, dict), "run-manifest DFlash2 draft is absent")
+        require(draft.get("repository") == DFLASH_DRAFT_ID,
+                "DFlash2 draft repository differs")
+        require(draft.get("revision") == DFLASH_DRAFT_REVISION,
+                "DFlash2 draft revision differs")
+        require(draft.get("proposed_tokens") == DFLASH_PROPOSED_TOKENS,
+                "DFlash2 proposal width differs")
+        require(draft.get("quantization") == "unquant", "DFlash2 draft quantization differs")
+        require(draft.get("dtype") == "bfloat16", "DFlash2 draft dtype differs")
+        require(runtime.get("image") == DFLASH_RUNTIME_IMAGE, "DFlash2 runtime image differs")
+        cold_prefill = benchmark.get("cold_prefill")
+        require(isinstance(cold_prefill, dict), "DFlash2 prefill reference is absent")
+        require(cold_prefill.get("measured") is False,
+                "DFlash2 unexpectedly reran prefill")
+        prefill_reference = json_object(raw / "prefill/reused-ar.json", "prefill reference")
+        require(prefill_reference.get("schema") == "benchmark-prefill-reference/v1",
+                "DFlash2 prefill reference schema differs")
+        require(prefill_reference.get("rerun") is False,
+                "DFlash2 prefill reference claims a rerun")
+        require(prefill_reference.get("source") == cold_prefill.get("source"),
+                "DFlash2 prefill reference source differs")
+        require(prefill_reference.get("sha256") == TP1_AR_PREFILL_SHA256,
+                "DFlash2 prefill reference artifact differs")
+        require(not (raw / "prefill/cold.json").exists(),
+                "DFlash2 bundle unexpectedly contains a fresh prefill result")
+        if decode_concurrencies == (64,):
+            require(benchmark.get("capacity_precheck_override_tokens") == 589824,
+                    "C64 supplement precheck override differs")
+            require(bool(benchmark.get("capacity_precheck_override_reason")),
+                    "C64 supplement precheck reason is absent")
+        return (
+            root, manifest, TP1_DFLASH_PUBLICATION_PROFILE, 0, False,
+            TP1_TOPOLOGY, decode_concurrencies,
+        )
 
     target = manifest.get("target")
     require(isinstance(target, dict), "run-manifest target is absent")
@@ -309,7 +397,10 @@ def validate_result_root(
     require(key_values(
         root / "postflight/verdict.txt", "postflight verdict"
     ).get("outcome") == "PASS", "DFlash2 postflight did not pass")
-    return root, manifest, DFLASH_PUBLICATION_PROFILE, 0, False
+    return (
+        root, manifest, DFLASH_PUBLICATION_PROFILE, 0, False,
+        TP2_TOPOLOGY, decode_concurrencies,
+    )
 
 
 def validate_metadata(metadata: Any, *, max_tokens: int, label: str) -> dict[str, Any]:
@@ -330,7 +421,8 @@ def decode_rows(
     path: Path,
     publication_profile: str,
     mtp_tokens: int,
-) -> tuple[dict[str, str], dict[str, str]]:
+    topology_label: str,
+) -> tuple[dict[str, str], dict[str, str]] | None:
     data = json_object(path, f"C{concurrency} decode result")
     metadata = validate_metadata(data.get("metadata"), max_tokens=1024,
                                  label=f"C{concurrency} decode")
@@ -343,6 +435,8 @@ def decode_rows(
             "decode warmup target differs")
 
     results = data.get("results")
+    if results == []:
+        return None
     require(isinstance(results, list) and len(results) == 1 and isinstance(results[0], dict),
             f"C{concurrency} does not contain exactly one result")
     cell = results[0]
@@ -382,7 +476,7 @@ def decode_rows(
         "model_id": MODEL_ID,
         "model_revision": MODEL_REVISION,
         "runtime": "sglang",
-        "topology": TOPOLOGY,
+        "topology": topology_label,
         "mtp_tokens": str(mtp_tokens),
         "run_id": root.name,
         "measurement_status": "MEASURED",
@@ -410,7 +504,7 @@ def decode_rows(
         "publication_status": "measured",
         "model_id": MODEL_ID,
         "model_revision": MODEL_REVISION,
-        "topology": TOPOLOGY,
+        "topology": topology_label,
         "mtp_tokens": str(mtp_tokens),
         "input_tokens": "8192",
         "target_output_tokens": "1024",
@@ -431,7 +525,12 @@ def decode_rows(
     return compact, diagnostic
 
 
-def prefill_rows(root: Path, path: Path) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+def prefill_rows(
+    root: Path,
+    path: Path,
+    publication_profile: str,
+    topology_label: str,
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     data = json_object(path, "cold-prefill result")
     metadata = validate_metadata(data.get("metadata"), max_tokens=1, label="cold prefill")
     require(metadata.get("standalone_prefill") is True, "prefill is not standalone")
@@ -467,7 +566,7 @@ def prefill_rows(root: Path, path: Path) -> tuple[list[dict[str, str]], list[dic
             "model_id": MODEL_ID,
             "model_revision": MODEL_REVISION,
             "runtime": "sglang",
-            "topology": TOPOLOGY,
+            "topology": topology_label,
             "mtp_tokens": "0",
             "run_id": root.name,
             "measurement_status": "MEASURED",
@@ -483,11 +582,11 @@ def prefill_rows(root: Path, path: Path) -> tuple[list[dict[str, str]], list[dic
         })
         compact_rows.append({
             "run_id": root.name,
-            "profile": PUBLICATION_PROFILE,
+            "profile": publication_profile,
             "publication_status": "measured",
             "model_id": MODEL_ID,
             "model_revision": MODEL_REVISION,
-            "topology": TOPOLOGY,
+            "topology": topology_label,
             "mtp_tokens": "0",
             "nominal_context_tokens": str(context),
             "actual_prompt_tokens": str(prompt_tokens),
@@ -504,24 +603,30 @@ def prefill_rows(root: Path, path: Path) -> tuple[list[dict[str, str]], list[dic
 
 
 def import_result(root_arg: Path) -> dict[str, list[dict[str, str]]]:
-    root, _manifest, publication_profile, mtp_tokens, has_prefill = validate_result_root(
-        root_arg
-    )
+    (
+        root, _manifest, publication_profile, mtp_tokens, has_prefill,
+        topology_label, decode_concurrencies,
+    ) = validate_result_root(root_arg)
     raw = root / "benchmark/raw"
     throughput: list[dict[str, str]] = []
     diagnostic_throughput: list[dict[str, str]] = []
-    for concurrency in CONCURRENCIES:
-        compact, diagnostic = decode_rows(
+    for concurrency in decode_concurrencies:
+        rows = decode_rows(
             root, concurrency, regular_file(raw / f"fixed/c{concurrency}.json",
                                             f"C{concurrency} decode result"),
             publication_profile,
             mtp_tokens,
+            topology_label,
         )
+        if rows is None:
+            continue
+        compact, diagnostic = rows
         throughput.append(compact)
         diagnostic_throughput.append(diagnostic)
     if has_prefill:
         prefill, diagnostic_prefill = prefill_rows(
-            root, regular_file(raw / "prefill/cold.json", "cold-prefill result")
+            root, regular_file(raw / "prefill/cold.json", "cold-prefill result"),
+            publication_profile, topology_label,
         )
     else:
         prefill, diagnostic_prefill = [], []
@@ -547,8 +652,6 @@ def replace_profile_rows(
     if not imported:
         return existing
     profiles = {row["profile"] for row in imported}
-    require(len(profiles) == len({(row["profile"], row["run_id"]) for row in imported}),
-            "one imported profile maps to multiple run IDs")
     rows = [
         row for row in existing
         if row.get("profile") not in profiles
@@ -610,8 +713,19 @@ def main() -> None:
         )
     }
     imported_profiles = {row["profile"] for row in imported["throughput"]}
-    require(len(imported_profiles) == len(args.result_roots),
-            "result roots contain duplicate publication profiles")
+    decode_keys = [
+        (row["profile"], exact_int(row["concurrency"], "imported concurrency"))
+        for row in imported["throughput"]
+    ]
+    require(len(decode_keys) == len(set(decode_keys)),
+            "duplicate imported profile/concurrency cell")
+    for profile in imported_profiles:
+        cells = {
+            exact_int(row["concurrency"], "imported concurrency")
+            for row in imported["throughput"] if row["profile"] == profile
+        }
+        require(cells == set(CONCURRENCIES),
+                f"{profile} does not contain the complete C1-C64 series")
 
     existing_throughput = read_rows(DEFAULT_THROUGHPUT, THROUGHPUT_FIELDS)
     replaced_decode_run_ids = {

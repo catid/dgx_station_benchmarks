@@ -9,10 +9,32 @@ at exact revision `aa28e1f54130286c95fee10d0705c74ce8743734`. The model is a
 320B-total, 18B-active mixture of experts with 45 layers and 288 experts, 8 of
 which are selected per token.
 
+Decode uses an exact 8,192-token prompt and 1,024-token output. Rates are
+aggregate output tokens per second.
+
+## 1× DGX Station GB300
+
+| C | NVFP4 TP1/AR | NVFP4 TP1/DFlash2 |
+| ---: | ---: | ---: |
+| 1 | 126.3 | 187.1 |
+| 2 | 236.2 | 341.4 |
+| 4 | 333.9 | 401.6 |
+| 8 | 483.4 | 537.5 |
+| 16 | 964.9 | 530.7 |
+| 32 | 934.2 | 520.1 |
+| 64 | 1,005.1 | 512.7 |
+
+| Cold-prefill context | NVFP4 TP1/AR prompt tok/s |
+| ---: | ---: |
+| 8K | 26,313 |
+| 64K | 27,782 |
+| 128K | 28,663 |
+
+DFlash2 changes decode only, so it uses the TP1/AR cold-prefill baseline.
+
 ## 2× DGX Station GB300
 
-Decode uses an exact 8,192-token prompt and 1,024-token output. Every DGX
-column reports one distributed model server across both Stations. Native FP8
+Every DGX column reports one distributed model server across both Stations. Native FP8
 uses vLLM. The NVFP4 columns use SGLang with routed-expert NVFP4 weights and
 the remaining weights and activations in BF16; DFlash2 is speculative decoding
 on that same NVFP4 base.
