@@ -92,45 +92,45 @@ child from a pre-existing `watch -n1 nvidia-smi`; fresh canonical idle gates
 then passed on both hosts without changing measurements or relaunching the
 model. The retry note and both gate outputs remain in the result root.
 
-### Attention-TP1 plus routed-EP2 experiment
+### Attention-TP1 plus routed-EP2 experiments
 
-The next AR layout used TP2/DP2 with DP attention: attention and the hybrid
-core ran at TP1 on each Station, while routed experts were distributed with
-EP2. The MoE all-to-all backend was `none`. Client request distribution and
-throughput cover both DP ranks and are global rates for the two-Station
-engine. This experiment is retained here, not in the headline tables or
+The next AR and MTP3 layouts used TP2/DP2 with DP attention: attention and the
+hybrid core ran at TP1 on each Station, while routed experts were distributed
+with EP2. The MoE all-to-all backend was `none`. Client request distribution
+and throughput cover both DP ranks and are global rates for the two-Station
+engine. These experiments are retained here, not in the headline tables or
 charts.
 
 Output tok/s for 8,192 input plus 1,024 output tokens:
 
-| C | Attention TP1 + routed EP2/AR |
-| ---: | ---: |
-| 1 | 133.0 |
-| 2 | 273.1 |
-| 4 | 508.0 |
-| 8 | 905.1 |
-| 16 | 1,589.0 |
-| 32 | 2,588.7 |
-| 64 | 3,899.8 |
+| C | Attention TP1 + routed EP2/AR | Attention TP1 + routed EP2/MTP3 |
+| ---: | ---: | ---: |
+| 1 | 133.0 | 226.9 |
+| 2 | 273.1 | 459.1 |
+| 4 | 508.0 | 727.7 |
+| 8 | 905.1 | 1,068.2 |
+| 16 | 1,589.0 | 1,557.2 |
+| 32 | 2,588.7 | 2,181.9 |
+| 64 | 3,899.8 | 2,866.0 |
 
 C1 cold-prefill client prompt tok/s:
 
-| Target | Attention TP1 + routed EP2/AR |
-| ---: | ---: |
-| 8K | 19,161 |
-| 32K | 20,951 |
-| 64K | 20,587 |
-| 128K | 19,251 |
+| Target | Attention TP1 + routed EP2/AR | Attention TP1 + routed EP2/MTP3 |
+| ---: | ---: | ---: |
+| 8K | 19,161 | 18,477 |
+| 32K | 20,951 | 20,398 |
+| 64K | 20,587 | 20,212 |
+| 128K | 19,251 | 18,753 |
 
-The result root is
-`qwen38-4p89-tep2-attntp1-mtp0-v1`. All seven decode cells completed their
-exact request counts with zero errors, and all four prefill cells completed.
-Exact-name cleanup and both canonical postflight gates passed. The launcher's
-final status step was repaired after measurement because its script had been
-edited in place to prepare the next dry run; the original status and repair
-note are retained and no measurement JSON changed.
+The result roots are `qwen38-4p89-tep2-attntp1-mtp0-v1` and
+`qwen38-4p89-tep2-attntp1-mtp3-v1`. Both completed all seven decode cells with
+their exact request counts and zero errors, plus all four prefill cells.
+Exact-name cleanup and both canonical postflight gates passed for each run.
+The AR launcher's final status step was repaired after measurement because its
+script had been edited in place to prepare the next dry run; the original
+status and repair note are retained and no measurement JSON changed.
 
-The effective-concurrency field for this profile contains DP0 scheduler
+The effective-concurrency field for these profiles contains DP0 scheduler
 metrics only because the client selected one scheduler's metrics series. It
 does not represent global request residency. The client request counts and
 throughput above cover both DP ranks.

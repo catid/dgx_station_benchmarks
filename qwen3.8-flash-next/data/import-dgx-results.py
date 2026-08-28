@@ -156,6 +156,22 @@ PROFILE_SPECS = {
             ("moe_dense_tp", 1),
         ),
     ),
+    "tep2-attntp1-mtp3": ProfileSpec(
+        "NVFP4 attention-TP1 + routed-EP2/MTP3",
+        "cross_node_tp2_dp2_attntp1_routed_ep2",
+        3,
+        2,
+        2,
+        2,
+        "DGX Station pair",
+        "one_distributed_engine_across_two_stations",
+        (
+            ("attn_tp", 1),
+            ("dp", 2),
+            ("moe_tp", 1),
+            ("moe_dense_tp", 1),
+        ),
+    ),
 }
 PROFILE_ORDER = {name: index for index, name in enumerate(PROFILE_SPECS)}
 PUBLICATION_TO_PROFILE = {

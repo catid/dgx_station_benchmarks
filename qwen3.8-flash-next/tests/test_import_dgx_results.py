@@ -222,6 +222,13 @@ class ImportDgxResultsTests(unittest.TestCase):
             {row["topology"] for row in rows},
             {"cross_node_tp2_dp2_attntp1_routed_ep2"},
         )
+        with tempfile.TemporaryDirectory() as directory:
+            mtp_root = make_result(Path(directory), "tep2-attntp1-mtp3")
+            mtp_profile, mtp_rows = IMPORTER.import_result(
+                mtp_root, require_complete=True
+            )
+        self.assertEqual(mtp_profile, "tep2-attntp1-mtp3")
+        self.assertEqual({row["mtp_tokens"] for row in mtp_rows}, {"3"})
 
     def test_first_new_import_drops_the_superseded_checkpoint(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

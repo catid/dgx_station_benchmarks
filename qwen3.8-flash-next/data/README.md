@@ -21,8 +21,9 @@
 - `dgx-overlays.csv` contains the measured
   `local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89` DGX cells. TP1 is one
   engine on one Station; TP2 and TEP2 are one distributed engine across both
-  Stations. It also retains the attention-TP1 plus routed-EP2 optimization
-  experiment. Only TP1 is selected by the headline chart renderer.
+  Stations. It also retains the attention-TP1 plus routed-EP2 AR and MTP3
+  optimization experiments. Only TP1 is selected by the headline chart
+  renderer.
 - `import-dgx-results.py` reads the minimal raw result roots produced by the
   single-Station or paired benchmark launcher. It imports whichever measured
   C1–C64 and cold-prefill JSONs are present, keeps missing cells absent, and
@@ -46,6 +47,7 @@ python3 data/import-dgx-results.py \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tep2-mtp0-v1 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tep2-mtp3-v1 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tep2-attntp1-mtp0-v1 \
+  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tep2-attntp1-mtp3-v1 \
   --require-complete --require-all
 python3 charts/render-charts.py
 ```

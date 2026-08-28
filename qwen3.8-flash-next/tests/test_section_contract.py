@@ -65,6 +65,11 @@ DGX_PROFILE_SPECS = {
         {"DGX Station pair"},
         0,
     ),
+    "NVFP4 attention-TP1 + routed-EP2/MTP3": (
+        {"cross_node_tp2_dp2_attntp1_routed_ep2"},
+        {"DGX Station pair"},
+        3,
+    ),
 }
 PROFILE_ORDER = (
     "fp8_tp4_ar",
@@ -614,7 +619,7 @@ class SectionContractTests(unittest.TestCase):
         profiles = {row["profile"] for row in rows}
         self.assertTrue(profiles <= set(DGX_PROFILE_SPECS))
         if profiles == set(DGX_PROFILE_SPECS):
-            self.assertEqual(len(rows), 77)
+            self.assertEqual(len(rows), len(DGX_PROFILE_SPECS) * 11)
         decode_rows = [row for row in rows if row["metric"] == "decode"]
         prefill_rows = [row for row in rows if row["metric"] == "prefill"]
         decode_keys = {
@@ -759,6 +764,44 @@ class SectionContractTests(unittest.TestCase):
         self.assertNotIn(profile, section)
         renderer = load_chart_renderer()
         self.assertNotIn(profile, renderer.DGX_HEADLINE_SERIES)
+
+        mtp_profile = "NVFP4 attention-TP1 + routed-EP2/MTP3"
+        mtp_rows = [
+            row for row in csv_rows("dgx-overlays.csv") if row["profile"] == mtp_profile
+        ]
+        mtp_decode = {
+            int(row["concurrency"]): Decimal(row["throughput"])
+            for row in mtp_rows
+            if row["metric"] == "decode"
+        }
+        mtp_prefill = {
+            int(row["nominal_context_tokens"]): Decimal(row["throughput"])
+            for row in mtp_rows
+            if row["metric"] == "prefill"
+        }
+        self.assertEqual(
+            mtp_decode,
+            {
+                1: Decimal("226.88367422223"),
+                2: Decimal("459.0515241949097"),
+                4: Decimal("727.6675286911384"),
+                8: Decimal("1068.24404539375"),
+                16: Decimal("1557.191114720781"),
+                32: Decimal("2181.8877856075333"),
+                64: Decimal("2865.9690073296815"),
+            },
+        )
+        self.assertEqual(
+            mtp_prefill,
+            {
+                8192: Decimal("18477.0"),
+                32768: Decimal("20398.0"),
+                65536: Decimal("20212.0"),
+                131072: Decimal("18753.0"),
+            },
+        )
+        self.assertNotIn(mtp_profile, section)
+        self.assertNotIn(mtp_profile, renderer.DGX_HEADLINE_SERIES)
 
     def test_mtp3_correctness_failure_is_retained_as_an_attempt(self) -> None:
         rows = csv_rows("attempts.csv")
