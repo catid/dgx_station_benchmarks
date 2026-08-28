@@ -35,6 +35,17 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 | [MiniMax M3](minimax-m3/) | Official NVIDIA NVFP4 (1×) plus official MiniMax MXFP8 (2× PP2) | NVFP4: 152.6 C1, 1,595.8 C16; MXFP8 PP2: 998.3 C32; 128K prefill: 35,683 tok/s; WikiText-2 PPL: 5.7120 / 5.4323 |
 | [Dual-station networking](gb300-networking/) | ConnectX-8 400GbE RoCE with GB300 Data Direct | 392.1 Gb/s one-way raw GPUDirect; 389.8 Gb/s tuned NCCL all-reduce bus bandwidth |
 
+### Qwen3.8-Flash-Next headline
+
+![Qwen3.8-Flash-Next fixed decode throughput](qwen3.8-flash-next/charts/dgx-nvfp4-decode.png)
+
+![Qwen3.8-Flash-Next cold-prefill throughput](qwen3.8-flash-next/charts/dgx-nvfp4-prefill.png)
+
+Solid curves show one distributed engine across two DGX Stations. Dashed curves
+show two separate comparison runs on one 4× RTX PRO 6000 server: TEP4/AR and
+TEP4/MTP3, using `RadixArk/Qwen3.8-Flash-Next-NVFP4@7b719225` and patched
+SGLang. No envelope is used.
+
 Each experiment folder contains:
 
 - A complete README with benchmark conditions, tables, quality results, and caveats

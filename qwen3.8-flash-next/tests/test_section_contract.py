@@ -490,6 +490,19 @@ class SectionContractTests(unittest.TestCase):
             "TEP2/MTP3: 246.4 tok/s C1; TEP2/AR: 3,164.1 C64",
             overview_row,
         )
+        self.assertIn(
+            "![Qwen3.8-Flash-Next fixed decode throughput]"
+            "(qwen3.8-flash-next/charts/dgx-nvfp4-decode.png)",
+            overview,
+        )
+        self.assertIn(
+            "![Qwen3.8-Flash-Next cold-prefill throughput]"
+            "(qwen3.8-flash-next/charts/dgx-nvfp4-prefill.png)",
+            overview,
+        )
+        self.assertIn("two separate comparison runs", overview)
+        self.assertIn("TEP4/AR and\nTEP4/MTP3", overview)
+        self.assertIn("No envelope is used", overview)
 
     def test_local_qualification_is_current_and_unranked(self) -> None:
         rows = csv_rows("qualification.csv")
