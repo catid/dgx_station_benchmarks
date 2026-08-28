@@ -19,14 +19,15 @@
   length cap with empty final-answer content; nominal C128 was also capped at
   100 HTTP connections.
 - `dgx-overlays.csv` contains the measured
-  `local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89` DGX cells. TP2 and TEP2
-  are one distributed engine across both Stations.
+  `local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89` DGX cells. TP1 is one
+  engine on one Station; TP2 and TEP2 are one distributed engine across both
+  Stations.
 - `import-dgx-results.py` reads the minimal raw result roots produced by the
-  paired benchmark launcher. It imports whichever measured C1–C64 and
-  cold-prefill JSONs are present, keeps missing cells absent, and replaces the
-  superseded checkpoint rows on first import. `--require-complete` is the final
-  publication check and requires the launcher's cleanup/postflight completion
-  marker.
+  single-Station or paired benchmark launcher. It imports whichever measured
+  C1–C64 and cold-prefill JSONs are present, keeps missing cells absent, and
+  replaces the superseded checkpoint rows on first import. `--require-complete`
+  is the final publication check and requires the launcher's cleanup/postflight
+  completion marker.
 - `qualification.csv` and `attempts.csv` track the separate local DGX bring-up;
   neither contains accepted performance timing.
 - `external-attempts.csv` retains the two source-reported NVFP4 TP4 startup
@@ -37,7 +38,8 @@ Final 4p89 import:
 
 ```bash
 python3 data/import-dgx-results.py \
-  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp2-mtp0-v1 \
+  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp1-mtp0-gemini1-v1 \
+  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp2-mtp0-v11 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp2-mtp3-v1 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tep2-mtp0-v1 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tep2-mtp3-v1 \

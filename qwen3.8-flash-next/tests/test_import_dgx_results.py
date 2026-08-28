@@ -53,7 +53,11 @@ def make_result(
             "quantization": "modelopt_mixed",
         },
         "runtime_image": IMPORTER.RUNTIME_IMAGE,
-        "topology": {"nodes": 2, "tp": 2, "ep": spec.ep_size},
+        "topology": {
+            "nodes": spec.nodes,
+            "tp": spec.tp_size,
+            "ep": spec.ep_size,
+        },
         "mtp": {"enabled": spec.mtp_tokens > 0, "steps": spec.mtp_tokens},
         "benchmark": {
             "commit": IMPORTER.BENCH_COMMIT,
@@ -164,7 +168,7 @@ class ImportDgxResultsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "benchmark client has not completed"):
                 IMPORTER.import_result(root, require_complete=True)
 
-    def test_complete_four_profile_import_has_44_rows(self) -> None:
+    def test_complete_five_profile_import_has_55_rows(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             parent = Path(directory)
             imported = {}
@@ -176,9 +180,21 @@ class ImportDgxResultsTests(unittest.TestCase):
                 imported[imported_profile] = rows
         merged = IMPORTER.merge_rows([], imported)
         self.assertEqual(set(imported), set(IMPORTER.PROFILE_SPECS))
-        self.assertEqual(len(merged), 44)
-        self.assertEqual(len([row for row in merged if row["metric"] == "decode"]), 28)
-        self.assertEqual(len([row for row in merged if row["metric"] == "prefill"]), 16)
+        self.assertEqual(len(merged), 55)
+        self.assertEqual(len([row for row in merged if row["metric"] == "decode"]), 35)
+        self.assertEqual(len([row for row in merged if row["metric"] == "prefill"]), 20)
+
+    def test_tp1_profile_is_labeled_as_one_station(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_result(Path(directory), "tp1-mtp0")
+            profile, rows = IMPORTER.import_result(root, require_complete=True)
+        self.assertEqual(profile, "tp1-mtp0")
+        self.assertEqual({row["platform_label"] for row in rows}, {"DGX Station"})
+        self.assertEqual(
+            {row["topology"] for row in rows},
+            {"single_node_tp1_ep_disabled"},
+        )
+        self.assertEqual({row["notes"] for row in rows}, {"one_engine_on_one_station"})
 
     def test_first_new_import_drops_the_superseded_checkpoint(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

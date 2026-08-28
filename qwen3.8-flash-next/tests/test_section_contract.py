@@ -30,6 +30,11 @@ CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64, 128)
 DGX_CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64)
 CONTEXTS = (8192, 32768, 65536, 131072)
 DGX_PROFILE_SPECS = {
+    "NVFP4 TP1/MTP0": (
+        {"single_node_tp1_ep_disabled"},
+        {"DGX Station"},
+        0,
+    ),
     "NVFP4 TP2/MTP0": (
         {"cross_node_tp2_ep_disabled"},
         {"DGX Station pair"},
@@ -215,6 +220,7 @@ class SectionContractTests(unittest.TestCase):
             )
             (data / "dgx-overlays.csv").write_text(
                 "publication_status,metric,throughput,platform_label,model_id,profile,concurrency,nominal_context_tokens\n"
+                "MEASURED_CURRENT,decode,9,DGX Station,local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89,NVFP4 TP1/MTP0,1,\n"
                 "MEASURED_CURRENT,decode,2,DGX Station pair,local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89,NVFP4 TP2/MTP0,1,\n"
                 "VALIDATED_RANKABLE,decode,4,DGX Station pair,local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89,NVFP4 TP2/MTP3,2,\n"
                 "VALIDATED_RANKABLE,decode,5,DGX Station pair,local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89,NVFP4 TP2/MTP3,64,\n"
@@ -233,15 +239,16 @@ class SectionContractTests(unittest.TestCase):
             )
             self.assertEqual(
                 [row["throughput"] for row in renderer.accepted_overlay_rows("decode")],
-                ["2", "4", "5", "6", "7", "8"],
+                ["9", "2", "4", "5", "6", "7", "8"],
             )
             self.assertEqual(
                 [row["throughput"] for row in renderer.headline_dgx_rows("decode")],
-                ["2", "4", "5", "6", "7"],
+                ["9", "2", "4", "5", "6", "7"],
             )
             self.assertEqual(
                 list(renderer.headline_dgx_series("decode")),
                 [
+                    "NVFP4 TP1/MTP0",
                     "NVFP4 TP2/MTP0",
                     "NVFP4 TP2/MTP3",
                     "NVFP4 TEP2/MTP0",
@@ -254,6 +261,7 @@ class SectionContractTests(unittest.TestCase):
         self.assertEqual(
             tuple(renderer.DGX_HEADLINE_SERIES),
             (
+                "NVFP4 TP1/MTP0",
                 "NVFP4 TP2/MTP0",
                 "NVFP4 TP2/MTP3",
                 "NVFP4 TEP2/MTP0",
@@ -405,7 +413,8 @@ class SectionContractTests(unittest.TestCase):
             for row in prefill_rows
         }
         self.assertIn("local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89", section)
-        self.assertIn("one distributed engine across both Stations", section)
+        self.assertIn("TP1/AR uses one Station", section)
+        self.assertIn("TP2 and\nTEP2 span both Stations", section)
         self.assertIn("comparison points, not DGX Station", section)
         self.assertIn(
             "RadixArk/Qwen3.8-Flash-Next-NVFP4@"
@@ -421,10 +430,11 @@ class SectionContractTests(unittest.TestCase):
 
         dgx_rows = csv_rows("dgx-overlays.csv")
         profile_labels = {
-            "NVFP4 TP2/MTP0": "TP2/AR",
-            "NVFP4 TP2/MTP3": "TP2/MTP3",
-            "NVFP4 TEP2/MTP0": "TEP2/AR",
-            "NVFP4 TEP2/MTP3": "TEP2/MTP3",
+            "NVFP4 TP1/MTP0": "1× DGX Station · TP1/AR",
+            "NVFP4 TP2/MTP0": "2× DGX Stations · TP2/AR",
+            "NVFP4 TP2/MTP3": "2× DGX Stations · TP2/MTP3",
+            "NVFP4 TEP2/MTP0": "2× DGX Stations · TEP2/AR",
+            "NVFP4 TEP2/MTP3": "2× DGX Stations · TEP2/MTP3",
         }
         dgx_decode = {
             (row["profile"], int(row["concurrency"])): Decimal(row["throughput"])
@@ -487,7 +497,7 @@ class SectionContractTests(unittest.TestCase):
         )
         self.assertIn("(qwen3.8-flash-next/)", overview_row)
         self.assertIn(
-            "TEP2/MTP3: 246.4 tok/s C1; TEP2/AR: 3,164.1 C64",
+            "1× TP1/AR: 202.1 tok/s C1, 4,090.4 C64, 38,653 tok/s 64K prefill",
             overview_row,
         )
         self.assertIn(
@@ -569,7 +579,7 @@ class SectionContractTests(unittest.TestCase):
         profiles = {row["profile"] for row in rows}
         self.assertTrue(profiles <= set(DGX_PROFILE_SPECS))
         if profiles == set(DGX_PROFILE_SPECS):
-            self.assertLessEqual(len(rows), 44)
+            self.assertLessEqual(len(rows), 55)
         decode_rows = [row for row in rows if row["metric"] == "decode"]
         prefill_rows = [row for row in rows if row["metric"] == "prefill"]
         decode_keys = {
@@ -598,8 +608,8 @@ class SectionContractTests(unittest.TestCase):
             self.assertTrue(SHA256.fullmatch(row["source_sha256"]))
             self.assertEqual(
                 row["notes"],
-                "per_station_rate_not_summed"
-                if row["platform_label"] != "DGX Station pair"
+                "one_engine_on_one_station"
+                if row["platform_label"] == "DGX Station"
                 else "one_distributed_engine_across_two_stations",
             )
         for row in decode_rows:
@@ -637,6 +647,44 @@ class SectionContractTests(unittest.TestCase):
             self.assertEqual(float(row["queue_fraction"]), 0.0)
             self.assertEqual(row["capacity_limited"], "false")
             self.assertTrue(row["source_path"].endswith("/prefill/cold.json"))
+
+    def test_single_station_tp1_headline_values_are_exact(self) -> None:
+        rows = [
+            row
+            for row in csv_rows("dgx-overlays.csv")
+            if row["profile"] == "NVFP4 TP1/MTP0"
+        ]
+        decode = {
+            int(row["concurrency"]): Decimal(row["throughput"])
+            for row in rows
+            if row["metric"] == "decode"
+        }
+        prefill = {
+            int(row["nominal_context_tokens"]): Decimal(row["throughput"])
+            for row in rows
+            if row["metric"] == "prefill"
+        }
+        expected_decode = {
+            1: Decimal("202.1473"),
+            2: Decimal("374.2574"),
+            4: Decimal("684.5790"),
+            8: Decimal("1204.5719"),
+            16: Decimal("1883.8907"),
+            32: Decimal("2885.2507"),
+            64: Decimal("4090.3791"),
+        }
+        self.assertEqual(set(decode), set(expected_decode))
+        for concurrency, expected in expected_decode.items():
+            self.assertAlmostEqual(float(decode[concurrency]), float(expected), places=4)
+        self.assertEqual(
+            prefill,
+            {
+                8192: Decimal("34148.0"),
+                32768: Decimal("40177.0"),
+                65536: Decimal("38653.0"),
+                131072: Decimal("34529.0"),
+            },
+        )
 
     def test_mtp3_correctness_failure_is_retained_as_an_attempt(self) -> None:
         rows = csv_rows("attempts.csv")

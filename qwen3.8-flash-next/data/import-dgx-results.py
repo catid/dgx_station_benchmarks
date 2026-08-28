@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Import raw Qwen NVFP4-4p89 DGX benchmark cells into ``dgx-overlays.csv``.
 
-Each input is a result root produced by ``qwen38-4p89-bench/run_pair.sh``.
-Only measured JSON files are imported. Missing cells stay missing, which lets a
-running profile be published without inventing the rest of its curve.
+Each input is a result root produced by ``qwen38-4p89-bench/run_pair.sh`` or
+``run_single.sh``. Only measured JSON files are imported. Missing cells stay
+missing, which lets a running profile be published without inventing the rest
+of its curve.
 """
 
 from __future__ import annotations
@@ -70,14 +71,64 @@ class ProfileSpec:
     publication_profile: str
     topology: str
     mtp_tokens: int
+    nodes: int
+    tp_size: int
     ep_size: int
+    platform_label: str
+    notes: str
 
 
 PROFILE_SPECS = {
-    "tp2-mtp0": ProfileSpec("NVFP4 TP2/MTP0", "cross_node_tp2_ep_disabled", 0, 1),
-    "tp2-mtp3": ProfileSpec("NVFP4 TP2/MTP3", "cross_node_tp2_ep_disabled", 3, 1),
-    "tep2-mtp0": ProfileSpec("NVFP4 TEP2/MTP0", "cross_node_tep2_ep2", 0, 2),
-    "tep2-mtp3": ProfileSpec("NVFP4 TEP2/MTP3", "cross_node_tep2_ep2", 3, 2),
+    "tp1-mtp0": ProfileSpec(
+        "NVFP4 TP1/MTP0",
+        "single_node_tp1_ep_disabled",
+        0,
+        1,
+        1,
+        1,
+        "DGX Station",
+        "one_engine_on_one_station",
+    ),
+    "tp2-mtp0": ProfileSpec(
+        "NVFP4 TP2/MTP0",
+        "cross_node_tp2_ep_disabled",
+        0,
+        2,
+        2,
+        1,
+        "DGX Station pair",
+        "one_distributed_engine_across_two_stations",
+    ),
+    "tp2-mtp3": ProfileSpec(
+        "NVFP4 TP2/MTP3",
+        "cross_node_tp2_ep_disabled",
+        3,
+        2,
+        2,
+        1,
+        "DGX Station pair",
+        "one_distributed_engine_across_two_stations",
+    ),
+    "tep2-mtp0": ProfileSpec(
+        "NVFP4 TEP2/MTP0",
+        "cross_node_tep2_ep2",
+        0,
+        2,
+        2,
+        2,
+        "DGX Station pair",
+        "one_distributed_engine_across_two_stations",
+    ),
+    "tep2-mtp3": ProfileSpec(
+        "NVFP4 TEP2/MTP3",
+        "cross_node_tep2_ep2",
+        3,
+        2,
+        2,
+        2,
+        "DGX Station pair",
+        "one_distributed_engine_across_two_stations",
+    ),
 }
 PROFILE_ORDER = {name: index for index, name in enumerate(PROFILE_SPECS)}
 PUBLICATION_TO_PROFILE = {
@@ -143,8 +194,10 @@ def validate_manifest(root: Path) -> tuple[str, ProfileSpec]:
 
     topology = manifest.get("topology")
     require(isinstance(topology, dict), "run-manifest topology is absent")
-    require(topology.get("nodes") == 2 and topology.get("tp") == 2,
-            "run-manifest is not the two-Station TP2 topology")
+    require(
+        topology.get("nodes") == spec.nodes and topology.get("tp") == spec.tp_size,
+        "run-manifest node/tensor-parallel topology differs",
+    )
     require(topology.get("ep") == spec.ep_size, "expert-parallel size differs")
 
     mtp = manifest.get("mtp")
@@ -184,7 +237,7 @@ def common_row(root: Path, spec: ProfileSpec, path: Path) -> dict[str, str]:
         "source_id": root.name,
         "source_kind": "raw_benchmark_measurement",
         "publication_status": "MEASURED_CURRENT",
-        "platform_label": "DGX Station pair",
+        "platform_label": spec.platform_label,
         "model_id": MODEL_ID,
         "model_revision": MODEL_REVISION,
         "runtime": RUNTIME,
@@ -193,7 +246,7 @@ def common_row(root: Path, spec: ProfileSpec, path: Path) -> dict[str, str]:
         "mtp_tokens": str(spec.mtp_tokens),
         "source_path": str(path),
         "source_sha256": sha256(path),
-        "notes": "one_distributed_engine_across_two_stations",
+        "notes": spec.notes,
     }
 
 
@@ -439,7 +492,7 @@ def main() -> None:
     parser.add_argument(
         "--require-all",
         action="store_true",
-        help="require one input root for each TP2/TEP2 MTP0/MTP3 profile",
+        help="require one input root for every supported DGX profile",
     )
     parser.add_argument(
         "--check",

@@ -1,21 +1,22 @@
 # Qwen3.8-Flash-Next
 
-Qwen3.8-Flash-Next NVFP4 on two DGX Station GB300 systems. This is the
-Flash-Next MoE model, not Qwen3.8-27B.
+Qwen3.8-Flash-Next NVFP4 on one DGX Station GB300 and across two Stations. This
+is the Flash-Next MoE model, not Qwen3.8-27B.
 
 ## DGX Station results
 
 The DGX headline uses
 [`local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89`](https://huggingface.co/local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89)
-on SGLang. Each profile is one distributed engine across both Stations; TEP2
-adds expert parallelism to TP2.
+on SGLang. Each row is one serving engine. TP1/AR uses one Station; TP2 and
+TEP2 span both Stations, with TEP2 adding expert parallelism.
 
-| DGX profile | C1 decode | C16 decode | C64 decode | 64K cold prefill |
+| DGX configuration | C1 decode | C16 decode | C64 decode | 64K cold prefill |
 | --- | ---: | ---: | ---: | ---: |
-| TP2/AR | 142.4 tok/s | 1,473.0 tok/s | 3,055.9 tok/s | 24,437 tok/s |
-| TP2/MTP3 | 243.5 tok/s | 1,258.9 tok/s | 2,342.4 tok/s | 24,363 tok/s |
-| TEP2/AR | 142.3 tok/s | **1,502.3 tok/s** | **3,164.1 tok/s** | **25,210 tok/s** |
-| TEP2/MTP3 | **246.4 tok/s** | 1,289.2 tok/s | 2,360.1 tok/s | 24,170 tok/s |
+| 1× DGX Station · TP1/AR | 202.1 tok/s | **1,883.9 tok/s** | **4,090.4 tok/s** | **38,653 tok/s** |
+| 2× DGX Stations · TP2/AR | 142.4 tok/s | 1,473.0 tok/s | 3,055.9 tok/s | 24,437 tok/s |
+| 2× DGX Stations · TP2/MTP3 | 243.5 tok/s | 1,258.9 tok/s | 2,342.4 tok/s | 24,363 tok/s |
+| 2× DGX Stations · TEP2/AR | 142.3 tok/s | 1,502.3 tok/s | 3,164.1 tok/s | 25,210 tok/s |
+| 2× DGX Stations · TEP2/MTP3 | **246.4 tok/s** | 1,289.2 tok/s | 2,360.1 tok/s | 24,170 tok/s |
 
 ![DGX Station and 4× RTX PRO 6000 NVFP4 decode throughput](charts/dgx-nvfp4-decode.png)
 

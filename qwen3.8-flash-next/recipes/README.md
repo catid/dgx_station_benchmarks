@@ -11,7 +11,7 @@ out of the headline result page.
 | Checkpoint | `local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89@ee0cea634a371acd1caeaed8e95b90e4344c16b4` |
 | Quantization | ModelOpt mixed precision; NVFP4 4.89-bit checkpoint |
 | Runtime image | `qwen38-4p89-sglang:runtime-v1` |
-| Parallelism | One two-node engine; TP2 or TP2+EP2 (TEP2) |
+| Parallelism | One engine on one Station (TP1), or across two Stations (TP2 or TEP2) |
 | Decode | Ordinary autoregressive decode or MTP3 |
 | Memory / limits | fraction 0.80, 262,144-token context, 128 running requests |
 | Workload | 8,192 input + 1,024 output tokens; `C` warmups and `5 × C` measured requests |
@@ -38,6 +38,10 @@ Raw result roots are under
 `benchmark/raw/prefill/cold.json`. Use `--require-complete` for the final
 C1–C64 publication pass; it also requires the launcher's completed cleanup and
 postflight marker.
+
+TP1/AR run `qwen38-4p89-tp1-mtp0-gemini1-v1` used one engine on `gemini1` and
+completed all measurements, cleanup, and postflight checks. It is plotted once;
+no second-machine curve is inferred or summed.
 
 TEP2/AR run `qwen38-4p89-tep2-mtp0-v1` completed its measurements and exact
 container cleanup. Its first local postflight gate overlapped an `nvidia-smi`
@@ -365,6 +369,7 @@ benchmark harness:
 
 ```bash
 python3 data/import-dgx-results.py --require-all \
+  /path/to/nvfp4-tp1-mtp0-result \
   /path/to/nvfp4-tp2-mtp0-result \
   /path/to/nvfp4-tp2-mtp3-result \
   /path/to/nvfp4-tep2-mtp0-result \
@@ -375,9 +380,9 @@ python3 data/import-dgx-results.py --require-all \
 With `--require-complete`, the importer accepts only roots whose launcher wrote
 `COMPLETE_MEASURED_RAW` after cleanup and postflight and whose client wrote
 `COMPLETE` after all C1–C64 and cold-prefill cells. Queueing or lower effective
-concurrency remains a measured property of a completed cell. TP2 and TEP2 each
-represent one distributed engine across both Stations; AR and MTP3 are plotted
-as separate curves.
+concurrency remains a measured property of a completed cell. TP1 represents one
+engine on one Station; TP2 and TEP2 each represent one distributed engine
+across both Stations. AR and MTP3 are plotted as separate curves.
 
 Final timed status supersedes the corresponding smoke status in performance
 tables only after the completed timed root passes this import. Smoke status by

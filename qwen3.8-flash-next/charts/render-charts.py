@@ -38,6 +38,12 @@ DGX_MODEL_ID = "local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89"
 DGX_CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64)
 PREFILL_CONTEXTS = (8192, 32768, 65536, 131072)
 DGX_HEADLINE_SERIES = {
+    "NVFP4 TP1/MTP0": (
+        "1× DGX Station GB300 · TP1/AR",
+        "#E6EDF3",
+        "-",
+        "P",
+    ),
     "NVFP4 TP2/MTP0": (
         "2× DGX Station GB300 · TP2/AR",
         "#58A6FF",
@@ -62,6 +68,13 @@ DGX_HEADLINE_SERIES = {
         "-",
         "^",
     ),
+}
+DGX_HEADLINE_PLATFORMS = {
+    "NVFP4 TP1/MTP0": "DGX Station",
+    "NVFP4 TP2/MTP0": "DGX Station pair",
+    "NVFP4 TP2/MTP3": "DGX Station pair",
+    "NVFP4 TEP2/MTP0": "DGX Station pair",
+    "NVFP4 TEP2/MTP3": "DGX Station pair",
 }
 RTX_COMPARISON_SERIES = {
     "nvfp4_tep4_ar": (
@@ -147,7 +160,7 @@ def accepted_overlay_rows(metric: str) -> list[dict[str, str]]:
 
 
 def headline_dgx_rows(metric: str) -> list[dict[str, str]]:
-    """Select measured C1-C64 rows from the four two-Station lanes."""
+    """Select measured C1-C64 rows from the one- and two-Station lanes."""
     selected: list[dict[str, str]] = []
     seen: set[tuple[str, int]] = set()
     axis_value = "concurrency" if metric == "decode" else "nominal_context_tokens"
@@ -156,7 +169,7 @@ def headline_dgx_rows(metric: str) -> list[dict[str, str]]:
         series = DGX_HEADLINE_SERIES.get(profile)
         if series is None:
             continue
-        if row.get("platform_label") != "DGX Station pair":
+        if row.get("platform_label") != DGX_HEADLINE_PLATFORMS[profile]:
             continue
         value = int(row[axis_value])
         if metric == "decode" and value not in DGX_CONCURRENCIES:
