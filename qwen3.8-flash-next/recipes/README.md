@@ -45,9 +45,11 @@ child from a pre-existing `watch -n1 nvidia-smi`; fresh canonical idle gates
 then passed on both hosts without changing measurements or relaunching the
 model. The retry note and both gate outputs remain in the result root.
 
-The dashed chart comparison is the workstation's RadixArk NVFP4/SGLang
-TEP4/AR profile at every point. It is one server across all four RTX PRO 6000
-GPUs, shown at C1–C64 decode and all four cold-prefill contexts.
+The two dashed chart comparisons are the workstation's RadixArk NVFP4/SGLang
+TEP4/AR and TEP4/MTP3 profiles at every point; no pointwise envelope is used.
+Each is one server across all four RTX PRO 6000 GPUs, shown at C1–C64 decode
+and all four cold-prefill contexts. MTP3 requested `NEXTN`, resolved to
+`EAGLE`, and used three steps, top-k 1, and four draft tokens.
 
 ## RTX PRO 6000 comparison details
 

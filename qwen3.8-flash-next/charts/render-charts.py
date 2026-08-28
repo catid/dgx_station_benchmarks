@@ -63,8 +63,18 @@ DGX_HEADLINE_SERIES = {
         "^",
     ),
 }
-RTX_COMPARISON_LABEL = "4× RTX PRO 6000 · RadixArk NVFP4@7b719225 · TEP4/AR"
-RTX_NVFP4_PROFILE = "nvfp4_tep4_ar"
+RTX_COMPARISON_SERIES = {
+    "nvfp4_tep4_ar": (
+        "4× RTX PRO 6000 · RadixArk NVFP4@7b719225 · TEP4/AR",
+        "#FFA657",
+        "D",
+    ),
+    "nvfp4_tep4_mtp3": (
+        "4× RTX PRO 6000 · RadixArk NVFP4@7b719225 · TEP4/MTP3",
+        "#FF7B72",
+        "X",
+    ),
+}
 
 BACKGROUND = "#0E1117"
 PANEL = "#151A23"
@@ -176,20 +186,20 @@ def dynamic_y_upper(values: list[float]) -> float:
     return max(1.0, max(values, default=0.0) * 1.12)
 
 
-def rtx_nvfp4_ar_decode() -> dict[int, float]:
+def rtx_nvfp4_decode(profile: str) -> dict[int, float]:
     values: dict[int, float] = {}
     for row in published_external_rows("throughput.csv"):
         concurrency = int(row["concurrency"])
-        if row["profile"] != RTX_NVFP4_PROFILE or concurrency > 64:
+        if row["profile"] != profile or concurrency > 64:
             continue
         values[concurrency] = float(row["aggregate_output_tokens_per_second"])
     return values
 
 
-def rtx_nvfp4_ar_prefill() -> dict[int, float]:
+def rtx_nvfp4_prefill(profile: str) -> dict[int, float]:
     values: dict[int, float] = {}
     for row in published_external_rows("prefill.csv"):
-        if row["profile"] != RTX_NVFP4_PROFILE:
+        if row["profile"] != profile:
             continue
         context = int(row["nominal_context_tokens"])
         values[context] = float(row["client_prompt_tokens_per_second"])
@@ -198,7 +208,6 @@ def rtx_nvfp4_ar_prefill() -> dict[int, float]:
 
 def render_dgx_decode() -> None:
     grouped = headline_dgx_series("decode")
-    rtx_comparison = rtx_nvfp4_ar_decode()
     figure, axis = plt.subplots(figsize=(10.8, 6.6))
     plotted_values: list[float] = []
     for profile, (label, color, linestyle, marker) in DGX_HEADLINE_SERIES.items():
@@ -218,25 +227,26 @@ def render_dgx_decode() -> None:
             label=label,
         )
 
-    rtx_concurrencies = [
-        value for value in DGX_CONCURRENCIES if value in rtx_comparison
-    ]
-    if rtx_concurrencies:
-        rtx_values = [
-            rtx_comparison[concurrency] for concurrency in rtx_concurrencies
+    for profile, (label, color, marker) in RTX_COMPARISON_SERIES.items():
+        rtx_comparison = rtx_nvfp4_decode(profile)
+        rtx_concurrencies = [
+            value for value in DGX_CONCURRENCIES if value in rtx_comparison
         ]
+        if not rtx_concurrencies:
+            continue
+        rtx_values = [rtx_comparison[value] for value in rtx_concurrencies]
         plotted_values.extend(rtx_values)
         axis.plot(
             rtx_concurrencies,
             rtx_values,
-            color="#FFA657",
+            color=color,
             linestyle="--",
             linewidth=2.8,
-            marker="D",
+            marker=marker,
             markersize=6.5,
             markerfacecolor=BACKGROUND,
             markeredgewidth=1.5,
-            label=RTX_COMPARISON_LABEL,
+            label=label,
         )
     axis.set_xscale("log", base=2)
     axis.set_xticks(DGX_CONCURRENCIES, [str(value) for value in DGX_CONCURRENCIES])
@@ -249,7 +259,7 @@ def render_dgx_decode() -> None:
     figure.text(
         0.5,
         0.018,
-        "RTX comparison: patched SGLang · one 4-GPU server · 8,192 input + 1,024 output tokens · temperature 0",
+        "RTX comparisons: patched SGLang · one 4-GPU server · 8,192 input + 1,024 output tokens · temperature 0",
         ha="center",
         color=MUTED,
         fontsize=8.8,
@@ -266,7 +276,6 @@ def render_dgx_decode() -> None:
 
 def render_dgx_prefill() -> None:
     grouped = headline_dgx_series("prefill")
-    rtx_comparison = rtx_nvfp4_ar_prefill()
     figure, axis = plt.subplots(figsize=(10.8, 6.6))
     positions = list(range(len(PREFILL_CONTEXTS)))
     context_labels = ("8K", "32K", "64K", "128K")
@@ -291,23 +300,26 @@ def render_dgx_prefill() -> None:
             label=label,
         )
 
-    rtx_contexts = [
-        context for context in PREFILL_CONTEXTS if context in rtx_comparison
-    ]
-    if rtx_contexts:
+    for profile, (label, color, marker) in RTX_COMPARISON_SERIES.items():
+        rtx_comparison = rtx_nvfp4_prefill(profile)
+        rtx_contexts = [
+            context for context in PREFILL_CONTEXTS if context in rtx_comparison
+        ]
+        if not rtx_contexts:
+            continue
         rtx_values = [rtx_comparison[context] for context in rtx_contexts]
         plotted_values.extend(rtx_values)
         axis.plot(
             [position_by_context[context] for context in rtx_contexts],
             rtx_values,
-            color="#FFA657",
+            color=color,
             linestyle="--",
             linewidth=2.8,
-            marker="D",
+            marker=marker,
             markersize=6.5,
             markerfacecolor=BACKGROUND,
             markeredgewidth=1.5,
-            label=RTX_COMPARISON_LABEL,
+            label=label,
         )
 
     axis.set_xlim(-0.15, 3.15)
@@ -321,7 +333,7 @@ def render_dgx_prefill() -> None:
     figure.text(
         0.5,
         0.018,
-        "RTX comparison: patched SGLang · one 4-GPU server · C1 cold prefill · one output token",
+        "RTX comparisons: patched SGLang · one 4-GPU server · C1 cold prefill · one output token",
         ha="center",
         color=MUTED,
         fontsize=8.8,

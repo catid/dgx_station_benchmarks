@@ -23,12 +23,13 @@ adds expert parallelism to TP2.
 
 ## RTX PRO 6000 comparison
 
-The dashed orange line is
+The dashed orange and red lines use
 `RadixArk/Qwen3.8-Flash-Next-NVFP4@7b719225242aacd3dbd3f9407468c2ee9a9d2594`
-on patched SGLang: one TEP4/AR server across four RTX PRO 6000 Blackwell GPUs.
-Fixed decode is 8,192 input + 1,024 output tokens at temperature 0, shown from
-C1 through C64. Cold prefill is C1 at 8K, 32K, 64K, and 128K with one output
-token. This is a comparison point, not a DGX Station headline.
+on patched SGLang: one TEP4 server across four RTX PRO 6000 Blackwell GPUs.
+Orange is AR; red is MTP3. Fixed decode is 8,192 input + 1,024 output tokens at
+temperature 0, shown from C1 through C64. Cold prefill is C1 at 8K, 32K, 64K,
+and 128K with one output token. These are comparison points, not DGX Station
+headlines.
 
 Exact checkpoint revisions, launch settings, workload, and per-cell values are
 in the [recipe](recipes/) and [`data/`](data/).
