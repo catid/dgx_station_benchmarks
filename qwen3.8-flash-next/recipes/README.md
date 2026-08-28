@@ -53,8 +53,8 @@ The first TP2 and TEP2 layouts are retained here as measured optimization
 baselines, but excluded from the headline tables and charts. They are slower
 than TP1, so they are not representative two-Station results. The current
 layer placement shards communication-heavy parts of Qwen3.8-Flash-Next's
-hybrid architecture across the two hosts; a revised TEP2 layout will keep the
-poor-scaling layers local while distributing the routed experts.
+hybrid architecture across the two hosts. The next experiment kept those
+parts local while distributing the routed experts.
 
 #### Two-Station decode throughput
 
@@ -91,6 +91,58 @@ container cleanup. Its first local postflight gate overlapped an `nvidia-smi`
 child from a pre-existing `watch -n1 nvidia-smi`; fresh canonical idle gates
 then passed on both hosts without changing measurements or relaunching the
 model. The retry note and both gate outputs remain in the result root.
+
+### Attention-TP1 plus routed-EP2 experiment
+
+The next AR layout used TP2/DP2 with DP attention: attention and the hybrid
+core ran at TP1 on each Station, while routed experts were distributed with
+EP2. The MoE all-to-all backend was `none`. Client request distribution and
+throughput cover both DP ranks and are global rates for the two-Station
+engine. This experiment is retained here, not in the headline tables or
+charts.
+
+Output tok/s for 8,192 input plus 1,024 output tokens:
+
+| C | Attention TP1 + routed EP2/AR |
+| ---: | ---: |
+| 1 | 133.0 |
+| 2 | 273.1 |
+| 4 | 508.0 |
+| 8 | 905.1 |
+| 16 | 1,589.0 |
+| 32 | 2,588.7 |
+| 64 | 3,899.8 |
+
+C1 cold-prefill client prompt tok/s:
+
+| Target | Attention TP1 + routed EP2/AR |
+| ---: | ---: |
+| 8K | 19,161 |
+| 32K | 20,951 |
+| 64K | 20,587 |
+| 128K | 19,251 |
+
+The result root is
+`qwen38-4p89-tep2-attntp1-mtp0-v1`. All seven decode cells completed their
+exact request counts with zero errors, and all four prefill cells completed.
+Exact-name cleanup and both canonical postflight gates passed. The launcher's
+final status step was repaired after measurement because its script had been
+edited in place to prepare the next dry run; the original status and repair
+note are retained and no measurement JSON changed.
+
+The effective-concurrency field for this profile contains DP0 scheduler
+metrics only because the client selected one scheduler's metrics series. It
+does not represent global request residency. The client request counts and
+throughput above cover both DP ranks.
+
+A follow-up attempt, `qwen38-4p89-tep2-attntp1-fia2a-mtp0-v1`, changed the
+MoE path to FlashInfer all-to-all with the routed TRT-LLM runner and NVFP4
+dispatch. It stopped during startup before timing: FlashInfer's MNNVL memory
+path could not exchange POSIX file descriptors between `gemini1` and
+`gemini2`, and reported that multi-node MNNVL requires
+`CU_MEM_HANDLE_TYPE_FABRIC`. No zero-throughput row is recorded. Exact-name
+cleanup and both postflight gates passed. The retained node-0 server log is
+SHA-256 `d5ab3a43bd4aa4483c46a62e9893ca2cda11aa885610558ef3f574fd2834d823`.
 
 The two dashed chart comparisons are the workstation's RadixArk NVFP4/SGLang
 TEP4/AR and TEP4/MTP3 profiles at every point; no pointwise envelope is used.

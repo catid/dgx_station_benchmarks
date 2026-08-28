@@ -60,6 +60,11 @@ DGX_PROFILE_SPECS = {
         {"DGX Station pair"},
         3,
     ),
+    "NVFP4 attention-TP1 + routed-EP2/AR": (
+        {"cross_node_tp2_dp2_attntp1_routed_ep2"},
+        {"DGX Station pair"},
+        0,
+    ),
 }
 PROFILE_ORDER = (
     "fp8_tp4_ar",
@@ -609,7 +614,7 @@ class SectionContractTests(unittest.TestCase):
         profiles = {row["profile"] for row in rows}
         self.assertTrue(profiles <= set(DGX_PROFILE_SPECS))
         if profiles == set(DGX_PROFILE_SPECS):
-            self.assertEqual(len(rows), 66)
+            self.assertEqual(len(rows), 77)
         decode_rows = [row for row in rows if row["metric"] == "decode"]
         prefill_rows = [row for row in rows if row["metric"] == "prefill"]
         decode_keys = {
@@ -716,6 +721,45 @@ class SectionContractTests(unittest.TestCase):
             },
         )
 
+    def test_attention_tp1_routed_ep2_values_are_supporting_data_only(self) -> None:
+        profile = "NVFP4 attention-TP1 + routed-EP2/AR"
+        rows = [row for row in csv_rows("dgx-overlays.csv") if row["profile"] == profile]
+        decode = {
+            int(row["concurrency"]): Decimal(row["throughput"])
+            for row in rows
+            if row["metric"] == "decode"
+        }
+        prefill = {
+            int(row["nominal_context_tokens"]): Decimal(row["throughput"])
+            for row in rows
+            if row["metric"] == "prefill"
+        }
+        self.assertEqual(
+            decode,
+            {
+                1: Decimal("132.97207850950167"),
+                2: Decimal("273.0566691518263"),
+                4: Decimal("508.0485421280945"),
+                8: Decimal("905.1112117508039"),
+                16: Decimal("1588.9903442601042"),
+                32: Decimal("2588.7125943446517"),
+                64: Decimal("3899.8380941883584"),
+            },
+        )
+        self.assertEqual(
+            prefill,
+            {
+                8192: Decimal("19161.0"),
+                32768: Decimal("20951.0"),
+                65536: Decimal("20587.0"),
+                131072: Decimal("19251.0"),
+            },
+        )
+        section = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertNotIn(profile, section)
+        renderer = load_chart_renderer()
+        self.assertNotIn(profile, renderer.DGX_HEADLINE_SERIES)
+
     def test_mtp3_correctness_failure_is_retained_as_an_attempt(self) -> None:
         rows = csv_rows("attempts.csv")
         matches = [
@@ -728,6 +772,20 @@ class SectionContractTests(unittest.TestCase):
         self.assertEqual(matches[0]["status"], "FAILED_CORRECTNESS")
         self.assertEqual(matches[0]["performance_eligible"], "false")
         self.assertEqual(matches[0]["cleanup_status"], "PASS_GRACEFUL")
+        self.assertEqual(matches[0]["postflight_status"], "PASS")
+
+    def test_flashinfer_multinode_a2a_limit_is_an_attempt_not_a_zero(self) -> None:
+        rows = csv_rows("attempts.csv")
+        matches = [
+            row
+            for row in rows
+            if row["run_id"] == "qwen38-4p89-tep2-attntp1-fia2a-mtp0-v1"
+        ]
+        self.assertEqual(len(matches), 1)
+        self.assertEqual(matches[0]["status"], "UNSUPPORTED_STARTUP")
+        self.assertEqual(matches[0]["performance_eligible"], "false")
+        self.assertIn("CU_MEM_HANDLE_TYPE_FABRIC", matches[0]["reason"])
+        self.assertEqual(matches[0]["cleanup_status"], "PASS_FORCED_EXACT_NAMES")
         self.assertEqual(matches[0]["postflight_status"], "PASS")
 
     def test_external_tp4_failures_are_unsupported_not_zero(self) -> None:

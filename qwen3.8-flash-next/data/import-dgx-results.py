@@ -76,6 +76,7 @@ class ProfileSpec:
     ep_size: int
     platform_label: str
     notes: str
+    topology_requirements: tuple[tuple[str, int], ...] = ()
 
 
 PROFILE_SPECS = {
@@ -138,6 +139,22 @@ PROFILE_SPECS = {
         2,
         "DGX Station pair",
         "one_distributed_engine_across_two_stations",
+    ),
+    "tep2-attntp1-mtp0": ProfileSpec(
+        "NVFP4 attention-TP1 + routed-EP2/AR",
+        "cross_node_tp2_dp2_attntp1_routed_ep2",
+        0,
+        2,
+        2,
+        2,
+        "DGX Station pair",
+        "one_distributed_engine_across_two_stations",
+        (
+            ("attn_tp", 1),
+            ("dp", 2),
+            ("moe_tp", 1),
+            ("moe_dense_tp", 1),
+        ),
     ),
 }
 PROFILE_ORDER = {name: index for index, name in enumerate(PROFILE_SPECS)}
@@ -209,6 +226,8 @@ def validate_manifest(root: Path) -> tuple[str, ProfileSpec]:
         "run-manifest node/tensor-parallel topology differs",
     )
     require(topology.get("ep") == spec.ep_size, "expert-parallel size differs")
+    for field, expected in spec.topology_requirements:
+        require(topology.get(field) == expected, f"topology {field} differs")
 
     mtp = manifest.get("mtp")
     require(isinstance(mtp, dict), "run-manifest MTP configuration is absent")

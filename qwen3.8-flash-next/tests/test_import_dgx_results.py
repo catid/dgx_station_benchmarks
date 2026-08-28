@@ -57,6 +57,7 @@ def make_result(
             "nodes": spec.nodes,
             "tp": spec.tp_size,
             "ep": spec.ep_size,
+            **dict(spec.topology_requirements),
         },
         "mtp": {"enabled": spec.mtp_tokens > 0, "steps": spec.mtp_tokens},
         "benchmark": {
@@ -168,7 +169,7 @@ class ImportDgxResultsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "benchmark client has not completed"):
                 IMPORTER.import_result(root, require_complete=True)
 
-    def test_complete_six_profile_import_has_66_rows(self) -> None:
+    def test_complete_supported_profile_import_has_expected_rows(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             parent = Path(directory)
             imported = {}
@@ -180,9 +181,16 @@ class ImportDgxResultsTests(unittest.TestCase):
                 imported[imported_profile] = rows
         merged = IMPORTER.merge_rows([], imported)
         self.assertEqual(set(imported), set(IMPORTER.PROFILE_SPECS))
-        self.assertEqual(len(merged), 66)
-        self.assertEqual(len([row for row in merged if row["metric"] == "decode"]), 42)
-        self.assertEqual(len([row for row in merged if row["metric"] == "prefill"]), 24)
+        profile_count = len(IMPORTER.PROFILE_SPECS)
+        self.assertEqual(len(merged), profile_count * 11)
+        self.assertEqual(
+            len([row for row in merged if row["metric"] == "decode"]),
+            profile_count * 7,
+        )
+        self.assertEqual(
+            len([row for row in merged if row["metric"] == "prefill"]),
+            profile_count * 4,
+        )
 
     def test_tp1_profile_is_labeled_as_one_station(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -203,6 +211,17 @@ class ImportDgxResultsTests(unittest.TestCase):
         self.assertEqual(profile, "tp1-mtp3")
         self.assertEqual({row["platform_label"] for row in rows}, {"DGX Station"})
         self.assertEqual({row["mtp_tokens"] for row in rows}, {"3"})
+
+    def test_attention_tp1_routed_ep2_profile_is_supporting_pair_data(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_result(Path(directory), "tep2-attntp1-mtp0")
+            profile, rows = IMPORTER.import_result(root, require_complete=True)
+        self.assertEqual(profile, "tep2-attntp1-mtp0")
+        self.assertEqual({row["platform_label"] for row in rows}, {"DGX Station pair"})
+        self.assertEqual(
+            {row["topology"] for row in rows},
+            {"cross_node_tp2_dp2_attntp1_routed_ep2"},
+        )
 
     def test_first_new_import_drops_the_superseded_checkpoint(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
