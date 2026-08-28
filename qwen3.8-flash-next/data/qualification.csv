@@ -1,5 +1,6 @@
 profile,topology,mtp_tokens,status,rankable,evidence_run_id,note
-nvfp4_tp1_mtp0_smoke,independent_tp1_pair,0,PASS_SMOKE_UNRANKED,false,qwen38-dgx-nvfp4-tp1-mtp0-smoke-20260827-v17,"Deterministic two-replica checkpoint, runtime, output, synchronization, cleanup, and postflight smoke"
-nvfp4_tp1_mtp3_smoke,independent_tp1_pair,3,FAILED_CORRECTNESS,false,qwen38-sglang-nvfp4-tp1-mtp3-smoke-20260827-v3,"MTP3 was deterministic across replicas and exposed consistent acceptance counters, but failed exact greedy parity against MTP0 at output index 6; unpatched MTP3 timing is excluded"
-nvfp4_tp2_mtp0,cross_node_tp2,0,PENDING,false,,"Runs after final TP1 qualification"
-nvfp4_tp2_mtp3,cross_node_tp2,3,PENDING_PATCH_QUALIFICATION,false,,"Runs only after the pinned upstream beta-parity patch passes exact TP1 output/state qualification"
+nvfp4_tp1_mtp0_smoke,independent_tp1_pair,0,PASS_SMOKE_UNRANKED,false,qwen38-dgx-nvfp4-tp1-mtp0-smoke-20260827-v18,"Current pinned runtime; deterministic replica, request, cleanup, and postflight checks passed"
+nvfp4_tp1_mtp3_smoke,independent_tp1_pair,3,PASS_SMOKE_UNRANKED,false,qwen38-dgx-nvfp4-tp1-mtp3-smoke-20260827-v2,"Current beta-parity-patched MTP path; replica, acceptance-counter, request, cleanup, and postflight checks passed"
+nvfp4_tp2_mtp0_smoke,cross_node_tp2,0,PASS_SMOKE_UNRANKED,false,qwen38-dgx-nvfp4-tp2-mtp0-smoke-20260827-v7,"One distributed engine across both Stations; RoCE/GDRDMA, request, cleanup, and postflight checks passed"
+nvfp4_tp2_mtp3_smoke,cross_node_tp2,3,PASS_SMOKE_UNRANKED,false,qwen38-dgx-nvfp4-tp2-mtp3-smoke-20260827-v1,"Current beta-parity-patched MTP path on one distributed engine; transport, counters, cleanup, and postflight checks passed"
+nvfp4_tep2_mtp0_smoke,cross_node_tep2,0,PASS_SMOKE_UNRANKED,false,qwen38-dgx-nvfp4-tep2-mtp0-smoke-20260827-v2,"One distributed TP2/EP2 engine; effective expert execution, RoCE/GDRDMA, cleanup, and postflight checks passed"

@@ -19,8 +19,8 @@ CHARTS = ROOT / "charts"
 DATA = ROOT / "data"
 OUTPUT_DIR = CHARTS
 CHART_NAMES = (
-    "dgx-tp1-decode.png",
-    "dgx-tp1-prefill.png",
+    "dgx-nvfp4-decode.png",
+    "dgx-nvfp4-prefill.png",
     "decode-throughput.png",
     "cold-prefill-throughput.png",
     "tep4-ar-decode-comparison.png",
@@ -34,9 +34,36 @@ ACCEPTED_DGX_STATUSES = {
     "SEALED_RANKABLE",
     "VALIDATED_RANKABLE",
 }
-DGX_HEADLINE_PLATFORM = "DGX Station 1"
-DGX_HEADLINE_LABEL = "1× DGX Station GB300 · NVFP4 TP1/MTP0"
-RTX_BEST_LABEL = "4× RTX PRO 6000 · NVFP4 best"
+DGX_MODEL_ID = "local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89"
+DGX_CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64)
+PREFILL_CONTEXTS = (8192, 32768, 65536, 131072)
+DGX_HEADLINE_SERIES = {
+    "NVFP4 TP2/MTP0": (
+        "2× DGX Station GB300 · TP2/AR",
+        "#58A6FF",
+        "-",
+        "o",
+    ),
+    "NVFP4 TP2/MTP3": (
+        "2× DGX Station GB300 · TP2/MTP3",
+        "#D2A8FF",
+        "-",
+        "o",
+    ),
+    "NVFP4 TEP2/MTP0": (
+        "2× DGX Station GB300 · TEP2/AR",
+        "#61DDAA",
+        "-",
+        "s",
+    ),
+    "NVFP4 TEP2/MTP3": (
+        "2× DGX Station GB300 · TEP2/MTP3",
+        "#F6BD16",
+        "-",
+        "^",
+    ),
+}
+RTX_COMPARISON_LABEL = "4× RTX PRO 6000 · NVFP4 comparison"
 RTX_NVFP4_PROFILES = {"nvfp4_tep4_ar", "nvfp4_tep4_mtp3"}
 
 BACKGROUND = "#0E1117"
@@ -105,15 +132,48 @@ def accepted_overlay_rows(metric: str) -> list[dict[str, str]]:
         if row.get("metric") == metric
         and row.get("throughput")
         and row.get("publication_status") in ACCEPTED_DGX_STATUSES
+        and row.get("model_id") == DGX_MODEL_ID
     ]
 
 
 def headline_dgx_rows(metric: str) -> list[dict[str, str]]:
-    return [
-        row
-        for row in accepted_overlay_rows(metric)
-        if row.get("platform_label") == DGX_HEADLINE_PLATFORM
-    ]
+    """Select measured C1-C64 rows from the four two-Station lanes."""
+    selected: list[dict[str, str]] = []
+    seen: set[tuple[str, int]] = set()
+    axis_value = "concurrency" if metric == "decode" else "nominal_context_tokens"
+    for row in accepted_overlay_rows(metric):
+        profile = row.get("profile", "")
+        series = DGX_HEADLINE_SERIES.get(profile)
+        if series is None:
+            continue
+        if row.get("platform_label") != "DGX Station pair":
+            continue
+        value = int(row[axis_value])
+        if metric == "decode" and value not in DGX_CONCURRENCIES:
+            continue
+        if metric == "prefill" and value not in PREFILL_CONTEXTS:
+            continue
+        key = (profile, value)
+        if key in seen:
+            raise ValueError(f"duplicate DGX headline row: {profile} {metric} {value}")
+        seen.add(key)
+        selected.append(row)
+    return selected
+
+
+def headline_dgx_series(metric: str) -> dict[str, list[dict[str, str]]]:
+    grouped = group_by_profile(headline_dgx_rows(metric))
+    axis_value = "concurrency" if metric == "decode" else "nominal_context_tokens"
+    return {
+        profile: sorted(grouped.get(profile, []), key=lambda row: int(row[axis_value]))
+        for profile in DGX_HEADLINE_SERIES
+        if grouped.get(profile)
+    }
+
+
+def dynamic_y_upper(values: list[float]) -> float:
+    """Give the tallest published series 12% headroom without a fixed ceiling."""
+    return max(1.0, max(values, default=0.0) * 1.12)
 
 
 def best_rtx_nvfp4_decode() -> dict[int, float]:
@@ -138,65 +198,63 @@ def best_rtx_nvfp4_prefill() -> dict[int, float]:
     return best
 
 
-def add_future_overlays(axis: plt.Axes, metric: str) -> None:
-    """Plot only validated DGX overlays; header-only/pending data stays absent."""
-    grouped: dict[tuple[str, str], list[dict[str, str]]] = defaultdict(list)
-    for row in accepted_overlay_rows(metric):
-        grouped[(row["platform_label"], row["profile"])].append(row)
-
-    for index, ((platform, profile), rows) in enumerate(sorted(grouped.items())):
-        axis_value = "concurrency" if metric == "decode" else "nominal_context_tokens"
-        ordered = sorted(rows, key=lambda row: int(row[axis_value]))
-        axis.plot(
-            [int(row[axis_value]) for row in ordered],
-            [float(row["throughput"]) for row in ordered],
-            color=("#79C0FF", "#A5D6FF", "#7EE787", "#FFA657")[index % 4],
-            linestyle=":",
-            linewidth=2.3,
-            marker="s",
-            markersize=5,
-            label=f"{platform} · {profile}",
-        )
-
-
 def render_dgx_decode() -> None:
-    rows = sorted(headline_dgx_rows("decode"), key=lambda row: int(row["concurrency"]))
+    grouped = headline_dgx_series("decode")
     rtx_best = best_rtx_nvfp4_decode()
     figure, axis = plt.subplots(figsize=(10.8, 6.6))
-    axis.plot(
-        [int(row["concurrency"]) for row in rows],
-        [float(row["throughput"]) for row in rows],
-        color="#58A6FF",
-        linewidth=2.8,
-        marker="o",
-        markersize=6.5,
-        label=DGX_HEADLINE_LABEL,
-    )
+    plotted_values: list[float] = []
+    for profile, (label, color, linestyle, marker) in DGX_HEADLINE_SERIES.items():
+        rows = grouped.get(profile, [])
+        if not rows:
+            continue
+        values = [float(row["throughput"]) for row in rows]
+        plotted_values.extend(values)
+        axis.plot(
+            [int(row["concurrency"]) for row in rows],
+            values,
+            color=color,
+            linestyle=linestyle,
+            linewidth=2.8,
+            marker=marker,
+            markersize=6.5,
+            label=label,
+        )
 
-    concurrencies = [1, 2, 4, 8, 16, 32, 64]
-    axis.plot(
-        concurrencies,
-        [rtx_best[concurrency] for concurrency in concurrencies],
-        color="#FFA657",
-        linestyle="--",
-        linewidth=2.8,
-        marker="D",
-        markersize=6.5,
-        markerfacecolor=BACKGROUND,
-        markeredgewidth=1.5,
-        label=RTX_BEST_LABEL,
-    )
+    rtx_concurrencies = [value for value in DGX_CONCURRENCIES if value in rtx_best]
+    if rtx_concurrencies:
+        rtx_values = [rtx_best[concurrency] for concurrency in rtx_concurrencies]
+        plotted_values.extend(rtx_values)
+        axis.plot(
+            rtx_concurrencies,
+            rtx_values,
+            color="#FFA657",
+            linestyle="--",
+            linewidth=2.8,
+            marker="D",
+            markersize=6.5,
+            markerfacecolor=BACKGROUND,
+            markeredgewidth=1.5,
+            label=RTX_COMPARISON_LABEL,
+        )
     axis.set_xscale("log", base=2)
-    axis.set_xticks(concurrencies, [str(value) for value in concurrencies])
+    axis.set_xticks(DGX_CONCURRENCIES, [str(value) for value in DGX_CONCURRENCIES])
     axis.set_xlim(0.85, 72)
-    axis.set_ylim(0, 4200)
+    axis.set_ylim(0, dynamic_y_upper(plotted_values))
     axis.set_xlabel("Offered concurrency")
     axis.set_ylabel("Output tokens/s")
-    axis.set_title("Qwen3.8-Flash-Next · NVFP4 fixed decode · hardware comparison")
+    axis.set_title("Qwen3.8-Flash-Next · DGX Station NVFP4 fixed decode")
     axis.legend(loc="upper left", framealpha=0.92)
-    figure.tight_layout()
+    figure.text(
+        0.5,
+        0.018,
+        "Each DGX curve is one distributed engine across both Stations",
+        ha="center",
+        color=MUTED,
+        fontsize=9.4,
+    )
+    figure.tight_layout(rect=(0, 0.045, 1, 1))
     figure.savefig(
-        OUTPUT_DIR / "dgx-tp1-decode.png",
+        OUTPUT_DIR / "dgx-nvfp4-decode.png",
         dpi=180,
         bbox_inches="tight",
         pad_inches=0.12,
@@ -205,46 +263,68 @@ def render_dgx_decode() -> None:
 
 
 def render_dgx_prefill() -> None:
-    rows = headline_dgx_rows("prefill")
+    grouped = headline_dgx_series("prefill")
     rtx_best = best_rtx_nvfp4_prefill()
     figure, axis = plt.subplots(figsize=(10.8, 6.6))
-    contexts = (8192, 32768, 65536, 131072)
-    positions = list(range(len(contexts)))
+    positions = list(range(len(PREFILL_CONTEXTS)))
     context_labels = ("8K", "32K", "64K", "128K")
-    by_context = {int(row["nominal_context_tokens"]): row for row in rows}
-    axis.plot(
-        positions,
-        [float(by_context[context]["throughput"]) for context in contexts],
-        color="#58A6FF",
-        linewidth=2.8,
-        marker="o",
-        markersize=6.5,
-        label=DGX_HEADLINE_LABEL,
-    )
-    axis.plot(
-        positions,
-        [rtx_best[context] for context in contexts],
-        color="#FFA657",
-        linestyle="--",
-        linewidth=2.8,
-        marker="D",
-        markersize=6.5,
-        markerfacecolor=BACKGROUND,
-        markeredgewidth=1.5,
-        label=RTX_BEST_LABEL,
-    )
+    position_by_context = {
+        context: position for position, context in enumerate(PREFILL_CONTEXTS)
+    }
+    plotted_values: list[float] = []
+    for profile, (label, color, linestyle, marker) in DGX_HEADLINE_SERIES.items():
+        rows = grouped.get(profile, [])
+        if not rows:
+            continue
+        values = [float(row["throughput"]) for row in rows]
+        plotted_values.extend(values)
+        axis.plot(
+            [position_by_context[int(row["nominal_context_tokens"])] for row in rows],
+            values,
+            color=color,
+            linestyle=linestyle,
+            linewidth=2.8,
+            marker=marker,
+            markersize=6.5,
+            label=label,
+        )
+
+    rtx_contexts = [context for context in PREFILL_CONTEXTS if context in rtx_best]
+    if rtx_contexts:
+        rtx_values = [rtx_best[context] for context in rtx_contexts]
+        plotted_values.extend(rtx_values)
+        axis.plot(
+            [position_by_context[context] for context in rtx_contexts],
+            rtx_values,
+            color="#FFA657",
+            linestyle="--",
+            linewidth=2.8,
+            marker="D",
+            markersize=6.5,
+            markerfacecolor=BACKGROUND,
+            markeredgewidth=1.5,
+            label=RTX_COMPARISON_LABEL,
+        )
 
     axis.set_xlim(-0.15, 3.15)
     axis.set_xticks(positions)
     axis.set_xticklabels(context_labels, ha="center")
-    axis.set_ylim(0, 40000)
+    axis.set_ylim(0, dynamic_y_upper(plotted_values))
     axis.set_xlabel("Nominal cold-prefill target")
     axis.set_ylabel("Client prompt tokens/s")
-    axis.set_title("Qwen3.8-Flash-Next · NVFP4 cold prefill · hardware comparison")
+    axis.set_title("Qwen3.8-Flash-Next · DGX Station NVFP4 cold prefill")
     axis.legend(loc="lower center", framealpha=0.92)
-    figure.tight_layout()
+    figure.text(
+        0.5,
+        0.018,
+        "Each DGX curve is one distributed engine across both Stations",
+        ha="center",
+        color=MUTED,
+        fontsize=9.4,
+    )
+    figure.tight_layout(rect=(0, 0.045, 1, 1))
     figure.savefig(
-        OUTPUT_DIR / "dgx-tp1-prefill.png",
+        OUTPUT_DIR / "dgx-nvfp4-prefill.png",
         dpi=180,
         bbox_inches="tight",
         pad_inches=0.12,

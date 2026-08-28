@@ -18,22 +18,41 @@
   diagnostic as explicitly excluded evidence. Its 3,860 outputs all hit the
   length cap with empty final-answer content; nominal C128 was also capped at
   100 HTTP connections.
-- `dgx-overlays.csv` contains the two per-Station NVFP4 TP1/MTP0 decode series
-  through C64 and their 8K–128K cold-prefill profiles, including latency,
-  concurrency, sample counts, source paths, and source-file hashes. The
-  Station rates are independent and are never summed.
+- `dgx-overlays.csv` contains the measured
+  `local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89` DGX cells. TP2 and TEP2
+  are one distributed engine across both Stations.
+- `import-dgx-results.py` reads the minimal raw result roots produced by the
+  paired benchmark launcher. It imports whichever measured C1–C64 and
+  cold-prefill JSONs are present, keeps missing cells absent, and replaces the
+  superseded checkpoint rows on first import. `--require-complete` is the final
+  publication check and requires the launcher's cleanup/postflight completion
+  marker.
 - `qualification.csv` and `attempts.csv` track the separate local DGX bring-up;
   neither contains accepted performance timing.
 - `external-attempts.csv` retains the two source-reported NVFP4 TP4 startup
   failures, including expected log and normalized-traceback hashes. The raw
   failure trees are absent locally, so these hashes are not locally reverified.
 
-`PASS_SMOKE_UNRANKED` proves bring-up and deterministic replica equality only;
-it is never converted into a throughput row. The corrected MTP3 v3 smoke
-passed replica equality and counter checks but failed exact greedy equivalence
-to MTP0 at output index 6, so the unpatched MTP3 path is
-`FAILED_CORRECTNESS` and excluded. Pending, failed, unsupported, and
-unmeasured profiles never appear as numeric zeroes.
+Final 4p89 import:
+
+```bash
+python3 data/import-dgx-results.py \
+  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp2-mtp0-v1 \
+  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp2-mtp3-v1 \
+  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tep2-mtp0-v1 \
+  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tep2-mtp3-v1 \
+  --require-complete --require-all
+python3 charts/render-charts.py
+```
+
+Run from `qwen3.8-flash-next/`. Omitting the two `--require-*` flags imports
+only the measured JSONs currently present, which is useful while a profile is
+still running.
+
+`qualification.csv`, `attempts.csv`, and `checkpoint.json` describe the older
+RadixArk bring-up and remain historical recipe evidence. They are not results
+for the current 4p89 checkpoint. Missing and unmeasured current cells are never
+written as numeric zeroes.
 
 Publication classes used in the performance tables:
 

@@ -4,62 +4,109 @@ This page contains the system-specific inventory, runtime pins, topology,
 benchmark contract, integrity information, and local DGX bring-up notes kept
 out of the headline result page.
 
-## Current DGX Station TP1/MTP0 measurement
-
-The headline C1–C64 decode and 8K–128K cold-prefill rows come from run
-`qwen38-dgx-nvfp4-tp1-mtp0-timed-20260827-v1`. It ran one independent TP1
-engine on each Station. The displayed series is the actual `gemini1` result,
-whose local raw files are fully retained; it is not an average or synthetic
-value. The `gemini2` result closely replicated it—194.2 versus 195.9 tok/s at
-C1 and 3,800.0 versus 3,803.8 tok/s at C64—and remains in
-`../data/dgx-overlays.csv`. The two rates are never summed.
-
-The chart and table series labeled `4× RTX PRO 6000 · NVFP4 best` is a
-pointwise envelope over the workstation's TEP4/AR and TEP4/MTP3 measurements,
-not one fixed decode mode. MTP3 supplies C1–C16; AR supplies C32–C64. The
-prefill envelope uses AR at all four contexts.
+## Current DGX Station benchmark
 
 | Item | Value |
 | --- | --- |
-| Checkpoint | `RadixArk/Qwen3.8-Flash-Next-NVFP4@7b719225242aacd3dbd3f9407468c2ee9a9d2594` |
-| Runtime | SGLang `0.0.0.dev1+gd91c3682b` |
-| Derived image | `sha256:6eab5f1837284fe2317de55b00b8f35e83d9b44abc2ea915861661067c39dc91` |
-| PR #36014 patch | `415eb564937c57fb80bfae300df8e127ecbb05ed` |
-| Parallelism / decode | TP1, expert parallel off / MTP0 |
-| Precision | ModelOpt NVFP4 expert weights, BF16 compute and KV cache, FP32 recurrent state |
+| Checkpoint | `local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89@ee0cea634a371acd1caeaed8e95b90e4344c16b4` |
+| Quantization | ModelOpt mixed precision; NVFP4 4.89-bit checkpoint |
+| Runtime image | `qwen38-4p89-sglang:runtime-v1` |
+| Parallelism | One two-node engine; TP2 or TP2+EP2 (TEP2) |
+| Decode | Ordinary autoregressive decode or MTP3 |
 | Memory / limits | fraction 0.80, 262,144-token context, 128 running requests |
-| Backends | FlashInfer CuTeDSL FP4 GEMM, TRT-LLM MHA, Triton linear attention |
 | Workload | 8,192 input + 1,024 output tokens; `C` warmups and `5 × C` measured requests |
+| Decode matrix | C1, C2, C4, C8, C16, C32, C64 |
 | Cold prefill | C1; 8K, 32K, 64K, and 128K targets; one output token; 30 seconds per target |
 
-Every imported C1–C64 file completed exactly `5 × C` requests with zero
-errors. C64 averaged 62.0 and 62.2 resident requests at offered C64 with no
-reported queueing; that is observed capacity behavior, not a failed cell.
-The cold-prefill profiles completed 59, 30, 15, and 8 samples per Station at
-8K, 32K, 64K, and 128K respectively.
+The runtime aliases the checkpoint architecture to SGLang's Qwen4Exp model
+implementation and uses `modelopt_mixed`. Its PLE loader handles the
+checkpoint's sharded NVFP4 embedding weights and scales. MTP3 uses three
+speculative steps and inherits the target checkpoint's mixed quantization.
+Thirty-six narrow MXFP8 `in_proj_ba` layers per TP2 rank have local output
+width 48, below the available MXFP8 kernels' minimum width. Those weights are
+dequantized once at model load and use the BF16 linear path; wider MXFP8 layers
+remain quantized.
 
-The controller completed collection, graceful container cleanup, and host
-postflight. Its top-level `STATUS.txt` says `FAILED` only because the telemetry
-validator compared the GPU UUID literally and rejected the leading space in
-the monitor CSV field; it exited before writing its telemetry summary.
-`cleanup-verdict.txt` is `PASS_GRACEFUL` and `postflight/verdict.txt` is
-`PASS`. This telemetry-format validation issue does not negate the completed
-measurement JSONs.
+Every plotted DGX row comes directly from a completed client JSON. Offered
+concurrency, effective concurrency, queue fraction, and the capacity flag are
+kept as observed; queueing does not make a measured cell disappear. Missing
+cells remain absent.
 
-The launch used the earlier hardcoded C1–C128 loop and entered C128 immediately
-after C64. It was not interrupted mid-cell. C128 is outside the current
-publication ceiling and is not imported.
+Raw result roots are under
+`/home/catid/frontier-bench/results/qwen38-4p89-sglang/`. The importer reads
+`run-manifest.json`, `benchmark/raw/fixed/c*.json`, and
+`benchmark/raw/prefill/cold.json`. Use `--require-complete` for the final
+C1–C64 publication pass; it also requires the launcher's completed cleanup and
+postflight marker.
 
-Raw sources were read from:
+The chart series labeled `4× RTX PRO 6000 · NVFP4 comparison` is a pointwise
+envelope over the workstation's TEP4/AR and TEP4/MTP3 measurements, not one
+fixed decode mode. MTP3 supplies C1–C16; AR supplies C32–C64. The prefill
+envelope uses AR at all four contexts.
 
-- Station 1: `/home/catid/frontier-bench/results/qwen38-flash-next-sglang/qwen38-dgx-nvfp4-tp1-mtp0-timed-20260827-v1/benchmark/gemini1/`
-- Station 2 original: `/home/catid/frontier-bench/qwen38-timed-work-pr36014-ep-evidence-6eab5f-v9/runtime-evidence/qwen38-dgx-nvfp4-tp1-mtp0-timed-20260827-v1/benchmark-gemini2/`
-- Station 2 controller mirror: `/home/catid/frontier-bench/results/qwen38-flash-next-sglang/qwen38-dgx-nvfp4-tp1-mtp0-timed-20260827-v1/benchmark/gemini2/`
+## RTX PRO 6000 comparison details
 
-All published source hashes were checked against the Station 1 raw files and
-the controller's Station 2 mirror. Per-cell paths, hashes, timing, TTFT, ITL,
-effective concurrency, queue fraction, and prefill sample counts are in
-[`../data/dgx-overlays.csv`](../data/dgx-overlays.csv).
+The comparison system is one server with four NVIDIA RTX PRO 6000 Blackwell
+Max-Q GPUs. Its official lane is
+[`Qwen/Qwen3.8-Flash-Next-FP8`](https://huggingface.co/Qwen/Qwen3.8-Flash-Next-FP8)
+on vLLM; its NVFP4 lane is the third-party
+[`RadixArk/Qwen3.8-Flash-Next-NVFP4`](https://huggingface.co/RadixArk/Qwen3.8-Flash-Next-NVFP4)
+quantization on SGLang. This is supporting comparison data, not the DGX
+Station headline.
+
+| Lane | C1 decode | C64 decode | C128 decode | 64K cold prefill | Profiles |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Official FP8/vLLM | 198.9 (TEP4/MTP3) | 2,653.4 (TEP4/AR) | **3,668.9** (TEP4/AR) | 14,357 (TEP4/AR) | TP4 and TEP4 |
+| Third-party NVFP4/SGLang | **211.7** (TEP4/MTP3) | **2,849.4** (TEP4/AR) | 3,476.5 (TEP4/AR) | **15,512** (TEP4/AR) | TEP4; TP4 unsupported |
+
+Decode values are aggregate output tok/s; prefill values are client prompt
+tok/s.
+
+### Workstation decode throughput
+
+8,192 input tokens, 1,024 forced output tokens. Best result in each row is
+bold.
+
+| C | FP8/vLLM TP4/AR | FP8/vLLM TP4/MTP3 | FP8/vLLM TEP4/AR | FP8/vLLM TEP4/MTP3 | NVFP4/SGLang TEP4/AR | NVFP4/SGLang TEP4/MTP3 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 116.0 | 193.1 | 114.7 | 198.9 | 116.9 | **211.7** |
+| 2 | 199.8 | 304.8 | 199.8 | 327.1 | 223.3 | **394.0** |
+| 4 | 346.7 | 476.7 | 363.8 | 562.8 | 416.2 | **674.8** |
+| 8 | 549.7 | 701.4 | 626.3 | 920.9 | 750.2 | **1,049.0** |
+| 16 | 857.2 | 1,008.8 | 1,031.9 | 1,377.9 | 1,299.4 | **1,524.2** |
+| 32 | 1,281.9 | 1,354.1 | 1,681.5 | 1,869.9 | **1,997.6** | 1,868.1 |
+| 64 | 1,889.1 | 1,905.7 | 2,653.4 | 2,489.4 | **2,849.4** | 2,377.8 |
+| 128 | 2,624.5 | 2,433.7 | **3,668.9** | 3,044.4 | 3,476.5 | 2,513.7† |
+
+† NVFP4/MTP3 C128 averaged 95.7 resident requests and includes the first-use
+Triton compile described below.
+
+![4× RTX PRO 6000 reference decode throughput](../charts/decode-throughput.png)
+
+### Workstation cold prefill
+
+C1 client prompt tok/s. Best result in each row is bold.
+
+| Target | FP8/vLLM TP4/AR | FP8/vLLM TP4/MTP3 | FP8/vLLM TEP4/AR | FP8/vLLM TEP4/MTP3 | NVFP4/SGLang TEP4/AR | NVFP4/SGLang TEP4/MTP3 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 8K | 12,449 | 11,882 | 14,922 | 14,187 | **15,547** | 15,374 |
+| 32K | 12,457 | 11,881 | 14,904 | 14,232 | **15,799** | 15,250 |
+| 64K | 11,968 | 11,422 | 14,357 | 13,683 | **15,512** | 14,889 |
+| 128K | 10,987 | 10,589 | 13,206 | 12,593 | **14,720** | 14,089 |
+
+![4× RTX PRO 6000 reference cold-prefill throughput](../charts/cold-prefill-throughput.png)
+
+### Workstation TEP4 comparisons
+
+These compare complete checkpoint-and-runtime lanes, not quantization alone.
+
+![4× RTX PRO 6000 TEP4/AR decode comparison](../charts/tep4-ar-decode-comparison.png)
+
+![4× RTX PRO 6000 TEP4/AR prefill comparison](../charts/tep4-ar-prefill-comparison.png)
+
+![4× RTX PRO 6000 TEP4/MTP3 decode comparison](../charts/tep4-mtp3-decode-comparison.png)
+
+![4× RTX PRO 6000 TEP4/MTP3 prefill comparison](../charts/tep4-mtp3-prefill-comparison.png)
 
 ## External source system
 
@@ -252,7 +299,7 @@ Consequently:
    `SEALED_PRIMARY_EXTERNAL`.
 3. Source-sealed NVFP4 TEP4 rows are also labeled
    `SEALED_PRIMARY_EXTERNAL`, with the MTP3 C128 exception bound to that row
-   in `handoff-provenance.json`, the headline, and the charts.
+   in `handoff-provenance.json` and the workstation detail charts.
 4. Unsupported TP4 attempts have no numeric performance rows.
 5. Expected paths and SHA-256 values are recorded in
    `handoff-provenance.json`; they do not assert a local hash check.
@@ -263,10 +310,11 @@ The supplied natural-output diagnostic is not headline throughput: all 3,860
 outputs hit the 1,024-token cap with nonempty reasoning and empty final-answer
 content. Its nominal C128 client was also capped at 100 HTTP connections.
 
-## DGX qualification history and pending lanes
+## Historical RadixArk DGX bring-up
 
-The separate local staging lane uses the third-party NVFP4 checkpoint at the
-same revision with:
+The earlier local staging lane used the third-party RadixArk NVFP4 checkpoint.
+These records explain the retained `qualification.csv` and `attempts.csv`; they
+are not results for the current 4p89 checkpoint.
 
 | Item | Local pin |
 | --- | --- |
@@ -279,10 +327,9 @@ same revision with:
 | PR #36014 patch | `415eb564937c57fb80bfae300df8e127ecbb05ed` |
 | Current benchmark client | `0b4185b5b435e948b199c9077a00b084864aa963` |
 
-The current timed run depends on TP1/MTP0 smoke v17, which completed
-`PASS_SMOKE_UNRANKED`; both replicas produced the same 64-token stream
-(`b381629a…efd20`). The earlier v15 smoke recorded the same stream. Historical
-MTP3 v1 was rejected by an over-broad
+The historical TP1/MTP0 smoke v17 completed `PASS_SMOKE_UNRANKED`; both
+replicas produced the same 64-token stream (`b381629a…efd20`). The current
+pinned qualification is v18. Historical MTP3 v1 was rejected by an over-broad
 online-quantization verifier and v2 by a false-positive Markdown-divider
 heuristic. The corrected v3 qualification reached the intended MTP path and
 reported 78 drafts, 37 accepted drafts, 26 verify calls, acceptance rate
@@ -294,13 +341,40 @@ row.
 
 The current derived image includes the beta-parity change from
 [SGLang PR #36014](https://github.com/sgl-project/sglang/pull/36014), aligning
-non-KDA `TARGET_VERIFY` beta rounding with packed GDN decode. Patched MTP3 still
-needs its paired 64-token MTP0/MTP3 gate before timed publication. TP2 and TEP2
-also remain pending.
+non-KDA `TARGET_VERIFY` beta rounding with packed GDN decode. With that pinned
+runtime, TP1/MTP0 v18, TP1/MTP3 v2, TP2/MTP0 v7, TP2/MTP3 v1, and TEP2/MTP0
+v2 completed their profile-specific smoke checks. These checks cover replica
+or distributed request behavior as applicable, MTP counters, RoCE/GDRDMA for
+cross-Station runs, effective expert execution for TEP2, graceful cleanup, and
+postflight safety. `qualification.csv` lists only completed current smoke
+profiles; it does not create placeholder rows for an uncompleted mode.
 
-The current C1–C64 TP1 rows are in `../data/dgx-overlays.csv`. A future
-cross-node TP2 or TEP2 result is a distinct topology and must include transport
-evidence; it must not be merged with the independent per-Station TP1 rates.
+The current C1–C64 TP1 rows are in `../data/dgx-overlays.csv`. A completed
+cross-node TP2 or TEP2 result is a distinct topology and includes transport
+evidence; it is never merged with the independent per-Station TP1 rates.
+
+From the section root, final timed roots are imported without invoking the
+benchmark harness:
+
+```bash
+python3 data/import-dgx-results.py --require-all \
+  /path/to/nvfp4-tp2-mtp0-result \
+  /path/to/nvfp4-tp2-mtp3-result \
+  /path/to/nvfp4-tep2-mtp0-result \
+  /path/to/nvfp4-tep2-mtp3-result \
+  --require-complete
+```
+
+With `--require-complete`, the importer accepts only roots whose launcher wrote
+`COMPLETE_MEASURED_RAW` after cleanup and postflight and whose client wrote
+`COMPLETE` after all C1–C64 and cold-prefill cells. Queueing or lower effective
+concurrency remains a measured property of a completed cell. TP2 and TEP2 each
+represent one distributed engine across both Stations; AR and MTP3 are plotted
+as separate curves.
+
+Final timed status supersedes the corresponding smoke status in performance
+tables only after the completed timed root passes this import. Smoke status by
+itself never creates a throughput value.
 
 Before every memory-tight local launch, follow `/home/catid/AGENTS.md` and the
 repository safety checklist: verify ordinary idle HBM, remove named containers
