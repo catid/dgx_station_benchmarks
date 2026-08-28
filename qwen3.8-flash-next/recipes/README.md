@@ -40,12 +40,54 @@ C1–C64 publication pass; it also requires the launcher's completed cleanup and
 postflight marker.
 
 TP1/AR run `qwen38-4p89-tp1-mtp0-gemini1-v1` used one engine on `gemini1`.
-TP1/MTP3 run `qwen38-4p89-tp1-mtp3-gemini2-v2` used one engine on `gemini2`.
+The TP1/MTP3 headline is
+`qwen38-4p89-tp1-mtp3-replayssm-spec-gemini2-v1`, one engine on `gemini2`.
 Both completed all measurements, cleanup, and postflight checks. Each is
-plotted once; no second-machine curve is inferred or summed. The TP1/MTP3
-runtime limited resident requests to 47 because of Mamba-state capacity. Its
-C64 cell is the measured offered-load result: 2,590.4 tok/s at 45.1 effective
-concurrency and 0.911 queue fraction.
+plotted once; no second-machine curve is inferred or summed.
+
+### TP1/MTP3 ReplaySSM optimization
+
+The headline MTP3 run adds only SGLang's
+`--enable-linear-replayssm-spec` flag to the earlier control run
+`qwen38-4p89-tp1-mtp3-gemini2-v2`. Checkpoint, runtime image, TP1 topology,
+MTP3 settings, FP32 Mamba state, CUDA-graph tiers, memory fraction, and
+benchmark workload are unchanged. The result manifest records the treatment,
+control run ID, and one-flag delta; the importer also checks the actual
+container command for the flag.
+
+The treatment source root is
+`/home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp1-mtp3-replayssm-spec-gemini2-v1`.
+Its `run-manifest.json` and `runtime/container-inspect.json` bind the
+experiment and launch command; `../data/dgx-overlays.csv` records the source
+path and SHA-256 of every imported result JSON. The benchmark and launcher
+completion markers, exact-name cleanup, and final idle postflight all passed.
+
+ReplaySSM removed the 20.25 GB speculative intermediate-state allocation and
+used about 0.95 GB of replay ring buffers. The Mamba-state limit rose from 47
+resident requests in the control to 84 in the treatment. At offered C64, the
+treatment sustained 62.5 effective requests with no queueing, compared with
+45.1 effective requests and a 0.911 queue fraction in the control.
+
+Output tok/s for 8,192 input plus 1,024 output tokens:
+
+| C | MTP3 control | MTP3 + ReplaySSM | Change |
+| ---: | ---: | ---: | ---: |
+| 1 | 342.7 | 354.6 | +3.45% |
+| 2 | 577.3 | 602.8 | +4.43% |
+| 4 | 850.4 | 897.6 | +5.55% |
+| 8 | 1,261.1 | 1,291.1 | +2.38% |
+| 16 | 1,733.2 | 1,733.2 | 0.00% |
+| 32 | 2,275.0 | 2,403.4 | +5.64% |
+| 64 | 2,590.4 | 2,927.8 | +13.03% |
+
+Cold-prefill client prompt tok/s:
+
+| Target | MTP3 control | MTP3 + ReplaySSM | Change |
+| ---: | ---: | ---: | ---: |
+| 8K | 33,457 | 33,020 | -1.31% |
+| 32K | 39,832 | 39,338 | -1.24% |
+| 64K | 38,286 | 37,884 | -1.05% |
+| 128K | 33,802 | 33,504 | -0.88% |
 
 ### Initial two-Station optimization baselines
 

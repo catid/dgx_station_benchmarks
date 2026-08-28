@@ -31,6 +31,9 @@ RUNTIME_IMAGE = "qwen38-4p89-sglang:runtime-v1"
 RUNTIME = f"SGLang ({RUNTIME_IMAGE})"
 BENCH_VERSION = "0.4.29"
 BENCH_COMMIT = "0b4185b5b435e948b199c9077a00b084864aa963"
+REPLAYSSM_EXPERIMENT = "qwen38-4p89-tp1-mtp3-replayssm-spec-ab"
+REPLAYSSM_CONTROL_RUN = "qwen38-4p89-tp1-mtp3-gemini2-v2"
+REPLAYSSM_FLAG = "--enable-linear-replayssm-spec"
 CONCURRENCIES = (1, 2, 4, 8, 16, 32, 64)
 PREFILL_CONTEXTS = (8192, 32768, 65536, 131072)
 
@@ -77,6 +80,7 @@ class ProfileSpec:
     platform_label: str
     notes: str
     topology_requirements: tuple[tuple[str, int], ...] = ()
+    replay_ssm_spec: bool = False
 
 
 PROFILE_SPECS = {
@@ -98,7 +102,8 @@ PROFILE_SPECS = {
         1,
         1,
         "DGX Station",
-        "one_engine_on_one_station",
+        "one_engine_on_one_station_replayssm_spec",
+        replay_ssm_spec=True,
     ),
     "tp2-mtp0": ProfileSpec(
         "NVFP4 TP2/MTP0",
@@ -257,6 +262,40 @@ def validate_manifest(root: Path) -> tuple[str, ProfileSpec]:
             "decode concurrency contract differs")
     require(benchmark.get("input_tokens") == 8192, "decode input contract differs")
     require(benchmark.get("output_tokens") == 1024, "decode output contract differs")
+
+    if spec.replay_ssm_spec:
+        experiment = manifest.get("experiment")
+        require(isinstance(experiment, dict), "ReplaySSM experiment binding is absent")
+        require(experiment.get("name") == REPLAYSSM_EXPERIMENT,
+                "ReplaySSM experiment name differs")
+        require(experiment.get("variant") == "treatment",
+                "ReplaySSM experiment is not the treatment")
+        require(experiment.get("control_run_id") == REPLAYSSM_CONTROL_RUN,
+                "ReplaySSM control run differs")
+        require(experiment.get("sglang_flag_delta") == [REPLAYSSM_FLAG],
+                "ReplaySSM flag delta differs")
+        runtime = manifest.get("runtime")
+        require(isinstance(runtime, dict) and runtime.get("linear_replayssm_spec") is True,
+                "ReplaySSM runtime setting is absent")
+
+        inspect = json.loads(
+            regular_file(
+                root / "runtime/container-inspect.json", "container inspect"
+            ).read_text(encoding="utf-8")
+        )
+        require(isinstance(inspect, list) and len(inspect) == 1,
+                "container inspect must contain one container")
+        container = inspect[0]
+        require(isinstance(container, dict), "container inspect entry is invalid")
+        config = container.get("Config")
+        require(isinstance(config, dict), "container config is absent")
+        command = config.get("Cmd")
+        require(isinstance(command, list) and all(isinstance(arg, str) for arg in command),
+                "container command is absent")
+        require(command.count(REPLAYSSM_FLAG) == 1,
+                "running container did not enable ReplaySSM speculation exactly once")
+        require("--enable-linear-replayssm" not in command,
+                "non-speculative ReplaySSM flag was unexpectedly enabled")
     return profile, spec
 
 

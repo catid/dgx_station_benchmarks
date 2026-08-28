@@ -1,8 +1,8 @@
 # Qwen3.8-Flash-Next charts
 
-- `dgx-nvfp4-decode.png` shows one-Station TP1/AR and TP1/MTP3 decode through
-  C64, with separate 4× RTX PRO 6000 RadixArk NVFP4 TEP4/AR and TEP4/MTP3
-  comparisons.
+- `dgx-nvfp4-decode.png` shows one-Station TP1/AR and TP1/MTP3 + ReplaySSM
+  decode through C64, with separate 4× RTX PRO 6000 RadixArk NVFP4 TEP4/AR
+  and TEP4/MTP3 comparisons.
 - `dgx-nvfp4-prefill.png` shows the matching cold-prefill comparison.
 - `decode-throughput.png` shows the 4× RTX PRO 6000 reference decode matrix.
 - `cold-prefill-throughput.png` shows the workstation reference prefill matrix.

@@ -7,13 +7,13 @@ model, not Qwen3.8-27B.
 
 The DGX headline uses
 [`local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89`](https://huggingface.co/local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89)
-on SGLang. Each row is one serving engine. TP1/AR and TP1/MTP3 each use one
-Station.
+on SGLang. Each row is one serving engine on one Station. ReplaySSM is enabled
+for the MTP3 row.
 
 | DGX configuration | C1 decode | C16 decode | C64 decode | 64K cold prefill |
 | --- | ---: | ---: | ---: | ---: |
 | 1× DGX Station · TP1/AR | 202.1 tok/s | **1,883.9 tok/s** | **4,090.4 tok/s** | **38,653 tok/s** |
-| 1× DGX Station · TP1/MTP3 | **342.7 tok/s** | 1,733.2 tok/s | 2,590.4 tok/s | 38,286 tok/s |
+| 1× DGX Station · TP1/MTP3 + ReplaySSM | **354.6 tok/s** | 1,733.2 tok/s | 2,927.8 tok/s | 37,884 tok/s |
 
 ![DGX Station and 4× RTX PRO 6000 NVFP4 decode throughput](charts/dgx-nvfp4-decode.png)
 

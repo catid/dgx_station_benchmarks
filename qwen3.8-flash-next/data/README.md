@@ -29,7 +29,9 @@
   C1–C64 and cold-prefill JSONs are present, keeps missing cells absent, and
   replaces the superseded checkpoint rows on first import. `--require-complete`
   is the final publication check and requires the launcher's cleanup/postflight
-  completion marker.
+  completion marker. The TP1/MTP3 importer additionally requires the recorded
+  ReplaySSM treatment metadata and verifies
+  `--enable-linear-replayssm-spec` in the actual container command.
 - `qualification.csv` and `attempts.csv` track the separate local DGX bring-up;
   neither contains accepted performance timing.
 - `external-attempts.csv` retains the two source-reported NVFP4 TP4 startup
@@ -41,7 +43,7 @@ Final 4p89 import:
 ```bash
 python3 data/import-dgx-results.py \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp1-mtp0-gemini1-v1 \
-  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp1-mtp3-gemini2-v2 \
+  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp1-mtp3-replayssm-spec-gemini2-v1 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp2-mtp0-v11 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp2-mtp3-v1 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tep2-mtp0-v1 \

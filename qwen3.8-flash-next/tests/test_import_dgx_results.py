@@ -43,7 +43,7 @@ def make_result(
 ) -> Path:
     spec = IMPORTER.PROFILE_SPECS[profile]
     root = parent / f"qwen38-4p89-{profile}-test"
-    write_json(root / "run-manifest.json", {
+    manifest = {
         "schema_version": 1,
         "run_id": root.name,
         "profile": profile,
@@ -66,7 +66,26 @@ def make_result(
             "input_tokens": 8192,
             "output_tokens": 1024,
         },
-    })
+    }
+    if spec.replay_ssm_spec:
+        manifest["experiment"] = {
+            "name": IMPORTER.REPLAYSSM_EXPERIMENT,
+            "variant": "treatment",
+            "control_run_id": IMPORTER.REPLAYSSM_CONTROL_RUN,
+            "sglang_flag_delta": [IMPORTER.REPLAYSSM_FLAG],
+        }
+        manifest["runtime"] = {"linear_replayssm_spec": True}
+        write_json(root / "runtime/container-inspect.json", [{
+            "Config": {
+                "Cmd": [
+                    "python3",
+                    "-m",
+                    "sglang.launch_server",
+                    IMPORTER.REPLAYSSM_FLAG,
+                ]
+            }
+        }])
+    write_json(root / "run-manifest.json", manifest)
 
     for concurrency in concurrencies:
         target = 5 * concurrency
@@ -211,6 +230,30 @@ class ImportDgxResultsTests(unittest.TestCase):
         self.assertEqual(profile, "tp1-mtp3")
         self.assertEqual({row["platform_label"] for row in rows}, {"DGX Station"})
         self.assertEqual({row["mtp_tokens"] for row in rows}, {"3"})
+        self.assertEqual(
+            {row["notes"] for row in rows},
+            {"one_engine_on_one_station_replayssm_spec"},
+        )
+
+    def test_tp1_mtp3_requires_replayssm_treatment_provenance(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_result(Path(directory), "tp1-mtp3")
+            manifest_path = root / "run-manifest.json"
+            manifest = json.loads(manifest_path.read_text())
+            del manifest["experiment"]
+            write_json(manifest_path, manifest)
+            with self.assertRaisesRegex(ValueError, "experiment binding"):
+                IMPORTER.import_result(root, require_complete=True)
+
+    def test_tp1_mtp3_requires_replayssm_in_actual_container_command(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_result(Path(directory), "tp1-mtp3")
+            inspect_path = root / "runtime/container-inspect.json"
+            inspect = json.loads(inspect_path.read_text())
+            inspect[0]["Config"]["Cmd"].remove(IMPORTER.REPLAYSSM_FLAG)
+            write_json(inspect_path, inspect)
+            with self.assertRaisesRegex(ValueError, "running container"):
+                IMPORTER.import_result(root, require_complete=True)
 
     def test_attention_tp1_routed_ep2_profile_is_supporting_pair_data(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

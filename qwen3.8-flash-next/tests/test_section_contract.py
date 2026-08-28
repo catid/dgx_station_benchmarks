@@ -419,7 +419,8 @@ class SectionContractTests(unittest.TestCase):
             for row in prefill_rows
         }
         self.assertIn("local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89", section)
-        self.assertIn("TP1/AR and TP1/MTP3 each use one\nStation", section)
+        self.assertIn("Each row is one serving engine on one Station", section)
+        self.assertIn("ReplaySSM is enabled\nfor the MTP3 row", section)
         self.assertNotIn("TP2/", section)
         self.assertNotIn("TEP2/", section)
         self.assertIn("comparison points, not DGX\nStation", section)
@@ -438,7 +439,7 @@ class SectionContractTests(unittest.TestCase):
         dgx_rows = csv_rows("dgx-overlays.csv")
         headline_profile_labels = {
             "NVFP4 TP1/MTP0": "1× DGX Station · TP1/AR",
-            "NVFP4 TP1/MTP3": "1× DGX Station · TP1/MTP3",
+            "NVFP4 TP1/MTP3": "1× DGX Station · TP1/MTP3 + ReplaySSM",
         }
         baseline_profile_labels = {
             "NVFP4 TP2/MTP0": "2× DGX Stations · TP2/AR",
@@ -536,7 +537,8 @@ class SectionContractTests(unittest.TestCase):
         )
         self.assertIn("(qwen3.8-flash-next/)", overview_row)
         self.assertIn(
-            "1× TP1/MTP3: 342.7 tok/s C1; TP1/AR: 4,090.4 C64, 38,653 tok/s 64K prefill",
+            "1× TP1/MTP3 + ReplaySSM: 354.6 tok/s C1, 2,927.8 C64; "
+            "TP1/AR: 4,090.4 C64, 38,653 tok/s 64K prefill",
             overview_row,
         )
         self.assertNotIn("2× DGX", overview_row)
@@ -646,12 +648,14 @@ class SectionContractTests(unittest.TestCase):
             self.assertGreater(float(row["throughput"]), 0)
             self.assertGreater(float(row["ttft_p50_seconds"]), 0)
             self.assertTrue(SHA256.fullmatch(row["source_sha256"]))
-            self.assertEqual(
-                row["notes"],
-                "one_engine_on_one_station"
-                if row["platform_label"] == "DGX Station"
-                else "one_distributed_engine_across_two_stations",
-            )
+            expected_notes = "one_distributed_engine_across_two_stations"
+            if row["platform_label"] == "DGX Station":
+                expected_notes = (
+                    "one_engine_on_one_station_replayssm_spec"
+                    if row["profile"] == "NVFP4 TP1/MTP3"
+                    else "one_engine_on_one_station"
+                )
+            self.assertEqual(row["notes"], expected_notes)
         for row in decode_rows:
             concurrency = int(row["concurrency"])
             target = 5 * concurrency
@@ -724,6 +728,44 @@ class SectionContractTests(unittest.TestCase):
                 65536: Decimal("38653.0"),
                 131072: Decimal("34529.0"),
             },
+        )
+
+        mtp_rows = [
+            row
+            for row in csv_rows("dgx-overlays.csv")
+            if row["profile"] == "NVFP4 TP1/MTP3"
+        ]
+        mtp_decode = {
+            int(row["concurrency"]): Decimal(row["throughput"])
+            for row in mtp_rows
+            if row["metric"] == "decode"
+        }
+        expected_mtp_decode = {
+            1: Decimal("354.55100680351995"),
+            2: Decimal("602.8472406649867"),
+            4: Decimal("897.5868413533404"),
+            8: Decimal("1291.0897979459278"),
+            16: Decimal("1733.1994009335713"),
+            32: Decimal("2403.361533898001"),
+            64: Decimal("2927.8337777855713"),
+        }
+        self.assertEqual(mtp_decode, expected_mtp_decode)
+        self.assertEqual(
+            {
+                int(row["nominal_context_tokens"]): Decimal(row["throughput"])
+                for row in mtp_rows
+                if row["metric"] == "prefill"
+            },
+            {
+                8192: Decimal("33020.0"),
+                32768: Decimal("39338.0"),
+                65536: Decimal("37884.0"),
+                131072: Decimal("33504.0"),
+            },
+        )
+        self.assertEqual(
+            {row["source_id"] for row in mtp_rows},
+            {"qwen38-4p89-tp1-mtp3-replayssm-spec-gemini2-v1"},
         )
 
     def test_attention_tp1_routed_ep2_values_are_supporting_data_only(self) -> None:

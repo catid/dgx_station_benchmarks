@@ -45,7 +45,7 @@ DGX_HEADLINE_SERIES = {
         "P",
     ),
     "NVFP4 TP1/MTP3": (
-        "1× DGX Station GB300 · TP1/MTP3",
+        "1× DGX Station GB300 · TP1/MTP3 + ReplaySSM",
         "#FF7B72",
         "-",
         "X",
