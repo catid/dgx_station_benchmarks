@@ -168,7 +168,7 @@ class ImportDgxResultsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "benchmark client has not completed"):
                 IMPORTER.import_result(root, require_complete=True)
 
-    def test_complete_five_profile_import_has_55_rows(self) -> None:
+    def test_complete_six_profile_import_has_66_rows(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             parent = Path(directory)
             imported = {}
@@ -180,9 +180,9 @@ class ImportDgxResultsTests(unittest.TestCase):
                 imported[imported_profile] = rows
         merged = IMPORTER.merge_rows([], imported)
         self.assertEqual(set(imported), set(IMPORTER.PROFILE_SPECS))
-        self.assertEqual(len(merged), 55)
-        self.assertEqual(len([row for row in merged if row["metric"] == "decode"]), 35)
-        self.assertEqual(len([row for row in merged if row["metric"] == "prefill"]), 20)
+        self.assertEqual(len(merged), 66)
+        self.assertEqual(len([row for row in merged if row["metric"] == "decode"]), 42)
+        self.assertEqual(len([row for row in merged if row["metric"] == "prefill"]), 24)
 
     def test_tp1_profile_is_labeled_as_one_station(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -195,6 +195,14 @@ class ImportDgxResultsTests(unittest.TestCase):
             {"single_node_tp1_ep_disabled"},
         )
         self.assertEqual({row["notes"] for row in rows}, {"one_engine_on_one_station"})
+
+    def test_tp1_mtp3_profile_is_labeled_as_one_station(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_result(Path(directory), "tp1-mtp3")
+            profile, rows = IMPORTER.import_result(root, require_complete=True)
+        self.assertEqual(profile, "tp1-mtp3")
+        self.assertEqual({row["platform_label"] for row in rows}, {"DGX Station"})
+        self.assertEqual({row["mtp_tokens"] for row in rows}, {"3"})
 
     def test_first_new_import_drops_the_superseded_checkpoint(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

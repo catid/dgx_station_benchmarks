@@ -44,6 +44,12 @@ DGX_HEADLINE_SERIES = {
         "-",
         "P",
     ),
+    "NVFP4 TP1/MTP3": (
+        "1× DGX Station GB300 · TP1/MTP3",
+        "#FF7B72",
+        "-",
+        "X",
+    ),
     "NVFP4 TP2/MTP0": (
         "2× DGX Station GB300 · TP2/AR",
         "#58A6FF",
@@ -71,6 +77,7 @@ DGX_HEADLINE_SERIES = {
 }
 DGX_HEADLINE_PLATFORMS = {
     "NVFP4 TP1/MTP0": "DGX Station",
+    "NVFP4 TP1/MTP3": "DGX Station",
     "NVFP4 TP2/MTP0": "DGX Station pair",
     "NVFP4 TP2/MTP3": "DGX Station pair",
     "NVFP4 TEP2/MTP0": "DGX Station pair",

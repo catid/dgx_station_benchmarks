@@ -39,6 +39,7 @@ Final 4p89 import:
 ```bash
 python3 data/import-dgx-results.py \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp1-mtp0-gemini1-v1 \
+  /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp1-mtp3-gemini2-v2 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp2-mtp0-v11 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tp2-mtp3-v1 \
   /home/catid/frontier-bench/results/qwen38-4p89-sglang/qwen38-4p89-tep2-mtp0-v1 \

@@ -35,6 +35,11 @@ DGX_PROFILE_SPECS = {
         {"DGX Station"},
         0,
     ),
+    "NVFP4 TP1/MTP3": (
+        {"single_node_tp1_ep_disabled"},
+        {"DGX Station"},
+        3,
+    ),
     "NVFP4 TP2/MTP0": (
         {"cross_node_tp2_ep_disabled"},
         {"DGX Station pair"},
@@ -262,6 +267,7 @@ class SectionContractTests(unittest.TestCase):
             tuple(renderer.DGX_HEADLINE_SERIES),
             (
                 "NVFP4 TP1/MTP0",
+                "NVFP4 TP1/MTP3",
                 "NVFP4 TP2/MTP0",
                 "NVFP4 TP2/MTP3",
                 "NVFP4 TEP2/MTP0",
@@ -413,16 +419,16 @@ class SectionContractTests(unittest.TestCase):
             for row in prefill_rows
         }
         self.assertIn("local-inference-lab/Qwen3.8-Flash-Next-NVFP4-4p89", section)
-        self.assertIn("TP1/AR uses one Station", section)
-        self.assertIn("TP2 and\nTEP2 span both Stations", section)
-        self.assertIn("comparison points, not DGX Station", section)
+        self.assertIn("TP1/AR and TP1/MTP3 each use one\nStation", section)
+        self.assertIn("TP2 and TEP2 span both Stations", section)
+        self.assertIn("comparison points, not DGX\nStation", section)
         self.assertIn(
             "RadixArk/Qwen3.8-Flash-Next-NVFP4@"
             "7b719225242aacd3dbd3f9407468c2ee9a9d2594",
             section,
         )
         self.assertIn("one TEP4 server across four RTX PRO 6000", section)
-        self.assertIn("Fixed decode is 8,192 input + 1,024 output tokens", section)
+        self.assertIn("Fixed decode is 8,192 input + 1,024 output\ntokens", section)
         self.assertIn("temperature 0, shown from C1 through C64", section)
         headline = section.split("Exact checkpoint revisions", 1)[0]
         self.assertNotIn("source-sealed", headline.lower())
@@ -431,6 +437,7 @@ class SectionContractTests(unittest.TestCase):
         dgx_rows = csv_rows("dgx-overlays.csv")
         profile_labels = {
             "NVFP4 TP1/MTP0": "1× DGX Station · TP1/AR",
+            "NVFP4 TP1/MTP3": "1× DGX Station · TP1/MTP3",
             "NVFP4 TP2/MTP0": "2× DGX Stations · TP2/AR",
             "NVFP4 TP2/MTP3": "2× DGX Stations · TP2/MTP3",
             "NVFP4 TEP2/MTP0": "2× DGX Stations · TEP2/AR",
@@ -497,7 +504,7 @@ class SectionContractTests(unittest.TestCase):
         )
         self.assertIn("(qwen3.8-flash-next/)", overview_row)
         self.assertIn(
-            "1× TP1/AR: 202.1 tok/s C1, 4,090.4 C64, 38,653 tok/s 64K prefill",
+            "1× TP1/MTP3: 342.7 tok/s C1; TP1/AR: 4,090.4 C64, 38,653 tok/s 64K prefill",
             overview_row,
         )
         self.assertIn(
@@ -579,7 +586,7 @@ class SectionContractTests(unittest.TestCase):
         profiles = {row["profile"] for row in rows}
         self.assertTrue(profiles <= set(DGX_PROFILE_SPECS))
         if profiles == set(DGX_PROFILE_SPECS):
-            self.assertLessEqual(len(rows), 55)
+            self.assertEqual(len(rows), 66)
         decode_rows = [row for row in rows if row["metric"] == "decode"]
         prefill_rows = [row for row in rows if row["metric"] == "prefill"]
         decode_keys = {

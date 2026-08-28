@@ -39,9 +39,13 @@ Raw result roots are under
 C1–C64 publication pass; it also requires the launcher's completed cleanup and
 postflight marker.
 
-TP1/AR run `qwen38-4p89-tp1-mtp0-gemini1-v1` used one engine on `gemini1` and
-completed all measurements, cleanup, and postflight checks. It is plotted once;
-no second-machine curve is inferred or summed.
+TP1/AR run `qwen38-4p89-tp1-mtp0-gemini1-v1` used one engine on `gemini1`.
+TP1/MTP3 run `qwen38-4p89-tp1-mtp3-gemini2-v2` used one engine on `gemini2`.
+Both completed all measurements, cleanup, and postflight checks. Each is
+plotted once; no second-machine curve is inferred or summed. The TP1/MTP3
+runtime limited resident requests to 47 because of Mamba-state capacity. Its
+C64 cell is the measured offered-load result: 2,590.4 tok/s at 45.1 effective
+concurrency and 0.911 queue fraction.
 
 TEP2/AR run `qwen38-4p89-tep2-mtp0-v1` completed its measurements and exact
 container cleanup. Its first local postflight gate overlapped an `nvidia-smi`

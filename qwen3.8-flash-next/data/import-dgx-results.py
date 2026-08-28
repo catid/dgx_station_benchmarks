@@ -89,6 +89,16 @@ PROFILE_SPECS = {
         "DGX Station",
         "one_engine_on_one_station",
     ),
+    "tp1-mtp3": ProfileSpec(
+        "NVFP4 TP1/MTP3",
+        "single_node_tp1_ep_disabled",
+        3,
+        1,
+        1,
+        1,
+        "DGX Station",
+        "one_engine_on_one_station",
+    ),
     "tp2-mtp0": ProfileSpec(
         "NVFP4 TP2/MTP0",
         "cross_node_tp2_ep_disabled",
