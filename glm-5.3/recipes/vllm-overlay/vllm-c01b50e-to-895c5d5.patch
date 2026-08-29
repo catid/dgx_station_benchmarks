@@ -1,0 +1,1291 @@
+diff --git a/vllm/config/speculative.py b/vllm/config/speculative.py
+index d3b4af1cf0607c417e8b612910bb2418cc5563bb..8dee0bcb35d9f50258270f4db8edc98800c8b8ac 100644
+--- a/vllm/config/speculative.py
++++ b/vllm/config/speculative.py
+@@ -1452 +1452,3 @@ class SpeculativeConfig:
+-                        self.target_parallel_config, self.draft_tensor_parallel_size
++                        self.target_parallel_config,
++                        self.draft_tensor_parallel_size,
++                        self.method,
+@@ -1632,0 +1635 @@ class SpeculativeConfig:
++        method: SpeculativeMethod | None = None,
+@@ -1636 +1639,2 @@ class SpeculativeConfig:
+-        This is mostly a copy of the target parallel config, except the tp_size.
++        This is mostly a copy of the target parallel config. A DFlash draft is
++        local to the target's last pipeline stage.
+@@ -1637,0 +1642,9 @@ class SpeculativeConfig:
++        draft_pipeline_parallel_size = target_parallel_config.pipeline_parallel_size
++        if method == "dflash" and draft_pipeline_parallel_size > 1:
++            if (
++                draft_pipeline_parallel_size != 2
++                or target_parallel_config.tensor_parallel_size != 1
++                or speculative_draft_tensor_parallel_size != 1
++            ):
++                raise ValueError("DFlash pipeline mode currently requires PP2 and TP1.")
++            draft_pipeline_parallel_size = 1
+@@ -1639 +1652 @@ class SpeculativeConfig:
+-            pipeline_parallel_size=target_parallel_config.pipeline_parallel_size,
++            pipeline_parallel_size=draft_pipeline_parallel_size,
+diff --git a/vllm/envs.py b/vllm/envs.py
+index b574cf6aaf1f52d4f5b4b0b425ebc87666e31570..c0052d86049a9843afaeabedc423f5b2fdd9e488 100755
+--- a/vllm/envs.py
++++ b/vllm/envs.py
+@@ -50,0 +51 @@ if TYPE_CHECKING:
++    VLLM_PP_DFLASH_DECODE_PARTITIONS: int = 1
+@@ -861,0 +863,4 @@ environment_variables: dict[str, Callable[[], Any]] = {
++    # Number of alternating synchronous PP decode cohorts for DFlash.
++    "VLLM_PP_DFLASH_DECODE_PARTITIONS": lambda: int(
++        os.getenv("VLLM_PP_DFLASH_DECODE_PARTITIONS", "1")
++    ),
+diff --git a/vllm/model_executor/layers/quantization/utils/flashinfer_fp4_moe.py b/vllm/model_executor/layers/quantization/utils/flashinfer_fp4_moe.py
+index e0a8c1a3102f9853a2c0a18d86059eee5fa4abdf..ede353f4da4c447e295f6f9f10ea2af84b282318 100644
+--- a/vllm/model_executor/layers/quantization/utils/flashinfer_fp4_moe.py
++++ b/vllm/model_executor/layers/quantization/utils/flashinfer_fp4_moe.py
+@@ -234,4 +234,25 @@ def prepare_static_weights_for_trtllm_fp4_moe(
+-    gemm1_weights_fp4_shuffled = []
+-    gemm1_scales_fp4_shuffled = []
+-    gemm2_weights_fp4_shuffled = []
+-    gemm2_scales_fp4_shuffled = []
++    # Preallocate the final tensors so each expert is written directly into
++    # its destination slice. Retaining one allocation per expert and stacking
++    # them later creates a large, fragmented loading-time memory peak for
++    # checkpoints with many experts.
++    gemm1_weights_fp4_shuffled = torch.empty_like(gemm1_weights_fp4.view(torch.uint8))
++    gemm2_weights_fp4_shuffled = torch.empty_like(gemm2_weights_fp4.view(torch.uint8))
++
++    # nvfp4_block_scale_interleave flattens its input. Keep one reusable
++    # permuted-input buffer per GEMM and store each result in a flat expert
++    # slice before restoring the kernel-facing scale layout below.
++    def _alloc_scale_buffers(
++        scales: torch.Tensor,
++    ) -> tuple[torch.Tensor, torch.Tensor]:
++        per_expert_shape = scales[0].view(torch.uint8).shape
++        per_expert_numel = scales[0].numel()
++        output = scales.new_empty((num_experts, per_expert_numel), dtype=torch.uint8)
++        scratch = torch.empty(per_expert_shape, dtype=torch.uint8, device=scales.device)
++        return output, scratch
++
++    gemm1_scales_fp4_shuffled, gemm1_scale_scratch = _alloc_scale_buffers(
++        gemm1_scales_linear_fp4
++    )
++    gemm2_scales_fp4_shuffled, gemm2_scale_scratch = _alloc_scale_buffers(
++        gemm2_scales_linear_fp4
++    )
+@@ -249,5 +270,3 @@ def prepare_static_weights_for_trtllm_fp4_moe(
+-        gemm1_weights_fp4_shuffled.append(
+-            gemm1_weights_fp4[i]
+-            .view(torch.uint8)[permute_indices.to(gemm1_weights_fp4.device)]
+-            .contiguous()
+-        )
++        gemm1_weights_fp4_shuffled[i] = gemm1_weights_fp4[i].view(torch.uint8)[
++            permute_indices.to(gemm1_weights_fp4.device)
++        ]
+@@ -262,8 +281,5 @@ def prepare_static_weights_for_trtllm_fp4_moe(
+-        gemm1_scales_fp4_shuffled.append(
+-            nvfp4_block_scale_interleave(
+-                gemm1_scales_linear_fp4[i]
+-                .view(torch.uint8)[
+-                    permute_sf_indices.to(gemm1_scales_linear_fp4.device)
+-                ]
+-                .contiguous()
+-            )
++        torch.index_select(
++            gemm1_scales_linear_fp4[i].view(torch.uint8),
++            0,
++            permute_sf_indices.to(gemm1_scales_linear_fp4.device),
++            out=gemm1_scale_scratch,
+@@ -270,0 +287 @@ def prepare_static_weights_for_trtllm_fp4_moe(
++        gemm1_scales_fp4_shuffled[i] = nvfp4_block_scale_interleave(gemm1_scale_scratch)
+@@ -277,5 +294,3 @@ def prepare_static_weights_for_trtllm_fp4_moe(
+-        gemm2_weights_fp4_shuffled.append(
+-            gemm2_weights_fp4[i]
+-            .view(torch.uint8)[permute_indices.to(gemm2_weights_fp4.device)]
+-            .contiguous()
+-        )
++        gemm2_weights_fp4_shuffled[i] = gemm2_weights_fp4[i].view(torch.uint8)[
++            permute_indices.to(gemm2_weights_fp4.device)
++        ]
+@@ -289,8 +304,5 @@ def prepare_static_weights_for_trtllm_fp4_moe(
+-        gemm2_scales_fp4_shuffled.append(
+-            nvfp4_block_scale_interleave(
+-                gemm2_scales_linear_fp4[i]
+-                .view(torch.uint8)[
+-                    permute_sf_indices.to(gemm2_scales_linear_fp4.device)
+-                ]
+-                .contiguous()
+-            )
++        torch.index_select(
++            gemm2_scales_linear_fp4[i].view(torch.uint8),
++            0,
++            permute_sf_indices.to(gemm2_scales_linear_fp4.device),
++            out=gemm2_scale_scratch,
+@@ -297,0 +310 @@ def prepare_static_weights_for_trtllm_fp4_moe(
++        gemm2_scales_fp4_shuffled[i] = nvfp4_block_scale_interleave(gemm2_scale_scratch)
+@@ -299,7 +312 @@ def prepare_static_weights_for_trtllm_fp4_moe(
+-    # Stack weights for all experts
+-    gemm1_weights_fp4_shuffled = torch.stack(gemm1_weights_fp4_shuffled)
+-    gemm1_scales_fp4_shuffled = (
+-        torch.stack(gemm1_scales_fp4_shuffled)
+-        .view(torch.float8_e4m3fn)
+-        .reshape(num_experts, gemm1_intermediate_size, hidden_size // 16)
+-    )
++    del gemm1_scale_scratch, gemm2_scale_scratch
+@@ -307,6 +314,6 @@ def prepare_static_weights_for_trtllm_fp4_moe(
+-    gemm2_weights_fp4_shuffled = torch.stack(gemm2_weights_fp4_shuffled)
+-    gemm2_scales_fp4_shuffled = (
+-        torch.stack(gemm2_scales_fp4_shuffled)
+-        .view(torch.float8_e4m3fn)
+-        .reshape(num_experts, hidden_size, intermediate_size // 16)
+-    )
++    gemm1_scales_fp4_shuffled = gemm1_scales_fp4_shuffled.view(
++        torch.float8_e4m3fn
++    ).reshape(num_experts, gemm1_intermediate_size, hidden_size // 16)
++    gemm2_scales_fp4_shuffled = gemm2_scales_fp4_shuffled.view(
++        torch.float8_e4m3fn
++    ).reshape(num_experts, hidden_size, intermediate_size // 16)
+diff --git a/vllm/model_executor/models/deepseek_v2.py b/vllm/model_executor/models/deepseek_v2.py
+index c45c907adabc745cb0e97962bbbdefb9b553f0f0..08a64f3b8309c76ba1133edc98d2908d58413f38 100644
+--- a/vllm/model_executor/models/deepseek_v2.py
++++ b/vllm/model_executor/models/deepseek_v2.py
+@@ -1472,0 +1473,15 @@ class DeepseekV2Model(nn.Module):
++    @staticmethod
++    def _aux_hidden_state_key(layer_idx: int) -> str:
++        return f"aux_hidden_state_{layer_idx}"
++
++    def set_aux_hidden_state_layers(self, layers: tuple[int, ...]) -> None:
++        self.aux_hidden_state_layers = tuple(sorted(layers))
++        incoming_aux_keys = [
++            self._aux_hidden_state_key(layer_idx)
++            for layer_idx in self.aux_hidden_state_layers
++            if layer_idx < self.start_layer
++        ]
++        self.make_empty_intermediate_tensors = make_empty_intermediate_tensors_factory(
++            ["hidden_states", "residual", *incoming_aux_keys], self.hidden_size
++        )
++
+@@ -1510,0 +1526,6 @@ class DeepseekV2Model(nn.Module):
++        if intermediate_tensors is not None:
++            aux_hidden_states.extend(
++                intermediate_tensors[self._aux_hidden_state_key(layer_idx)]
++                for layer_idx in self.aux_hidden_state_layers
++                if layer_idx < self.start_layer
++            )
+@@ -1539,3 +1560,17 @@ class DeepseekV2Model(nn.Module):
+-            return IntermediateTensors(
+-                {"hidden_states": hidden_states, "residual": residual}
+-            )
++            captured_layers = [
++                layer_idx
++                for layer_idx in self.aux_hidden_state_layers
++                if layer_idx < self.end_layer
++            ]
++            assert len(aux_hidden_states) == len(captured_layers)
++            output_tensors = {
++                "hidden_states": hidden_states,
++                "residual": residual,
++                **{
++                    self._aux_hidden_state_key(layer_idx): hidden_state
++                    for layer_idx, hidden_state in zip(
++                        captured_layers, aux_hidden_states
++                    )
++                },
++            }
++            return IntermediateTensors(output_tensors)
+@@ -1921 +1956,9 @@ class DeepseekV2ForCausalLM(
+-        self.model.aux_hidden_state_layers = layers
++        if hasattr(self.model, "set_aux_hidden_state_layers"):
++            self.model.set_aux_hidden_state_layers(layers)
++        else:
++            # Preserve the original PP1 behavior for subclasses that replace
++            # model_cls but have not adopted pipeline aux-tap relaying.
++            self.model.aux_hidden_state_layers = layers
++        self.make_empty_intermediate_tensors = (
++            self.model.make_empty_intermediate_tensors
++        )
+diff --git a/vllm/model_executor/models/qwen3_dflash.py b/vllm/model_executor/models/qwen3_dflash.py
+index f5a7bff8fc6e1521b9d39f23612a0ff8004e476a..adae57e4e9803ecbdeaa6d679300412c04d229db 100644
+--- a/vllm/model_executor/models/qwen3_dflash.py
++++ b/vllm/model_executor/models/qwen3_dflash.py
+@@ -97,0 +98,10 @@ def dflash_target_rope_is_neox_style(target_model: nn.Module) -> bool | None:
++def dflash_inherits_target_rope_style(config: Qwen3Config) -> bool:
++    """Whether a draft checkpoint expects the target model's RoPE layout.
++
++    DFlash2 uses the Qwen RoPE layout stored by its implementation even when
++    its GLM target uses interleaved RoPE.
++    """
++    architectures = getattr(config, "architectures", None) or ()
++    return "DFlash2DraftModel" not in architectures
++
++
+@@ -319,5 +329,2 @@ class DFlashQwen3DecoderLayer(nn.Module):
+-        # RoPE layout, copied off the target at load time by the draft loader
+-        # (see `dflash_target_rope_is_neox_style`). Checkpoints do not carry it:
+-        # a head distilled from an interleaved-RoPE target must rotate the way
+-        # that target does, or every drafted Q/K is wrong and acceptance
+-        # collapses with no error raised.
++        # Legacy DFlash checkpoints inherit the target's RoPE layout at load
++        # time. DFlash2 keeps this Qwen default even for interleaved-RoPE targets.
+@@ -717,3 +724,5 @@ class DFlashQwen3ForCausalLM(Qwen3ForCausalLM):
+-        target_layer_num = vllm_config.model_config.get_num_layers(
+-            vllm_config.parallel_config
+-        )
++        # Draft attention layers share the target model's global attention
++        # registry. Under pipeline parallelism, get_num_layers() is only the
++        # local stage width and can overlap target layer names on the last
++        # stage. Start after the global target depth instead.
++        target_layer_num = vllm_config.model_config.get_total_num_hidden_layers()
+diff --git a/vllm/models/deepseek_v32/common/kernels.py b/vllm/models/deepseek_v32/common/kernels.py
+index 31315172482ed2cf25fdab2f9106c750a3c1f7a6..67ec3941df528c70a85fa9064f4430e11df637b2 100644
+--- a/vllm/models/deepseek_v32/common/kernels.py
++++ b/vllm/models/deepseek_v32/common/kernels.py
+@@ -71 +71 @@ def _fp8_quant_and_cache_write(
+-    cache_stride,
++    cache_block_stride,
+@@ -79 +79 @@ def _fp8_quant_and_cache_write(
+-    block_start = block_idx * cache_block_size * cache_stride
++    block_start = block_idx * cache_block_stride
+@@ -138 +138 @@ def _fused_norm_rope_kernel(
+-    indexer_cache_stride,
++    indexer_cache_block_stride,
+@@ -140,0 +141 @@ def _fused_norm_rope_kernel(
++    mla_cache_block_size,
+@@ -245,3 +246,2 @@ def _fused_norm_rope_kernel(
+-            mla_block_size = mla_cache_block_stride // mla_cache_entry_stride
+-            mla_block_idx = slot_idx // mla_block_size
+-            mla_block_off = slot_idx % mla_block_size
++            mla_block_idx = slot_idx // mla_cache_block_size
++            mla_block_off = slot_idx % mla_cache_block_size
+@@ -398 +398 @@ def _fused_norm_rope_kernel(
+-                indexer_cache_stride,
++                indexer_cache_block_stride,
+@@ -467 +467 @@ def fused_norm_rope(
+-        idx_cache_stride = indexer_k_cache.shape[2]
++        idx_cache_block_stride = indexer_k_cache.stride(0)
+@@ -473 +473 @@ def fused_norm_rope(
+-        idx_cache_stride = 0
++        idx_cache_block_stride = 0
+@@ -481,0 +482,3 @@ def fused_norm_rope(
++        # This is the logical page size.  Under a block-major layout such as
++        # BLHNC, stride(0) also spans every other layer packed into the block.
++        mla_block_size = mla_kv_cache.shape[1]
+@@ -503,0 +507 @@ def fused_norm_rope(
++        mla_block_size = 1
+@@ -568 +572 @@ def fused_norm_rope(
+-        idx_cache_stride,
++        idx_cache_block_stride,
+@@ -570,0 +575 @@ def fused_norm_rope(
++        mla_block_size,
+diff --git a/vllm/models/deepseek_v32/nvidia/model.py b/vllm/models/deepseek_v32/nvidia/model.py
+index 76aa6ca8e161987687cebab6e225d1e6067c02b3..5e860ff237dae8b3fda2b8e241dd2325e9ef0c2b 100644
+--- a/vllm/models/deepseek_v32/nvidia/model.py
++++ b/vllm/models/deepseek_v32/nvidia/model.py
+@@ -175,0 +176 @@ class DeepseekV32Model(torch.nn.Module):
++        self.hidden_size = config.hidden_size
+@@ -228,0 +230,15 @@ class DeepseekV32Model(torch.nn.Module):
++    @staticmethod
++    def _aux_hidden_state_key(layer_idx: int) -> str:
++        return f"aux_hidden_state_{layer_idx}"
++
++    def set_aux_hidden_state_layers(self, layers: tuple[int, ...]) -> None:
++        self.aux_hidden_state_layers = tuple(sorted(layers))
++        incoming_aux_keys = [
++            self._aux_hidden_state_key(layer_idx)
++            for layer_idx in self.aux_hidden_state_layers
++            if layer_idx < self.start_layer
++        ]
++        self.make_empty_intermediate_tensors = make_empty_intermediate_tensors_factory(
++            ["hidden_states", "residual", *incoming_aux_keys], self.hidden_size
++        )
++
+@@ -272,0 +289,6 @@ class DeepseekV32Model(torch.nn.Module):
++        if intermediate_tensors is not None:
++            aux_hidden_states.extend(
++                intermediate_tensors[self._aux_hidden_state_key(layer_idx)]
++                for layer_idx in self.aux_hidden_state_layers
++                if layer_idx < self.start_layer
++            )
+@@ -288,3 +310,17 @@ class DeepseekV32Model(torch.nn.Module):
+-            return IntermediateTensors(
+-                {"hidden_states": hidden_states, "residual": residual}
+-            )
++            captured_layers = [
++                layer_idx
++                for layer_idx in self.aux_hidden_state_layers
++                if layer_idx < self.end_layer
++            ]
++            assert len(aux_hidden_states) == len(captured_layers)
++            output_tensors = {
++                "hidden_states": hidden_states,
++                "residual": residual,
++                **{
++                    self._aux_hidden_state_key(layer_idx): hidden_state
++                    for layer_idx, hidden_state in zip(
++                        captured_layers, aux_hidden_states
++                    )
++                },
++            }
++            return IntermediateTensors(output_tensors)
+diff --git a/vllm/v1/attention/backends/mla/flashinfer_mla_sparse.py b/vllm/v1/attention/backends/mla/flashinfer_mla_sparse.py
+index 512627559a4b924497da0aa3bbc04d5a8333e083..b492e3403a8d9d8c8faf353f76436c763079ed48 100644
+--- a/vllm/v1/attention/backends/mla/flashinfer_mla_sparse.py
++++ b/vllm/v1/attention/backends/mla/flashinfer_mla_sparse.py
+@@ -5 +5 @@
+-from dataclasses import dataclass
++from dataclasses import dataclass, replace
+@@ -30,0 +31 @@ from vllm.v1.attention.backends.mla.sparse_utils import (
++    flat_kv_row_view,
+@@ -34 +35 @@ from vllm.v1.attention.backends.mla.sparse_utils import (
+-from vllm.v1.kv_cache_interface import AttentionSpec
++from vllm.v1.kv_cache_interface import AttentionSpec, MLAAttentionSpec
+@@ -65,0 +67,11 @@ class _FlashInferMLASparseBackendBase(AttentionBackend):
++    @classmethod
++    def customize_spec(cls, spec: AttentionSpec) -> AttentionSpec:
++        assert isinstance(spec, MLAAttentionSpec)
++        assert spec.alignment in (None, spec.real_page_size_bytes), (
++            "FlashInfer sparse MLA cannot replace an incompatible model page "
++            "alignment"
++        )
++        # The external kernel addresses the backing allocation as physical
++        # pages, including any gaps introduced by a block-outer hybrid pool.
++        return replace(spec, alignment=spec.real_page_size_bytes)
++
+@@ -378,0 +391,7 @@ class FlashInferMLASparseImpl(SparseMLACommonImpl[FlashInferMLASparseMetadata]):
++        kv_rows, block_stride_rows = flat_kv_row_view(
++            kv_c_and_k_pe_cache, attn_metadata.block_size
++        )
++        assert kv_rows.shape[0] % attn_metadata.block_size == 0
++        kv_physical_pages = kv_rows.view(
++            -1, attn_metadata.block_size, kv_rows.shape[-1]
++        )
+@@ -388,0 +408 @@ class FlashInferMLASparseImpl(SparseMLACommonImpl[FlashInferMLASparseMetadata]):
++                BLOCK_STRIDE_ROWS=block_stride_rows,
+@@ -397,0 +418 @@ class FlashInferMLASparseImpl(SparseMLACommonImpl[FlashInferMLASparseMetadata]):
++                BLOCK_STRIDE_ROWS=block_stride_rows,
+@@ -427 +448,6 @@ class FlashInferMLASparseImpl(SparseMLACommonImpl[FlashInferMLASparseMetadata]):
+-            kv_cache=kv_c_and_k_pe_cache.unsqueeze(1),
++            # Preserve the gaps between BLHNC pages in the physical pool so
++            # the remapped row indices above address the same storage written
++            # by the strided cache writer. Keep the engine's supported page
++            # size: FlashInfer TRT-LLM requires 32- or 64-token pages even
++            # though sparse MLA selects individual physical rows.
++            kv_cache=kv_physical_pages.unsqueeze(1),
+diff --git a/vllm/v1/attention/backends/mla/flashmla_sparse.py b/vllm/v1/attention/backends/mla/flashmla_sparse.py
+index e134cd175471110ebb004af6fdc2ef79e82d0437..565acb70fef39d97c7c5f6c2e81a8d14f2d1be33 100644
+--- a/vllm/v1/attention/backends/mla/flashmla_sparse.py
++++ b/vllm/v1/attention/backends/mla/flashmla_sparse.py
+@@ -3 +3 @@
+-from dataclasses import dataclass
++from dataclasses import dataclass, replace
+@@ -45 +45 @@ from vllm.v1.attention.ops.flashmla import (
+-from vllm.v1.kv_cache_interface import AttentionSpec
++from vllm.v1.kv_cache_interface import AttentionSpec, MLAAttentionSpec
+@@ -127,0 +128,8 @@ class FlashMLASparseBackend(AttentionBackend):
++    @classmethod
++    def customize_spec(cls, spec: AttentionSpec) -> AttentionSpec:
++        assert isinstance(spec, MLAAttentionSpec)
++        assert spec.alignment in (None, spec.real_page_size_bytes), (
++            "FlashMLA sparse cannot replace an incompatible model page alignment"
++        )
++        return replace(spec, alignment=spec.real_page_size_bytes)
++
+diff --git a/vllm/v1/attention/backends/mla/sparse_utils.py b/vllm/v1/attention/backends/mla/sparse_utils.py
+index 8ffc31ca3b5fc64ce93d67108472c0fb7cf6d44d..4702719c0f60c3f761fe8a4ff9175a8c1715311d 100644
+--- a/vllm/v1/attention/backends/mla/sparse_utils.py
++++ b/vllm/v1/attention/backends/mla/sparse_utils.py
+@@ -21 +21,6 @@ def flat_kv_row_view(
+-    num_blocks, _, head_dim = kv_cache.shape
++    num_blocks, cache_block_size, head_dim = kv_cache.shape
++    assert num_blocks > 0
++    assert cache_block_size == block_size
++    assert kv_cache.stride(1) == head_dim and kv_cache.stride(2) == 1, (
++        "KV cache rows must be contiguous"
++    )
+@@ -26,0 +32,4 @@ def flat_kv_row_view(
++    assert block_stride_rows % block_size == 0, (
++        "block stride is not a whole number of physical pages; sparse MLA "
++        "page indices would silently misaddress"
++    )
+@@ -193 +202 @@ def triton_convert_req_index_to_global_index(
+-            token_indices[token_id, indice_id] // BLOCK_SIZE] * BLOCK_SIZE
++            token_indices[token_id, indice_id] // BLOCK_SIZE] * BLOCK_STRIDE_ROWS
+@@ -203,0 +213,4 @@ def triton_convert_req_index_to_global_index(
++    ``BLOCK_STRIDE_ROWS`` defaults to ``BLOCK_SIZE`` for a compact cache. Set
++    it to the physical row stride when other layers' pages sit between two
++    logical blocks of this layer.
++
+@@ -309,0 +323 @@ def triton_filter_and_convert_dcp_index(
++    BLOCK_STRIDE_ROWS: int | None = None,
+@@ -345,0 +360 @@ def triton_filter_and_convert_dcp_index(
++            BLOCK_STRIDE_ROWS=BLOCK_STRIDE_ROWS,
+@@ -393 +408 @@ def triton_filter_and_convert_dcp_index(
+-        BLOCK_SIZE,  # dense caches on the DCP path
++        BLOCK_STRIDE_ROWS if BLOCK_STRIDE_ROWS is not None else BLOCK_SIZE,
+diff --git a/vllm/v1/core/kv_cache_utils.py b/vllm/v1/core/kv_cache_utils.py
+index 337a55aa6cd09b4ba986cdcab6ad17c3dd84a436..7762703bab42a226cd84e537d37cf88f607add63 100644
+--- a/vllm/v1/core/kv_cache_utils.py
++++ b/vllm/v1/core/kv_cache_utils.py
+@@ -1283 +1283,7 @@ def _get_kv_cache_bytes_per_block(
+-    """Return the largest cache group's bytes per block."""
++    """Return the shared pool stride in bytes for one manager block.
++
++    A block-outer hybrid pool may place indexer, draft, or hidden-state pages
++    between two consecutive pages of another layer. Backends that address the
++    backing allocation as physical pages publish an alignment on their MLA
++    spec, so each manager-block boundary must satisfy those alignments.
++    """
+@@ -1292 +1298,10 @@ def _get_kv_cache_bytes_per_block(
+-    return bytes_per_block
++
++    block_stride_alignment = 1
++    for group in kv_cache_groups:
++        for layer_name in group.layer_names:
++            spec = _get_per_layer_spec(group, layer_name)
++            alignment = getattr(spec, "alignment", None)
++            if alignment is not None:
++                block_stride_alignment = math.lcm(block_stride_alignment, alignment)
++
++    return round_up(bytes_per_block, block_stride_alignment)
+@@ -1807 +1822,6 @@ def get_kv_cache_groups(
+-        fallback_groups = _try_get_full_allocation_fallback_groups(kv_cache_spec)
++        # Hidden-state extraction caches are allocated as separate groups and
++        # must not prevent the target+draft attention specs from using the
++        # full-allocation fallback (notably MLA targets with a SWA DFlash
++        # draft). Add the hidden-state groups back below, as on the normal
++        # path.
++        fallback_groups = _try_get_full_allocation_fallback_groups(filtered_spec)
+@@ -1810,2 +1830,3 @@ def get_kv_cache_groups(
+-        return fallback_groups
+-    groups = _get_kv_cache_groups_uniform_page_size(filtered_spec)
++        groups = fallback_groups
++    else:
++        groups = _get_kv_cache_groups_uniform_page_size(filtered_spec)
+diff --git a/vllm/v1/core/sched/scheduler.py b/vllm/v1/core/sched/scheduler.py
+index 51f75a63d6b1d8113b2a47b0e2d8cb4517e18fbb..ae7a50b899cc2b67f6dd6baad46294f8399ae777 100644
+--- a/vllm/v1/core/sched/scheduler.py
++++ b/vllm/v1/core/sched/scheduler.py
+@@ -9,0 +10 @@ from typing import Any
++import vllm.envs as envs
+@@ -141 +142,11 @@ class Scheduler(SchedulerInterface):
+-        self.defer_block_free = False
++        # PP keeps multiple batches in flight. A client abort can therefore
++        # free a request while a later pipeline stage (or a speculative-draft
++        # side stream) is still writing its KV blocks. Keep those blocks out
++        # of the pool until the corresponding model output advances the
++        # scheduler fence. Single-stage synchronous execution retains the
++        # immediate-free path.
++        multiple_inflight_batches = self.vllm_config.max_concurrent_batches > 1
++        self.defer_block_free = (
++            multiple_inflight_batches
++            and self.parallel_config.pipeline_parallel_size > 1
++        )
+@@ -164 +174,0 @@ class Scheduler(SchedulerInterface):
+-            multiple_inflight_batches = self.vllm_config.max_concurrent_batches > 1
+@@ -308,0 +319,24 @@ class Scheduler(SchedulerInterface):
++        requested_decode_partitions = envs.VLLM_PP_DFLASH_DECODE_PARTITIONS
++        pp_size = self.parallel_config.pipeline_parallel_size
++        if not 1 <= requested_decode_partitions <= pp_size:
++            raise ValueError(
++                "VLLM_PP_DFLASH_DECODE_PARTITIONS must be between 1 and "
++                f"pipeline_parallel_size ({pp_size}), got "
++                f"{requested_decode_partitions}."
++            )
++        spec_config = self.vllm_config.speculative_config
++        supports_dflash_decode_partitions = (
++            self.use_v2_model_runner
++            and self.use_pp
++            and not self.scheduler_config.async_scheduling
++            and spec_config is not None
++            and spec_config.method == "dflash"
++        )
++        if requested_decode_partitions > 1 and not supports_dflash_decode_partitions:
++            raise ValueError(
++                "VLLM_PP_DFLASH_DECODE_PARTITIONS > 1 requires synchronous "
++                "V2 pipeline parallelism with DFlash."
++            )
++        self.pp_dflash_decode_partitions = (
++            requested_decode_partitions if supports_dflash_decode_partitions else 1
++        )
+@@ -548,0 +583,11 @@ class Scheduler(SchedulerInterface):
++        scheduled_pp_decode_req_ids: set[str] = set()
++        pp_decode_batch_limit = None
++        num_running_decode_reqs = 0
++        if self.pp_dflash_decode_partitions > 1:
++            num_running_decode_reqs = sum(
++                not request.is_prefill_chunk for request in self.running
++            )
++            if num_running_decode_reqs:
++                pp_decode_batch_limit = (
++                    num_running_decode_reqs + self.pp_dflash_decode_partitions - 1
++                ) // self.pp_dflash_decode_partitions
+@@ -581,0 +627,9 @@ class Scheduler(SchedulerInterface):
++            request_is_decode = not request.is_prefill_chunk
++            if (
++                request_is_decode
++                and pp_decode_batch_limit is not None
++                and len(scheduled_pp_decode_req_ids) >= pp_decode_batch_limit
++            ):
++                req_index += 1
++                continue
++
+@@ -684,0 +739 @@ class Scheduler(SchedulerInterface):
++                            scheduled_pp_decode_req_ids.discard(preempted_req_id)
+@@ -721,0 +777,2 @@ class Scheduler(SchedulerInterface):
++            if request_is_decode:
++                scheduled_pp_decode_req_ids.add(request_id)
+@@ -773,0 +831,20 @@ class Scheduler(SchedulerInterface):
++            waiting_pp_decode_batch_limit = pp_decode_batch_limit
++            if self.pp_dflash_decode_partitions > 1 and (
++                self.waiting or self.skipped_waiting
++            ):
++                # A previously decoding request can resume directly through
++                # WAITING after KV restoration. Add only those known decode-like
++                # requests here; fresh prefix-cache hits deliberately retain the
++                # normal admission behavior until they become RUNNING.
++                num_preempted_decode_reqs = sum(
++                    request.status == RequestStatus.PREEMPTED
++                    and request.num_output_tokens > 0
++                    for request in itertools.chain(self.waiting, self.skipped_waiting)
++                )
++                if num_preempted_decode_reqs:
++                    waiting_decode_reqs = (
++                        num_running_decode_reqs + num_preempted_decode_reqs
++                    )
++                    waiting_pp_decode_batch_limit = (
++                        waiting_decode_reqs + self.pp_dflash_decode_partitions - 1
++                    ) // self.pp_dflash_decode_partitions
+@@ -922,8 +998,0 @@ class Scheduler(SchedulerInterface):
+-                    # Track first scheduled prefill, not post-preemption repeat prefills
+-                    if request.prefill_stats and request.num_preemptions <= 0:
+-                        assert num_computed_tokens <= request.num_prompt_tokens
+-                        request.prefill_stats.set(
+-                            num_prompt_tokens=request.num_prompt_tokens,
+-                            num_local_cached_tokens=num_new_local_computed_tokens,
+-                            num_external_cached_tokens=num_external_computed_tokens,
+-                        )
+@@ -936,0 +1006,32 @@ class Scheduler(SchedulerInterface):
++                waiting_request_is_decode = (
++                    request.status == RequestStatus.PREEMPTED
++                    and request.num_output_tokens > 0
++                    and not load_kv_async
++                    and num_computed_tokens >= request.num_tokens - 1
++                )
++                if (
++                    waiting_request_is_decode
++                    and waiting_pp_decode_batch_limit is not None
++                    and len(scheduled_pp_decode_req_ids)
++                    >= waiting_pp_decode_batch_limit
++                ):
++                    # Keep walking the queue so prefills can still fill the
++                    # unused token budget, but do not let a resumed decode join
++                    # a cohort that is already full.
++                    request_queue.pop_request()
++                    step_skipped_waiting.prepend_request(request)
++                    continue
++
++                # Track first scheduled prefill, not post-preemption repeat prefills.
++                if (
++                    did_prefix_cache_lookup
++                    and request.prefill_stats
++                    and request.num_preemptions <= 0
++                ):
++                    assert num_computed_tokens <= request.num_prompt_tokens
++                    request.prefill_stats.set(
++                        num_prompt_tokens=request.num_prompt_tokens,
++                        num_local_cached_tokens=num_new_local_computed_tokens,
++                        num_external_cached_tokens=num_external_computed_tokens,
++                    )
++
+@@ -1144,0 +1246,2 @@ class Scheduler(SchedulerInterface):
++                if waiting_request_is_decode:
++                    scheduled_pp_decode_req_ids.add(request_id)
+@@ -1433,0 +1537,13 @@ class Scheduler(SchedulerInterface):
++            if (
++                self.use_v2_model_runner
++                and self.use_pp
++                and self.vllm_config.speculative_config is not None
++                and not request.is_prefill_chunk
++            ):
++                # The sampled-token FIFO for PP returns step T at
++                # T + pipeline_parallel_size. Keep sync scheduling on that
++                # cadence so drafts cannot make a request runnable before its
++                # sampled anchor has arrived.
++                request.next_decode_eligible_step = (
++                    self.current_step + self.parallel_config.pipeline_parallel_size
++                )
+@@ -1780,0 +1897,4 @@ class Scheduler(SchedulerInterface):
++        output_draft_token_ids = model_runner_output.draft_token_ids
++        draft_eligible_req_ids: set[str] | None = (
++            set() if output_draft_token_ids is not None else None
++        )
+@@ -2082,0 +2203,8 @@ class Scheduler(SchedulerInterface):
++            if (
++                draft_eligible_req_ids is not None
++                and new_token_ids
++                and not output_is_stale
++                and request.status == RequestStatus.RUNNING
++            ):
++                draft_eligible_req_ids.add(req_id)
++
+@@ -2118,0 +2247,6 @@ class Scheduler(SchedulerInterface):
++        if output_draft_token_ids is not None:
++            assert draft_eligible_req_ids is not None
++            self._update_draft_token_ids_from_output(
++                output_draft_token_ids, draft_eligible_req_ids
++            )
++
+@@ -2303,5 +2437,26 @@ class Scheduler(SchedulerInterface):
+-            # Add newly generated spec token ids to the request.
+-            if self.structured_output_manager.should_advance(request):
+-                metadata = request.structured_output_request
+-                spec_token_ids = metadata.grammar.validate_tokens(spec_token_ids)  # type: ignore[union-attr]
+-            request.spec_token_ids = spec_token_ids
++            self._set_request_draft_token_ids(request, spec_token_ids)
++
++    def _update_draft_token_ids_from_output(
++        self,
++        draft_token_ids: DraftTokenIds,
++        eligible_req_ids: set[str],
++    ) -> None:
++        for req_id, spec_token_ids in zip(
++            draft_token_ids.req_ids,
++            draft_token_ids.draft_token_ids,
++            strict=True,
++        ):
++            if req_id not in eligible_req_ids:
++                continue
++            request = self.requests.get(req_id)
++            if request is None or request.status != RequestStatus.RUNNING:
++                continue
++            self._set_request_draft_token_ids(request, spec_token_ids)
++
++    def _set_request_draft_token_ids(
++        self, request: Request, spec_token_ids: list[int]
++    ) -> None:
++        if self.structured_output_manager.should_advance(request):
++            metadata = request.structured_output_request
++            spec_token_ids = metadata.grammar.validate_tokens(spec_token_ids)  # type: ignore[union-attr]
++        request.spec_token_ids = spec_token_ids
+diff --git a/vllm/v1/engine/core.py b/vllm/v1/engine/core.py
+index c734e67229c128655c221974a400133ec2e5c0f9..f79156e21d5193cf0aa9315bd917c18c00ea1f42 100644
+--- a/vllm/v1/engine/core.py
++++ b/vllm/v1/engine/core.py
+@@ -238,0 +239,8 @@ class EngineCore:
++        speculative_config = vllm_config.speculative_config
++        self.dflash_draft_tokens_in_output = (
++            self.batch_queue is not None
++            and not self.async_scheduling
++            and vllm_config.use_v2_model_runner
++            and speculative_config is not None
++            and speculative_config.method == "dflash"
++        )
+@@ -633 +641,6 @@ class EngineCore:
+-        if self.check_for_draft_tokens and not self.async_scheduling and model_executed:
++        if (
++            self.check_for_draft_tokens
++            and not self.async_scheduling
++            and model_executed
++            and not self.dflash_draft_tokens_in_output
++        ):
+@@ -637,0 +651,26 @@ class EngineCore:
++    def _validate_dflash_draft_tokens_in_output(
++        self,
++        scheduler_output: SchedulerOutput,
++        model_output: ModelRunnerOutput,
++    ) -> None:
++        if (
++            not self.dflash_draft_tokens_in_output
++            or scheduler_output.total_num_scheduled_tokens == 0
++        ):
++            return
++        draft_token_ids = model_output.draft_token_ids
++        if draft_token_ids is None:
++            raise RuntimeError(
++                "Missing DFlash draft tokens for a queued pipeline output"
++            )
++        if (
++            draft_token_ids.req_ids != model_output.req_ids
++            or len(draft_token_ids.draft_token_ids) != len(draft_token_ids.req_ids)
++            or not set(draft_token_ids.req_ids).issubset(
++                scheduler_output.num_scheduled_tokens
++            )
++        ):
++            raise RuntimeError(
++                "DFlash draft tokens do not match their queued pipeline output"
++            )
++
+@@ -719,0 +759 @@ class EngineCore:
++        self._validate_dflash_draft_tokens_in_output(scheduler_output, model_output)
+diff --git a/vllm/v1/outputs.py b/vllm/v1/outputs.py
+index 94f1776c0523907af0a64790e6a8400e10c24373..a50298c285ac760435456635698ef0c46deefd85 100644
+--- a/vllm/v1/outputs.py
++++ b/vllm/v1/outputs.py
+@@ -378,0 +379,4 @@ class ModelRunnerOutput:
++    # Draft tokens generated for this sampled output. Used by synchronous
++    # pipeline scheduling to keep proposals associated with their batch.
++    draft_token_ids: "DraftTokenIds | None" = None
++
+diff --git a/vllm/v1/spec_decode/dflash.py b/vllm/v1/spec_decode/dflash.py
+index e773ecf305961d713e9ff0936b9df92e8adce69a..d46363602a96cec2aa1b7bb276f2b96b488c6ae5 100644
+--- a/vllm/v1/spec_decode/dflash.py
++++ b/vllm/v1/spec_decode/dflash.py
+@@ -85,0 +86 @@ class DFlashProposer(SpecDecodeBaseProposer):
++            dflash_inherits_target_rope_style,
+@@ -91,5 +92,6 @@ class DFlashProposer(SpecDecodeBaseProposer):
+-        # The drafter must rotate Q/K the way its target does. Take that from the
+-        # built target before super() constructs the draft.
+-        is_neox_style = dflash_target_rope_is_neox_style(target_model)
+-        if is_neox_style is not None:
+-            draft_model_config.hf_config.is_neox_style = is_neox_style
++        # Legacy DFlash heads inherit their target's RoPE layout. DFlash2 keeps
++        # the Qwen layout it was trained with.
++        if dflash_inherits_target_rope_style(draft_model_config.hf_config):
++            is_neox_style = dflash_target_rope_is_neox_style(target_model)
++            if is_neox_style is not None:
++                draft_model_config.hf_config.is_neox_style = is_neox_style
+diff --git a/vllm/v1/worker/gpu/input_batch.py b/vllm/v1/worker/gpu/input_batch.py
+index 9a574a4faac52c946060509bcd8744bc8728bdba..bc9146ca127dae229157708b3663e2e5c87a86b5 100644
+--- a/vllm/v1/worker/gpu/input_batch.py
++++ b/vllm/v1/worker/gpu/input_batch.py
+@@ -113,0 +114,2 @@ class InputBatch:
++    # [num_reqs] draft width from each request's prior scheduled step under PP.
++    prev_num_draft_tokens_per_req: np.ndarray | None = None
+diff --git a/vllm/v1/worker/gpu/model_runner.py b/vllm/v1/worker/gpu/model_runner.py
+index 5ba4b97f3c5d3db770f78db46b4700b8272fee3a..8ac3b8cb740b1790775451c458f04b66336cead3 100644
+--- a/vllm/v1/worker/gpu/model_runner.py
++++ b/vllm/v1/worker/gpu/model_runner.py
+@@ -21,0 +22,3 @@ import gc
++import hashlib
++import json
++import os
+@@ -66 +69,5 @@ from vllm.utils.torch_utils import STR_DTYPE_TO_TORCH_DTYPE
+-from vllm.v1.core.sched.output import GrammarOutput, SchedulerOutput
++from vllm.v1.core.sched.output import (
++    CachedRequestData,
++    GrammarOutput,
++    SchedulerOutput,
++)
+@@ -183,0 +191,6 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++        self._pp_dflash_trace_limit = max(
++            0, int(os.environ.get("VLLM_PP_DFLASH_TRACE_STEPS", "0"))
++        )
++        self._pp_dflash_trace_count = 0
++        self._pp_dflash_trace_active_step: int | None = None
++
+@@ -265 +278 @@ class GPUModelRunner(LoRAModelRunnerMixin):
+-                if self.use_pp:
++                if self.use_pp and self.speculative_config.method != "dflash":
+@@ -269,0 +283,9 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++                if self.use_pp and (
++                    get_pp_group().world_size != 2
++                    or self.parallel_config.tensor_parallel_size != 1
++                    or self.model_config.architecture != "GlmMoeDsaForCausalLM"
++                ):
++                    raise ValueError(
++                        "Experimental DFlash pipeline support is restricted to "
++                        "GlmMoeDsaForCausalLM with PP2 and TP1."
++                    )
+@@ -394,0 +417,13 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++            if (
++                self.use_pp
++                and self.speculative_config is not None
++                and self.speculative_config.method == "dflash"
++            ):
++                from vllm.v1.worker.gpu.spec_decode.dflash.utils import (
++                    sync_dflash_embedding_for_pp,
++                )
++
++                draft_model = (
++                    self.speculator.model if self.speculator is not None else None
++                )
++                sync_dflash_embedding_for_pp(self.model, draft_model)
+@@ -994 +1029,3 @@ class GPUModelRunner(LoRAModelRunnerMixin):
+-            outputs = self.pp_handler.get_prev_sampled_outputs()
++            outputs = self.pp_handler.get_prev_sampled_outputs(
++                self.req_states.draft_tokens
++            )
+@@ -1069,0 +1107,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++        # In synchronous PP, the scheduler returns the sampled token that starts
++        # this step. Make it authoritative on non-last ranks before input
++        # preparation. The PP side channel still carries speculative proposals
++        # and postprocess metadata; async PP omits new_token_ids and keeps using
++        # that path exclusively.
++        self._sync_pp_request_state(reqs)
++
+@@ -1091,0 +1136,36 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++    def _sync_pp_request_state(self, reqs: CachedRequestData) -> None:
++        if self.is_last_pp_rank or not reqs.new_token_ids:
++            return
++        assert len(reqs.new_token_ids) == len(reqs.req_ids)
++
++        req_indices_np = np.fromiter(
++            map(self.req_states.req_id_to_index.__getitem__, reqs.req_ids),
++            dtype=np.int64,
++            count=len(reqs.req_ids),
++        )
++        req_indices = async_copy_to_gpu(req_indices_np, device=self.device)
++        computed_np = np.asarray(reqs.num_computed_tokens, dtype=np.int32)
++        computed = async_copy_to_gpu(computed_np, device=self.device)
++        self.req_states.num_computed_tokens.gpu[req_indices] = computed
++
++        sampled_req_indices_np = np.fromiter(
++            (
++                req_index
++                for req_index, token_ids in zip(req_indices_np, reqs.new_token_ids)
++                if token_ids
++            ),
++            dtype=np.int64,
++        )
++        if sampled_req_indices_np.size == 0:
++            return
++        sampled_tokens_np = np.fromiter(
++            (token_ids[-1] for token_ids in reqs.new_token_ids if token_ids),
++            dtype=np.int64,
++            count=sampled_req_indices_np.size,
++        )
++        sampled_req_indices = async_copy_to_gpu(
++            sampled_req_indices_np, device=self.device
++        )
++        sampled_tokens = async_copy_to_gpu(sampled_tokens_np, device=self.device)
++        self.req_states.last_sampled_tokens[sampled_req_indices, 0] = sampled_tokens
++
+@@ -1144,0 +1225,104 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++    @staticmethod
++    def _pp_dflash_tensor_summary(
++        tensor: torch.Tensor, num_tokens: int
++    ) -> dict[str, object]:
++        active = tensor[:num_tokens].detach().contiguous()
++        payload = active.view(torch.uint8).cpu().numpy().tobytes()
++        return {
++            "shape": list(active.shape),
++            "dtype": str(active.dtype),
++            "sha256": hashlib.sha256(payload).hexdigest(),
++        }
++
++    def _trace_pp_dflash_inputs(self, input_batch: InputBatch) -> None:
++        if (
++            self._pp_dflash_trace_count >= self._pp_dflash_trace_limit
++            or input_batch.num_draft_tokens == 0
++        ):
++            self._pp_dflash_trace_active_step = None
++            return
++
++        step = self._pp_dflash_trace_count
++        self._pp_dflash_trace_count += 1
++        self._pp_dflash_trace_active_step = step
++        req_indices = input_batch.idx_mapping
++        num_tokens = input_batch.num_tokens
++        logger.warning(
++            "PP_DFLASH_TRACE %s",
++            json.dumps(
++                {
++                    "event": "inputs",
++                    "step": step,
++                    "pp_rank": get_pp_group().rank_in_group,
++                    "req_ids": input_batch.req_ids,
++                    "idx_mapping": input_batch.idx_mapping_np.tolist(),
++                    "num_scheduled_tokens": input_batch.num_scheduled_tokens.tolist(),
++                    "num_draft_tokens_per_req": (
++                        input_batch.num_draft_tokens_per_req.tolist()
++                        if input_batch.num_draft_tokens_per_req is not None
++                        else None
++                    ),
++                    "input_ids": input_batch.input_ids[:num_tokens].cpu().tolist(),
++                    "positions": input_batch.positions[:num_tokens].cpu().tolist(),
++                    "query_start_loc": input_batch.query_start_loc[
++                        : input_batch.num_reqs + 1
++                    ]
++                    .cpu()
++                    .tolist(),
++                    "seq_lens": input_batch.seq_lens[: input_batch.num_reqs]
++                    .cpu()
++                    .tolist(),
++                    "logits_indices": input_batch.logits_indices.cpu().tolist(),
++                    "input_ids_at_logits_indices": input_batch.input_ids[
++                        input_batch.logits_indices
++                    ]
++                    .cpu()
++                    .tolist(),
++                    "cu_num_logits": input_batch.cu_num_logits[
++                        : input_batch.num_reqs + 1
++                    ]
++                    .cpu()
++                    .tolist(),
++                    "last_sampled_tokens": self.req_states.last_sampled_tokens[
++                        req_indices
++                    ]
++                    .cpu()
++                    .tolist(),
++                    "draft_tokens": self.req_states.draft_tokens[req_indices]
++                    .cpu()
++                    .tolist(),
++                    "num_computed_tokens_gpu": self.req_states.num_computed_tokens.gpu[
++                        req_indices
++                    ]
++                    .cpu()
++                    .tolist(),
++                    "num_computed_tokens_cpu": (
++                        input_batch.num_computed_tokens_np.tolist()
++                    ),
++                },
++                sort_keys=True,
++            ),
++        )
++
++    def _trace_pp_dflash_tensors(
++        self, event: str, tensors: IntermediateTensors, num_tokens: int
++    ) -> None:
++        step = self._pp_dflash_trace_active_step
++        if step is None:
++            return
++        logger.warning(
++            "PP_DFLASH_TRACE %s",
++            json.dumps(
++                {
++                    "event": event,
++                    "step": step,
++                    "pp_rank": get_pp_group().rank_in_group,
++                    "tensors": {
++                        name: self._pp_dflash_tensor_summary(tensor, num_tokens)
++                        for name, tensor in sorted(tensors.tensors.items())
++                    },
++                },
++                sort_keys=True,
++            ),
++        )
++
+@@ -1196,0 +1381,9 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++        prev_num_draft_tokens_per_req = None
++        if self.use_pp:
++            prev_num_draft_tokens_per_req = self.req_states.prev_num_draft_tokens[
++                idx_mapping_np
++            ].copy()
++            self.req_states.prev_num_draft_tokens[idx_mapping_np] = (
++                num_draft_tokens_per_req if num_draft_tokens_per_req is not None else 0
++            )
++
+@@ -1342,0 +1536 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++            prev_num_draft_tokens_per_req=prev_num_draft_tokens_per_req,
+@@ -1510 +1703,0 @@ class GPUModelRunner(LoRAModelRunnerMixin):
+-            self.update_pp_decode_requests()
+@@ -1511,0 +1705 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++            self.update_pp_decode_requests()
+@@ -1575,0 +1770 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++            self._trace_pp_dflash_inputs(input_batch)
+@@ -1699,0 +1895,4 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++            active_n = input_batch.num_tokens
++            self._trace_pp_dflash_tensors(
++                "intermediate_received_wire", intermediate_tensors, active_n
++            )
+@@ -1707,0 +1907,5 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++            self._trace_pp_dflash_tensors(
++                "intermediate_received_copy",
++                model_inputs["intermediate_tensors"],
++                active_n,
++            )
+@@ -1770,0 +1975,3 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++            self._trace_pp_dflash_tensors(
++                "intermediate_sent", model_output, input_batch.num_tokens
++            )
+@@ -1845,0 +2053,17 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++        if self._pp_dflash_trace_active_step is not None:
++            logger.warning(
++                "PP_DFLASH_TRACE %s",
++                json.dumps(
++                    {
++                        "event": "sampled",
++                        "step": self._pp_dflash_trace_active_step,
++                        "pp_rank": get_pp_group().rank_in_group,
++                        "sampled_token_ids": (
++                            sampler_output.sampled_token_ids.cpu().tolist()
++                        ),
++                        "num_sampled": num_sampled.cpu().tolist(),
++                        "num_rejected": num_rejected.cpu().tolist(),
++                    },
++                    sort_keys=True,
++                ),
++            )
+@@ -1949,0 +2174,16 @@ class GPUModelRunner(LoRAModelRunnerMixin):
++            # The other PP ranks have no drafter, so hand them the proposals
++            # they must feed the target on the next step.
++            if self.pp_handler is not None:
++                self.pp_handler.broadcast_drafts(
++                    self.req_states.draft_tokens, input_batch
++                )
++            if (
++                self.use_pp
++                and not self.scheduler_config.async_scheduling
++                and self.vllm_config.use_v2_model_runner
++                and self.speculative_config is not None
++                and self.speculative_config.method == "dflash"
++            ):
++                model_runner_output.draft_token_ids = (
++                    self.draft_tokens_handler.get_draft_tokens()
++                )
+diff --git a/vllm/v1/worker/gpu/pp_utils.py b/vllm/v1/worker/gpu/pp_utils.py
+index 9b1786cbe4cfb4634787a8fc4397efa5e03ee656..ae616c82dc1e11adf641c054bbbb6082a7a21d78 100644
+--- a/vllm/v1/worker/gpu/pp_utils.py
++++ b/vllm/v1/worker/gpu/pp_utils.py
+@@ -32,0 +33,18 @@ class PendingRecv:
++    # Draft proposals for the step this slot feeds, when spec decoding is on.
++    draft_tokens: torch.Tensor | None = None  # [num_reqs, num_speculative_steps]
++
++
++def _pad_sampled_tokens(
++    sampled_token_ids: torch.Tensor, max_sample_len: int
++) -> torch.Tensor:
++    """Pad sampled tokens to the fixed width used by PP receivers."""
++    width = sampled_token_ids.shape[-1]
++    if width > max_sample_len:
++        raise ValueError(
++            f"Sampled token width {width} exceeds PP receive width {max_sample_len}."
++        )
++    if width == max_sample_len:
++        return sampled_token_ids
++    padded = sampled_token_ids.new_zeros(sampled_token_ids.shape[0], max_sample_len)
++    padded[:, :width] = sampled_token_ids
++    return padded
+@@ -46,2 +64,6 @@ def compute_need_sampled_mask(input_batch: InputBatch) -> np.ndarray | None:
+-    # Exclude requests that we know are finished.
+-    not_finishing = np.maximum(old_computed, prefill_len) + 1 < max_seq_len
++    # Discount drafts from the prior step: scheduler advances num_computed by
++    # full width before PP peers consume that step's sample broadcast.
++    finish_computed = old_computed
++    if input_batch.prev_num_draft_tokens_per_req is not None:
++        finish_computed = old_computed - input_batch.prev_num_draft_tokens_per_req
++    not_finishing = np.maximum(finish_computed, prefill_len) + 1 < max_seq_len
+@@ -67,0 +90 @@ class PPHandler:
++        self.num_speculative_steps = num_speculative_steps
+@@ -93 +116,3 @@ class PPHandler:
+-    def get_prev_sampled_outputs(self) -> dict[str, torch.Tensor] | None:
++    def get_prev_sampled_outputs(
++        self, draft_tokens_to_update: torch.Tensor | None = None
++    ) -> dict[str, torch.Tensor] | None:
+@@ -109,0 +135,4 @@ class PPHandler:
++        # The slot owns buffers being filled on the side stream. Queue
++        # invalidation can make every row stale, but it cannot make those
++        # in-flight writes safe to release or reuse before the event.
++        self.main_stream.wait_event(slot.event)
+@@ -118 +147,13 @@ class PPHandler:
+-        self.main_stream.wait_event(slot.event)
++        if slot.draft_tokens is not None and draft_tokens_to_update is not None:
++            draft_tokens = slot.draft_tokens
++            draft_idx_mapping = slot.idx_mapping
++            # A freed index may already belong to a new request.
++            if exclude_mask.any():
++                keep = ~exclude_mask
++                keep_t = torch.as_tensor(keep, device=self.device)
++                draft_tokens = draft_tokens[keep_t]
++                draft_idx_mapping = async_copy_to_gpu(
++                    slot.idx_mapping_np[keep], device=self.device
++                )
++            draft_tokens_to_update[draft_idx_mapping] = draft_tokens
++
+@@ -125,0 +167,18 @@ class PPHandler:
++    def broadcast_drafts(
++        self, draft_tokens: torch.Tensor, input_batch: InputBatch
++    ) -> None:
++        """Broadcast draft proposals so non-last ranks can embed real token ids."""
++        assert self.is_last_rank
++        if compute_need_sampled_mask(input_batch) is None:
++            return
++        # Snapshot the persistent per-request rows on the main stream. Slot
++        # reuse and the next draft step also mutate this tensor on the main
++        # stream, so gathering it on the side stream would race those writes.
++        send = draft_tokens[input_batch.idx_mapping].contiguous()
++        with torch.cuda.stream(self.broadcast_stream):
++            self.broadcast_stream.wait_stream(self.main_stream)
++            torch.distributed.broadcast(
++                send, src=self.last_rank, group=self.broadcast_group
++            )
++            send.record_stream(self.broadcast_stream)
++
+@@ -151,0 +211,11 @@ class PPHandler:
++            draft_tokens = None
++            if self.num_speculative_steps > 0:
++                draft_tokens = torch.empty(
++                    num_reqs,
++                    self.num_speculative_steps,
++                    dtype=torch.int64,
++                    device=self.device,
++                )
++                torch.distributed.broadcast(
++                    draft_tokens, src=self.last_rank, group=self.broadcast_group
++                )
+@@ -157,0 +228,2 @@ class PPHandler:
++            if draft_tokens is not None:
++                draft_tokens.record_stream(self.main_stream)
+@@ -166,0 +239 @@ class PPHandler:
++            draft_tokens,
+@@ -188,0 +262,2 @@ class PPHandler:
++            send_tokens = _pad_sampled_tokens(sampled_token_ids, self.max_sample_len)
++            send_tokens = send_tokens.contiguous()
+@@ -190 +265 @@ class PPHandler:
+-                sampled_token_ids.contiguous(),
++                send_tokens,
+@@ -198 +273,7 @@ class PPHandler:
+-            for tensor in (sampled_token_ids, num_sampled, num_rejected):
++            for tensor in (
++                sampled_token_ids,
++                send_tokens,
++                num_sampled,
++                num_rejected,
++                combined,
++            ):
+diff --git a/vllm/v1/worker/gpu/spec_decode/dflash/utils.py b/vllm/v1/worker/gpu/spec_decode/dflash/utils.py
+index b9e6ea02f4663cb0546c911a1f910e883886cf7e..5d011ecedcc2feda2a8ecc4a9bd0085c7f5c0b10 100644
+--- a/vllm/v1/worker/gpu/spec_decode/dflash/utils.py
++++ b/vllm/v1/worker/gpu/spec_decode/dflash/utils.py
+@@ -2,0 +3,3 @@
++import gc
++
++import torch
+@@ -6,0 +10 @@ from vllm.distributed.parallel_state import get_pp_group
++from vllm.logger import init_logger
+@@ -12,0 +17,97 @@ from vllm.v1.worker.gpu.spec_decode.eagle.utils import (
++logger = init_logger(__name__)
++
++
++def sync_dflash_embedding_for_pp(
++    target_model: nn.Module,
++    dflash_model: nn.Module | None,
++) -> None:
++    """Copy the target embedding from the first to the last PP stage."""
++    pp_group = get_pp_group()
++    if pp_group.world_size == 1:
++        return
++    if pp_group.world_size != 2:
++        raise ValueError(
++            "DFlash embedding synchronization currently supports PP2 only."
++        )
++
++    logger.info("Starting DFlash PP embedding synchronization after model loading")
++    # ModelOpt repacking can leave large cached allocator segments behind on
++    # memory-tight pipeline stages. Release them before the ranks rendezvous
++    # and the first PP device collective lazily creates its NCCL workspace.
++    torch.accelerator.synchronize()
++    gc.collect()
++    torch.accelerator.empty_cache()
++
++    local_error = None
++    embedding = None
++    if pp_group.is_first_rank:
++        target_language_model = (
++            target_model.get_language_model()
++            if hasattr(target_model, "get_language_model")
++            else target_model
++        )
++        target_inner = getattr(target_language_model, "model", target_language_model)
++        embedding = getattr(target_inner, "embed_tokens", None)
++        if embedding is None:
++            embedding = getattr(target_inner, "embedding", None)
++        if embedding is None:
++            local_error = "The first PP stage does not expose target embeddings."
++    else:
++        if dflash_model is None:
++            local_error = "The last PP stage did not initialize a DFlash model."
++        else:
++            draft_inner = dflash_model.model
++            embedding = getattr(draft_inner, "embed_tokens", None)
++            if embedding is None:
++                local_error = "The DFlash model does not expose input embeddings."
++
++    weight = getattr(embedding, "weight", None)
++    if local_error is None and weight is None:
++        local_error = "The selected embedding module has no weight tensor."
++
++    local_metadata: dict[str, object] = {
++        "rank": pp_group.rank_in_group,
++        "error": local_error,
++        "shape": tuple(weight.shape) if weight is not None else None,
++        "dtype": str(weight.dtype) if weight is not None else None,
++        "device": weight.device.type if weight is not None else None,
++        "contiguous": weight.is_contiguous() if weight is not None else None,
++    }
++    all_metadata: list[dict[str, object]] = [{} for _ in range(pp_group.world_size)]
++    torch.distributed.all_gather_object(
++        all_metadata, local_metadata, group=pp_group.cpu_group
++    )
++
++    expected_shape = (
++        target_model.config.vocab_size,
++        target_model.config.hidden_size,
++    )
++    errors = []
++    expected_dtype = all_metadata[0]["dtype"]
++    for metadata in all_metadata:
++        if metadata["error"] is not None:
++            errors.append(f"rank {metadata['rank']}: {metadata['error']}")
++        elif metadata["shape"] != expected_shape:
++            errors.append(
++                f"rank {metadata['rank']}: shape {metadata['shape']} != "
++                f"{expected_shape}"
++            )
++        elif metadata["dtype"] != expected_dtype:
++            errors.append(
++                f"rank {metadata['rank']}: dtype {metadata['dtype']} != "
++                f"{expected_dtype}"
++            )
++        elif metadata["device"] != "cuda":
++            errors.append(
++                f"rank {metadata['rank']}: embedding is on {metadata['device']}"
++            )
++        elif not metadata["contiguous"]:
++            errors.append(f"rank {metadata['rank']}: embedding is not contiguous")
++    if errors:
++        raise ValueError(
++            "DFlash PP embedding synchronization preflight failed: " + "; ".join(errors)
++        )
++    assert weight is not None
++    pp_group.broadcast(weight, src=0)
++    logger.info("Completed DFlash PP embedding synchronization")
++
+@@ -17,0 +119 @@ def load_dflash_model(target_model: nn.Module, vllm_config: VllmConfig) -> nn.Mo
++        dflash_inherits_target_rope_style,
+@@ -24,5 +126,22 @@ def load_dflash_model(target_model: nn.Module, vllm_config: VllmConfig) -> nn.Mo
+-    # The drafter must rotate Q/K the way its target does. Take that from the
+-    # built target before super() constructs the draft.
+-    is_neox_style = dflash_target_rope_is_neox_style(target_model)
+-    if is_neox_style is not None:
+-        draft_model_config.hf_config.is_neox_style = is_neox_style
++    draft_parallel_config = speculative_config.draft_parallel_config
++    if vllm_config.parallel_config.pipeline_parallel_size > 1:
++        # The complete draft lives on the target's last PP stage. Model it as
++        # a local PP1/TP1 module so layer partitioning and model verification do
++        # not treat it as another target pipeline stage.
++        if (
++            vllm_config.parallel_config.pipeline_parallel_size != 2
++            or vllm_config.parallel_config.tensor_parallel_size != 1
++            or draft_parallel_config.tensor_parallel_size != 1
++        ):
++            raise ValueError("DFlash pipeline mode currently requires PP2 and TP1.")
++        draft_parallel_config = replace(
++            draft_parallel_config,
++            pipeline_parallel_size=1,
++            rank=0,
++        )
++    # Legacy DFlash heads inherit their target's RoPE layout. DFlash2 keeps the
++    # Qwen layout it was trained with.
++    if dflash_inherits_target_rope_style(draft_model_config.hf_config):
++        is_neox_style = dflash_target_rope_is_neox_style(target_model)
++        if is_neox_style is not None:
++            draft_model_config.hf_config.is_neox_style = is_neox_style
+@@ -32,0 +152 @@ def load_dflash_model(target_model: nn.Module, vllm_config: VllmConfig) -> nn.Mo
++        parallel_config=draft_parallel_config,
+diff --git a/vllm/v1/worker/gpu/spec_decode/utils.py b/vllm/v1/worker/gpu/spec_decode/utils.py
+index e25672e953bd3b88580c2496969d69bb7b3fec14..cbd1767072006c60ffcfdf9f89bafd51d606a5ac 100644
+--- a/vllm/v1/worker/gpu/spec_decode/utils.py
++++ b/vllm/v1/worker/gpu/spec_decode/utils.py
+@@ -52 +52 @@ class DraftTokensHandler:
+-        return DraftTokenIds(self.req_ids, draft_token_ids)
++        return DraftTokenIds(self.req_ids.copy(), draft_token_ids)
+diff --git a/vllm/v1/worker/gpu/states.py b/vllm/v1/worker/gpu/states.py
+index 025c8300fcd21c9def6903a6e1f8b424a8995dc8..1fc512321099ae08f5ba11e22a6fdea13c1f48b0 100644
+--- a/vllm/v1/worker/gpu/states.py
++++ b/vllm/v1/worker/gpu/states.py
+@@ -62,0 +63,2 @@ class RequestState:
++        # Draft width from the request's prior scheduled step.
++        self.prev_num_draft_tokens = np.zeros(self.max_num_reqs, dtype=np.int32)
+@@ -115,0 +118 @@ class RequestState:
++        self.prev_num_draft_tokens[req_idx] = 0
+@@ -116,0 +120 @@ class RequestState:
++        self.last_sampled_tokens[req_idx].zero_()

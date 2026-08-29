@@ -3,7 +3,8 @@
 This page contains the exact model, runtime, launch, workload, and capacity
 details kept out of the headline README and graph labels. The patched vLLM
 pipeline-parallel series has its own
-[PP2 + DFlash2 recipe](pp2_dflash2.md).
+[PP2 + DFlash2 recipe](pp2_dflash2.md), including the complete
+[21-file vLLM source overlay](vllm-overlay/).
 
 ## Exact target and runtime
 

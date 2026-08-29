@@ -74,8 +74,11 @@ serving engine.
 
 ## Launch skeleton
 
-Use the exact overlay files named by
-[`pp2-dflash2-provenance.json`](../data/pp2-dflash2-provenance.json), start the
+Apply the complete, source-only
+[`vLLM overlay`](vllm-overlay/) to the pinned base commit. Its patch includes
+all 21 source files that were bind-mounted into the measured containers, and
+its `SHA256SUMS` is byte-identical to the deployed overlay manifest named by
+[`pp2-dflash2-provenance.json`](../data/pp2-dflash2-provenance.json). Start the
 worker rank first, and substitute only the node rank, addresses, CDI GPU, local
 offline model paths, and proposal count.
 
@@ -94,6 +97,7 @@ export VLLM_ALLREDUCE_USE_SYMM_MEM=0
 export VLLM_MAX_TOKENS_PER_EXPERT_FP4_MOE=8192
 export VLLM_KV_CACHE_LAYOUT=BLHNC
 export VLLM_PP_DFLASH_DECODE_PARTITIONS=2
+export VLLM_PP_DFLASH_TRACE_STEPS=0
 export VLLM_PP_LAYER_PARTITION=42,36
 
 vllm serve /model \
@@ -132,9 +136,10 @@ vllm serve /model \
   --port 30000
 ```
 
-The real launches bind-mounted the verified overlay into the pinned image. The
-retained `runtime/node{0,1}/launch-command.json` files are the authoritative
-full Docker commands, including all mounted source files and CDI device IDs.
+The real launches bind-mounted the verified 21-file overlay into the pinned
+image. The retained `runtime/node{0,1}/launch-command.json` files are the
+authoritative full Docker commands, including all mounted source files and CDI
+device IDs.
 The C16/C32/C64 profile changes the skeleton to `--max-num-seqs 64`,
 `--gpu-memory-utilization 0.95`, K7, and CUDA graph sizes
 `1 2 4 8 16 32 64 128`.
@@ -145,6 +150,11 @@ published throughput runs deliberately used exact 8,192-token input and
 `--max-num-batched-tokens 8192` controls scheduler work per iteration and does
 not reduce the advertised request context. Verify the deployed KV envelope
 before relying on one request occupying the entire window.
+
+`VLLM_PP_DFLASH_TRACE_STEPS=0` keeps the overlay's optional tensor diagnostic
+disabled. Nonzero values introduce device-to-host copies and verbose logging;
+they are for correctness debugging only and were not used for any published
+throughput result.
 
 ## OpenCode 1M context
 

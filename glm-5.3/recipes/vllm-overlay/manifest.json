@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "base_source_commit": "c01b50e390e6d3d0019aa53f41ff1198c8105e5a",
+  "development_overlay_commit": "895c5d5c531f13351284133846e2b5c643d744f0",
+  "development_overlay_tree": "cd08d251f9fe82ff72ce1df0e21bfe529e8edbf2",
+  "scope": "exact 21-file deployed vllm/ source overlay; development-only tests excluded",
+  "patch": "vllm-c01b50e-to-895c5d5.patch",
+  "patch_sha256": "2b8b715c1021f1f1e3fad23b03c864970f124832178209b00eaae74ed9f2651f",
+  "file_manifest": "SHA256SUMS",
+  "file_manifest_sha256": "5921028ebd11487c511625a0eb7623e66a42c05b72206741ba5bd2fc7a7f8d2a",
+  "file_count": 21,
+  "runtime_toggles": {
+    "VLLM_PP_DFLASH_DECODE_PARTITIONS": {
+      "default": 1,
+      "deployed": 2,
+      "classification": "required PP cohort overlap"
+    },
+    "VLLM_PP_DFLASH_TRACE_STEPS": {
+      "default": 0,
+      "deployed": 0,
+      "classification": "optional diagnostic; disabled for all published measurements and production serving"
+    }
+  }
+}
