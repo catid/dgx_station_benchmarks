@@ -371,6 +371,7 @@ class SectionContractTests(unittest.TestCase):
             "--tp-size 2 --pp-size 1 --ep-size 2",
             "--speculative-draft-attention-backend trtllm_mha",
             "--speculative-dflash-block-size 8",
+            "--context-length 1048576",
         ):
             self.assertIn(fragment, launcher)
 
@@ -385,11 +386,39 @@ class SectionContractTests(unittest.TestCase):
             "--tp-size 1 --pp-size 2 --ep-size 1",
             "--max-running-requests 1",
             "--max-prefill-tokens 65536",
-            "--context-length 139264",
+            "--context-length 1048576",
             "--disable-cuda-graph",
         ):
             self.assertIn(fragment, pp2_launcher)
         self.assertNotIn("--speculative-", pp2_launcher)
+
+        pp2_recipe = (ROOT / "recipes/pp2_dflash2.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("--max-model-len 1048576", pp2_recipe)
+        self.assertNotIn("--max-model-len 10240", pp2_recipe)
+        self.assertNotIn("10,240", pp2_recipe)
+
+        opencode = json.loads(
+            (ROOT / "recipes/opencode-1m.jsonc").read_text(encoding="utf-8")
+        )
+        model = opencode["provider"]["dgx-glm53"]["models"][
+            "incoai/GLM-5.3-NVFP4"
+        ]
+        self.assertEqual(model["limit"]["context"], 1048576)
+        self.assertEqual(model["limit"]["output"], 65536)
+
+        provenance = json.loads(
+            (DATA / "pp2-dflash2-provenance.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(provenance["benchmark"]["input_tokens"], 8192)
+        self.assertEqual(provenance["benchmark"]["output_tokens"], 1024)
+        self.assertEqual(
+            provenance["server_profiles"]["interactive_c1_c16"][
+                "max_model_length"
+            ],
+            10240,
+        )
 
 
 if __name__ == "__main__":

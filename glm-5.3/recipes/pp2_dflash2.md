@@ -51,9 +51,9 @@ handoff that previously serialized or blocked C2+ PP decoding.
 | Target MoE | `FLASHINFER_TRTLLM` |
 | Draft attention | `FLASH_ATTN` dispatching FlashAttention 4 |
 | Target / draft KV | FP8 / BF16 |
-| Model length | 10,240 |
+| Advertised context | 1,048,576 tokens |
 | Maximum sequences | 16 interactive / 64 batch |
-| Maximum batched tokens | 8,192 |
+| Scheduler batch-token budget | 8,192; not a request-context limit |
 | HBM fraction | 0.93 interactive / 0.95 batch |
 | KV block size | 64 |
 | Prefix cache | Disabled |
@@ -114,7 +114,7 @@ vllm serve /model \
   --tool-call-parser glm47 \
   --enable-auto-tool-choice \
   --kv-cache-dtype fp8 \
-  --max-model-len 10240 \
+  --max-model-len 1048576 \
   --max-num-seqs 16 \
   --max-num-batched-tokens 8192 \
   --gpu-memory-utilization 0.93 \
@@ -138,6 +138,20 @@ full Docker commands, including all mounted source files and CDI device IDs.
 The C16/C32/C64 profile changes the skeleton to `--max-num-seqs 64`,
 `--gpu-memory-utilization 0.95`, K7, and CUDA graph sizes
 `1 2 4 8 16 32 64 128`.
+
+The serving skeleton advertises the model's 1M-token context window. The
+published throughput runs deliberately used exact 8,192-token input and
+1,024-token output; those workload lengths are not a production client cap.
+`--max-num-batched-tokens 8192` controls scheduler work per iteration and does
+not reduce the advertised request context. Verify the deployed KV envelope
+before relying on one request occupying the entire window.
+
+## OpenCode 1M context
+
+Use [`opencode-1m.jsonc`](opencode-1m.jsonc) as the custom-provider overlay.
+It reports `limit.context=1048576` to OpenCode and points at the same
+OpenAI-compatible endpoint. Do not copy a short benchmark acquisition envelope
+into OpenCode's model limits.
 
 ## Proposal sweep details
 

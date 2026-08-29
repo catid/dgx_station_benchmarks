@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "dgx-glm53": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "DGX Station GLM-5.3",
+      "options": {
+        "baseURL": "http://<CONTROLLER_IP>:30000/v1"
+      },
+      "models": {
+        "incoai/GLM-5.3-NVFP4": {
+          "name": "GLM-5.3 NVFP4 (1M)",
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          }
+        }
+      }
+    }
+  }
+}
