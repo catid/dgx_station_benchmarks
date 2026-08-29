@@ -71,8 +71,8 @@ paths. The script runs in Hugging Face offline mode and uses the immutable image
 digest.
 
 For OpenCode, copy [`opencode-1m.jsonc`](opencode-1m.jsonc), replace the
-controller address, and select the listed model. The overlay reports a
-1,048,576-token context instead of inheriting the decode benchmark envelope.
+controller address, and select the listed model. The overlay sets no client-side
+context or output limit; the server exposes the native 1M context.
 
 The published TP2+EP2 decode measurements used a smaller acquisition envelope:
 `mem-fraction-static=0.93`, 32 maximum running requests, 65,536 maximum prefill

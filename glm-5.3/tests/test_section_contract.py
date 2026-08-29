@@ -405,8 +405,7 @@ class SectionContractTests(unittest.TestCase):
         model = opencode["provider"]["dgx-glm53"]["models"][
             "incoai/GLM-5.3-NVFP4"
         ]
-        self.assertEqual(model["limit"]["context"], 1048576)
-        self.assertEqual(model["limit"]["output"], 65536)
+        self.assertNotIn("limit", model)
 
         provenance = json.loads(
             (DATA / "pp2-dflash2-provenance.json").read_text(encoding="utf-8")

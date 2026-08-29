@@ -149,9 +149,9 @@ before relying on one request occupying the entire window.
 ## OpenCode 1M context
 
 Use [`opencode-1m.jsonc`](opencode-1m.jsonc) as the custom-provider overlay.
-It reports `limit.context=1048576` to OpenCode and points at the same
-OpenAI-compatible endpoint. Do not copy a short benchmark acquisition envelope
-into OpenCode's model limits.
+It points at the same OpenAI-compatible endpoint without setting a client-side
+context or output limit. Do not copy a short benchmark acquisition envelope
+into the OpenCode model configuration.
 
 ## Proposal sweep details
 
