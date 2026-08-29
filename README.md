@@ -29,7 +29,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 | [DeepSeek-V4-Flash-0731](deepseek-v4-flash-0731/) | 304B/13B-active native mixed FP4-expert/FP8-dense checkpoint | DSpark: 345.8 output tok/s at C1; C128 raw, capacity-limited: 6,511.1 aggregate output tok/s |
 | [Ornith-1.5-397B](ornith-1.5-397b/) | Official ModelOpt NVFP4 W4A4 checkpoint; 1× TP1 and 2× PP2/TP2+EP | 1× C1: 129.8 output tok/s; 2× PP2 stable, capacity-limited C128: 3,799.6 aggregate tok/s |
 | [GLM-5.2](glm-5.2/) | Official NVIDIA NVFP4 checkpoint; 2× TP2+EP (1× does not fit) | C1: 68.0 output tok/s; shared-prefix C128: 2,012.4 aggregate tok/s |
-| [GLM-5.3](glm-5.3/) | Full-size 464.8 GB `incoai/GLM-5.3-NVFP4` with `GLM-5.3-DFlash2`; SGLang TP2+EP2 on 2× GB300 | C1: 165.5 code / 107.4 prose tok/s; offered C32: 570.0; exact 64K prefill: 8,018 prompt tok/s |
+| [GLM-5.3](glm-5.3/) | Full-size 464.8 GB `incoai/GLM-5.3-NVFP4`; SGLang DFlash2 decode and PP2/AR prefill on 2× GB300 | C1: 165.5 code / 107.4 prose tok/s; offered C32: 570.0; PP2/AR exact 64K prefill: 25,893 prompt tok/s |
 | [GLM-5.3-Flash](glm-5.3-flash/) | Official native FP8/vLLM plus `LibertAIDAI/GLM-5.3-Flash-NVFP4`/SGLang on 1× and 2× GB300; DFlash2 speculative decoding uses that NVFP4 base; 4× RTX PRO 6000 reference data | 1×: DFlash2 187.1 tok/s C1, AR 1,005.1 C64; 2×: DFlash2 198.0 C1 and 1,738.6 C64, AR 2,100.4 C64 |
 | [Hy3-FP8](hy3/) | Official FP8 checkpoint; 2× PP2 and TP2+EP (1× does not fit) | MTP2 C1: 141.9 output tok/s; MTP1 C64: 2,563.7; no-spec C128: 3,078.5 aggregate tok/s |
 | [MiniMax H3 video](minimax-h3-video/) | Official BF16 FL2VA checkpoint; resident 1× GB300, no offload | Official 5 s: 116.86 s mean; official 15 s: 719.29 s; experimental patched 30 s: 2,454.44 s |

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import unittest
@@ -18,6 +19,7 @@ TP2_PROFILE = "TP2+EP1 · TRTLLM-MHA · FI 0.6.17"
 FA4_PROFILE = "TP2+EP2 · FA4 · FI 0.6.17"
 RC10_PROFILE = "TP2+EP2 · TRTLLM-MHA · FI 0.6.18rc10"
 VLLM_PROFILE = "vLLM TP2+EP2 · CUTLASS MoE · FI 0.6.17"
+PP2_PREFILL_PROFILE = "PP2/AR 40/38 · FI 0.6.17"
 PROFILES = (FINAL_PROFILE, TP2_PROFILE, FA4_PROFILE, RC10_PROFILE, VLLM_PROFILE)
 
 
@@ -47,12 +49,23 @@ class SectionContractTests(unittest.TestCase):
             "c01b50e390e6d3d0019aa53f41ff1198c8105e5a",
         )
         self.assertEqual(checkpoint["topology"]["hosts"], 2)
+        prefill = checkpoint["prefill_profile"]
+        self.assertEqual(prefill["decode_mode"], "autoregressive")
+        self.assertIsNone(prefill["draft_attention"])
+        self.assertEqual(prefill["topology"]["tensor_parallel"], 1)
+        self.assertEqual(prefill["topology"]["pipeline_parallel"], 2)
+        self.assertEqual(prefill["topology"]["expert_parallel"], 1)
+        self.assertEqual(prefill["topology"]["pipeline_layer_partition"], [40, 38])
+        self.assertEqual(prefill["result"]["samples"], 5)
+        self.assertEqual(
+            prefill["result"]["median_prompt_tokens_per_second"], 25893
+        )
 
     def test_all_real_cells_are_present_without_interpolation(self) -> None:
         decode = rows("throughput.csv")
         prefill = rows("prefill.csv")
         self.assertEqual(len(decode), 15)
-        self.assertEqual(len(prefill), 2)
+        self.assertEqual(len(prefill), 3)
         self.assertEqual({row["profile"] for row in decode}, set(PROFILES))
         actual = {
             (row["profile"], row["workload"], int(row["requested_concurrency"]))
@@ -95,7 +108,8 @@ class SectionContractTests(unittest.TestCase):
             all(
                 row["publication_status"] == (
                     "measured"
-                    if row["profile"] in {FINAL_PROFILE, VLLM_PROFILE}
+                    if row["profile"]
+                    in {FINAL_PROFILE, VLLM_PROFILE, PP2_PREFILL_PROFILE}
                     else "diagnostic"
                 )
                 for row in decode + prefill
@@ -137,7 +151,31 @@ class SectionContractTests(unittest.TestCase):
         self.assertEqual(float(prefill[FINAL_PROFILE]["prompt_tokens_per_second"]), 8018)
         self.assertEqual(float(prefill[FINAL_PROFILE]["client_ttft_seconds"]), 8.174)
         self.assertEqual(int(prefill[FINAL_PROFILE]["actual_prompt_tokens"]), 65536)
+        self.assertEqual(
+            float(prefill[PP2_PREFILL_PROFILE]["prompt_tokens_per_second"]),
+            25893,
+        )
+        self.assertEqual(
+            float(prefill[PP2_PREFILL_PROFILE]["client_ttft_seconds"]), 2.531
+        )
+        self.assertEqual(int(prefill[PP2_PREFILL_PROFILE]["samples"]), 5)
         self.assertNotIn("8036", (DATA / "prefill.csv").read_text(encoding="utf-8"))
+
+        evidence = DATA / "pp2-prefill-samples.json"
+        evidence_sha256 = hashlib.sha256(evidence.read_bytes()).hexdigest()
+        self.assertEqual(
+            prefill[PP2_PREFILL_PROFILE]["source_artifact_sha256"],
+            evidence_sha256,
+        )
+        evidence_data = json.loads(evidence.read_text(encoding="utf-8"))
+        self.assertEqual(len(evidence_data["source_samples"]), 5)
+        self.assertTrue(
+            all(
+                len(sample["source_sha256"]) == 64
+                and len(sample["validation_sha256"]) == 64
+                for sample in evidence_data["source_samples"]
+            )
+        )
 
     def test_readmes_are_headline_first_and_recipe_has_caveats(self) -> None:
         section = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -147,6 +185,8 @@ class SectionContractTests(unittest.TestCase):
         self.assertIn("**165.5 output tok/s**", section)
         self.assertIn("**107.4 tok/s**", section)
         self.assertIn("**570.0 aggregate tok/s**", section)
+        self.assertIn("**25,893 prompt tok/s**", section)
+        self.assertIn("PP2/AR 40/38", section)
         self.assertIn("| **SGLang** | TP2+EP2 | TRTLLM-MHA |", section)
         self.assertIn("no standalone TensorRT-LLM result", section)
         self.assertIn("Serving engine is shown first", renderer)
@@ -155,6 +195,8 @@ class SectionContractTests(unittest.TestCase):
         self.assertIn("implicit maximum reasoning setting", recipe)
         self.assertIn("schema-v3 framing check", recipe)
         self.assertIn("accepted only 0.248 of seven draft", recipe)
+        self.assertIn("DFlash2 is unavailable with\nPP2", recipe)
+        self.assertIn("25,893 prompt tok/s", recipe)
         for text in (section, renderer):
             self.assertNotIn("source-sealed", text.lower())
             self.assertNotIn("sealed", text.lower())
@@ -171,6 +213,22 @@ class SectionContractTests(unittest.TestCase):
             "--speculative-dflash-block-size 8",
         ):
             self.assertIn(fragment, launcher)
+
+        pp2_launcher = (ROOT / "recipes/serve-prefill-pp2.sh").read_text(
+            encoding="utf-8"
+        )
+        for fragment in (
+            "sha256:e73ae9252ba7cd877b8ff98cddba11e65dcd6b8ff6817c7b680622cca7fa64b2",
+            "HF_HUB_OFFLINE=1",
+            "TRANSFORMERS_OFFLINE=1",
+            "SGLANG_PP_LAYER_PARTITION=40,38",
+            "--tp-size 1 --pp-size 2 --ep-size 1",
+            "--max-running-requests 1",
+            "--max-prefill-tokens 65536",
+            "--disable-cuda-graph",
+        ):
+            self.assertIn(fragment, pp2_launcher)
+        self.assertNotIn("--speculative-", pp2_launcher)
 
 
 if __name__ == "__main__":

@@ -37,6 +37,7 @@ GPUDirect RDMA.
 | `g53-s1-tep2-df2-fa4-fi0617-r1` | SGLang | TP2 / EP2 | FA4 | FlashInfer TRTLLM | 0.6.17 | C1 code/prose and C16 diagnostic |
 | `g53-b3-tep2-df2-fi0618rc10-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.18rc10 | C1 code diagnostic |
 | `g53-v2-tep2-df2-cutlass-r1` | vLLM | TP2 / EP2 | FA4 | FlashInfer CUTLASS | 0.6.17 | Valid C1 code challenger |
+| `g53-p0-pp2-ar-40-38-prefill-r1` | SGLang | PP2 40/38 | N/A (AR) | FlashInfer TRTLLM | 0.6.17 | Five exact 64K cold-prefill samples; headline median |
 
 The charts plot only those cells. They do not fill in missing concurrencies.
 The TP2+EP1 run used the earlier schema-v3 framing check, which did not reject
@@ -63,6 +64,21 @@ Run `serve.sh` on the worker first (`NODE_RANK=1`), then on the controller
 paths. The script runs in Hugging Face offline mode and uses the immutable image
 digest.
 
+## Long-prefill profile
+
+Run `serve-prefill-pp2.sh` on the worker first and then the controller for the
+long-prefill leader. It uses TP1 / PP2 / EP1, a 40/38 transformer-layer split,
+AR, one maximum running request, a 73,728-token context, 65,536 maximum prefill
+tokens, 8,192-token chunks, and CUDA graphs disabled. It uses the same SGLang
+commit, image, target checkpoint, FP8 KV cache, FlashInfer TRTLLM MoE, target
+DSA backends, and dual-rail GPUDirect RDMA transport as the decode profile.
+
+Prefill itself does not use speculative decoding. DFlash2 is unavailable with
+PP2 in this runtime, so this profile has no draft model or draft-attention
+backend. Switching the same server from PP2 prefill to TP2+EP2 DFlash2 decode
+would require a restart; the publication treats them as separate product
+profiles.
+
 ## Workload
 
 - Exact 8,192-token input and 1,024-token output per decode request.
@@ -77,7 +93,10 @@ digest.
 - Offered C64 used 64 warmups plus one 64-request measured wave.
 - Aggregate output rate is completed OpenAI-usage output tokens divided by the
   client monotonic measurement interval.
-- Cold prefill used one exact 65,536-token unique prompt and one output token.
+- The DFlash2 cold-prefill rows used one exact 65,536-token unique prompt and
+  one output token.
+- The PP2/AR headline is the median of five independently cache-isolated exact
+  65,536-token prompts with one output token.
 
 ## Observed concurrency
 
@@ -98,6 +117,10 @@ x-axis; this table preserves residency.
 
 ## Prefill note
 
-The published prefill row is the isolated rerun: 65,536 prompt tokens,
+The PP2/AR 40/38 profile produced 25,893 prompt tok/s at a 2.531-second median
+client TTFT over five samples. Individual rates were 25,893, 25,868, 25,896,
+25,568, and 25,908 prompt tok/s. Each sample used a distinct cache namespace.
+
+The TP2+EP2 DFlash2 comparison row is the isolated rerun: 65,536 prompt tokens,
 8.174-second client TTFT, and 8,018 prompt tok/s. An earlier 8,036 tok/s sample
 overlapped the C64 client and is excluded.

@@ -1,3 +1,4 @@
 run_id,profile,publication_status,nominal_context_tokens,actual_prompt_tokens,output_tokens,samples,client_ttft_seconds,prompt_tokens_per_second,cache_mode,source_artifact_sha256
 g53-b4-tep2-df2-low-bs32-schema5-r1,TP2+EP2 · TRTLLM-MHA · FI 0.6.17,measured,65536,65536,1,1,8.174,8018,isolated,2f7b59891a4328c3e7c0cff605e3af9495914ef67d1db711b738e6c4bcf08869
 g53-b1-tp2-df2-low-bs32-r1,TP2+EP1 · TRTLLM-MHA · FI 0.6.17,diagnostic,65536,65536,1,1,8.229,7964,isolated,f8807281adcb4e676c2e2a1e76d1529b99ff367b1ceaa804b85603e16b5fd12e
+g53-p0-pp2-ar-40-38-prefill-r1,PP2/AR 40/38 · FI 0.6.17,measured,65536,65536,1,5,2.531,25893,isolated,44fbb7c54cc70c7a667180917810743184ce142bc4bd30a61fab74de1e0777ee

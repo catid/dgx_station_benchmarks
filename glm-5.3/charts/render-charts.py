@@ -23,6 +23,7 @@ CHART_NAMES = ("decode-throughput.png", "prefill-throughput.png")
 
 FINAL_PROFILE = "TP2+EP2 · TRTLLM-MHA · FI 0.6.17"
 VLLM_PROFILE = "vLLM TP2+EP2 · CUTLASS MoE · FI 0.6.17"
+PP2_PREFILL_PROFILE = "PP2/AR 40/38 · FI 0.6.17"
 PROFILE_ORDER = (
     FINAL_PROFILE,
     "TP2+EP1 · TRTLLM-MHA · FI 0.6.17",
@@ -30,12 +31,14 @@ PROFILE_ORDER = (
     "TP2+EP2 · TRTLLM-MHA · FI 0.6.18rc10",
     VLLM_PROFILE,
 )
+PREFILL_PROFILE_ORDER = (PP2_PREFILL_PROFILE, *PROFILE_ORDER)
 PROFILE_STYLE = {
     PROFILE_ORDER[0]: ("#61DDAA", "o"),
     PROFILE_ORDER[1]: ("#5B8FF9", "s"),
     PROFILE_ORDER[2]: ("#F6903D", "^"),
     PROFILE_ORDER[3]: ("#A78BFA", "D"),
     PROFILE_ORDER[4]: ("#E8684A", "X"),
+    PP2_PREFILL_PROFILE: ("#FFD666", "P"),
 }
 PROFILE_DISPLAY = {
     PROFILE_ORDER[0]: "ENGINE: SGLang · TP2+EP2 · draft: TRTLLM-MHA · FI 0.6.17",
@@ -43,6 +46,7 @@ PROFILE_DISPLAY = {
     PROFILE_ORDER[2]: "ENGINE: SGLang · TP2+EP2 · draft: FA4 · FI 0.6.17",
     PROFILE_ORDER[3]: "ENGINE: SGLang · TP2+EP2 · draft: TRTLLM-MHA · FI 0.6.18rc10",
     PROFILE_ORDER[4]: "ENGINE: vLLM · TP2+EP2 · draft: FA4 · MoE: FI CUTLASS",
+    PP2_PREFILL_PROFILE: "ENGINE: SGLang · PP2/AR 40/38 · draft: N/A · FI 0.6.17",
 }
 
 
@@ -189,11 +193,11 @@ def render_decode() -> None:
 def render_prefill() -> None:
     prefill = rows("prefill.csv")
     by_profile = {row["profile"]: row for row in prefill}
-    profiles = [profile for profile in PROFILE_ORDER if profile in by_profile]
+    profiles = [profile for profile in PREFILL_PROFILE_ORDER if profile in by_profile]
     values = [float(by_profile[profile]["prompt_tokens_per_second"]) for profile in profiles]
     colors = [PROFILE_STYLE[profile][0] for profile in profiles]
 
-    figure, axis = plt.subplots(figsize=(9.6, 5.8))
+    figure, axis = plt.subplots(figsize=(11.8, 5.8))
     bars = axis.bar(profiles, values, width=0.58, color=colors)
     axis.set_title("GLM-5.3 NVFP4 — exact 64K cold prefill")
     axis.set_ylabel("Prompt tokens/second")
@@ -202,7 +206,7 @@ def render_prefill() -> None:
     axis.grid(True, axis="y", alpha=0.65)
     axis.set_xticks(range(len(profiles)))
     axis.set_xticklabels(
-        [display_profile(profile) for profile in profiles], rotation=7
+        [display_profile(profile) for profile in profiles], rotation=5
     )
     for bar, value in zip(bars, values, strict=True):
         axis.text(

@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "run_id": "g53-p0-pp2-ar-40-38-prefill-r1",
+  "target": {
+    "model_id": "incoai/GLM-5.3-NVFP4",
+    "revision": "54e52520606f96b3d9fc84088ad22882a61648ac",
+    "quantization": "ModelOpt NVFP4",
+    "kv_cache_dtype": "fp8_e4m3"
+  },
+  "runtime": {
+    "engine": "SGLang",
+    "source_commit": "4d78d59e516f96b1a86e1dd1a458fda2664427d6",
+    "image_digest": "sha256:e73ae9252ba7cd877b8ff98cddba11e65dcd6b8ff6817c7b680622cca7fa64b2",
+    "flashinfer": "0.6.17"
+  },
+  "topology": {
+    "hosts": 2,
+    "gpus_per_host": 1,
+    "tensor_parallel": 1,
+    "pipeline_parallel": 2,
+    "expert_parallel": 1,
+    "pipeline_layer_partition": [40, 38],
+    "decode_mode": "autoregressive",
+    "draft_attention": null
+  },
+  "launch_envelope": {
+    "mem_fraction_static": 0.93,
+    "context_length": 73728,
+    "max_running_requests": 1,
+    "max_prefill_tokens": 65536,
+    "chunked_prefill_size": 8192,
+    "cuda_graph": false,
+    "kv_tokens_per_rank": 904320,
+    "weight_memory_gb_by_stage": [206.96, 210.11],
+    "kv_memory_gb_by_stage": [20.74, 19.44]
+  },
+  "network": {
+    "rails": 2,
+    "hcas": ["mlx5_0:1", "mlx5_1:1"],
+    "transport": "NCCL IB with GPUDirect RDMA"
+  },
+  "benchmark": {
+    "actual_prompt_tokens": 65536,
+    "output_tokens": 1,
+    "cache_mode": "isolated unique prefix per sample",
+    "samples": 5,
+    "aggregation": "median",
+    "median_client_ttft_seconds": 2.531,
+    "median_prompt_tokens_per_second": 25893.0,
+    "minimum_prompt_tokens_per_second": 25568.0,
+    "maximum_prompt_tokens_per_second": 25908.0
+  },
+  "source_samples": [
+    {
+      "file": "cold-65536.json",
+      "timestamp": "2026-08-28T21:44:13.880065",
+      "prompt_tokens": 65536,
+      "client_ttft_seconds": 2.531,
+      "prompt_tokens_per_second": 25893.0,
+      "unique_prompt_sha256": "b539a7bed239cc841b796e4db16be726a5caf5f871eac3253e7696dc48a409f5",
+      "source_sha256": "99a5b13f2cca7143b4605ead2dbfedf7753b149783a8a998bbf894ee28c33695",
+      "validation_sha256": "5696b708e9c4e539700c8bc732fbb97b16e8dc1d14ea5ed9178a53e11973dba5"
+    },
+    {
+      "file": "cold-65536-r2.json",
+      "timestamp": "2026-08-28T21:44:56.309830",
+      "prompt_tokens": 65536,
+      "client_ttft_seconds": 2.534,
+      "prompt_tokens_per_second": 25868.0,
+      "unique_prompt_sha256": "345050457e1ca5f425a3c38c8d9be1178e0cb96c8ebf8234928a7f28e8717c84",
+      "source_sha256": "2f62c772f994ad46c449ac74c1b5133636cbff8a90c6129bc328b932d85e52b0",
+      "validation_sha256": "04b6e5985b26e8d4e6a347bbddde7bf751e88c731e538fe206bf3036404dc666"
+    },
+    {
+      "file": "cold-65536-r3.json",
+      "timestamp": "2026-08-28T21:45:17.948445",
+      "prompt_tokens": 65536,
+      "client_ttft_seconds": 2.531,
+      "prompt_tokens_per_second": 25896.0,
+      "unique_prompt_sha256": "1c76d1a7272e0ee941c7458165d285ee589a1861e6c9d6750b13619f17e17bfe",
+      "source_sha256": "e6cb474ff0cfdc93e15164be23a17a8468093c4ea525bcce22c935284edf10cc",
+      "validation_sha256": "b93f82b1bd1065d6a0e06ef4eab8a287a4746c3343121541d35d4bd07da77460"
+    },
+    {
+      "file": "cold-65536-r4.json",
+      "timestamp": "2026-08-28T21:45:39.802658",
+      "prompt_tokens": 65536,
+      "client_ttft_seconds": 2.563,
+      "prompt_tokens_per_second": 25568.0,
+      "unique_prompt_sha256": "1c1b6013e5d5ed075e31ad4c16979dd63a2c63651d36cd50e20ee182a53d93db",
+      "source_sha256": "89faa31e6352fa0d95bad12abe9492af893adcdcf18ff6ed91a7b65ff5bf9942",
+      "validation_sha256": "2822ff66e22a072b8a292fdc1f340e2cf91f4e629707534acb2ef9f6480e0225"
+    },
+    {
+      "file": "cold-65536-r5.json",
+      "timestamp": "2026-08-28T21:46:01.720150",
+      "prompt_tokens": 65536,
+      "client_ttft_seconds": 2.53,
+      "prompt_tokens_per_second": 25908.0,
+      "unique_prompt_sha256": "3c576d6f174022b96bb2cbc2654a932cc9c8c5dc6076e1f8e2f70f8cf6f550b8",
+      "source_sha256": "e4a06b5f855a13f701eab71a8470ef96e9430d2172eff109d4a3d6f74bbc9947",
+      "validation_sha256": "b5f88bd0f76e6509c8a9b2fceb69cfb9d19c140045d40a19b1d38627ede9eb75"
+    }
+  ]
+}

@@ -1,9 +1,10 @@
 # GLM-5.3 charts
 
 The renderer reads the section CSVs and produces the decode and cold-prefill
-headline figures. Every curve label starts with the serving engine. TRTLLM-MHA
-and FA4 are explicitly labeled as DFlash2 draft-attention kernels, not serving
-engines; there is no standalone TensorRT-LLM result in these charts.
+headline figures. Every label starts with the serving engine. The PP2/AR
+prefill leader is labeled `draft: N/A`; DFlash2 is not combined with PP2.
+TRTLLM-MHA and FA4 are DFlash2 draft-attention kernels, not serving engines;
+there is no standalone TensorRT-LLM result in these charts.
 
 Use CPython 3.12 and the pinned environment from the section root:
 

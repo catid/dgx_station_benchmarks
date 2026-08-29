@@ -55,6 +55,36 @@
     "draft_weight_memory_gb_per_rank": 3.19,
     "target_kv_memory_gb_per_rank": 13.85
   },
+  "prefill_profile": {
+    "run_id": "g53-p0-pp2-ar-40-38-prefill-r1",
+    "runtime": "SGLang",
+    "decode_mode": "autoregressive",
+    "draft_attention": null,
+    "topology": {
+      "hosts": 2,
+      "gpus_per_host": 1,
+      "tensor_parallel": 1,
+      "pipeline_parallel": 2,
+      "expert_parallel": 1,
+      "pipeline_layer_partition": [40, 38]
+    },
+    "memory": {
+      "mem_fraction_static": 0.93,
+      "context_length": 73728,
+      "max_running_requests": 1,
+      "max_prefill_tokens": 65536,
+      "chunked_prefill_size": 8192,
+      "target_kv_tokens_per_rank": 904320
+    },
+    "result": {
+      "samples": 5,
+      "actual_prompt_tokens": 65536,
+      "median_ttft_seconds": 2.531,
+      "median_prompt_tokens_per_second": 25893,
+      "range_prompt_tokens_per_second": [25568, 25908],
+      "evidence_sha256": "44fbb7c54cc70c7a667180917810743184ce142bc4bd30a61fab74de1e0777ee"
+    }
+  },
   "runs": [
     {
       "run_id": "g53-b2-tep2-df2-low-bs32-r1",
@@ -65,6 +95,11 @@
       "run_id": "g53-b4-tep2-df2-low-bs32-schema5-r1",
       "role": "validated C32, offered C64, and exact 64K prefill cells",
       "source_summary_sha256": "96916fda18db4409862f5954ab706148299bf6746dd62d5a39ace196aa545de9"
+    },
+    {
+      "run_id": "g53-p0-pp2-ar-40-38-prefill-r1",
+      "role": "five-sample exact 64K PP2/AR prefill headline",
+      "source_summary_sha256": "44fbb7c54cc70c7a667180917810743184ce142bc4bd30a61fab74de1e0777ee"
     }
   ]
 }
