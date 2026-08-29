@@ -6,19 +6,28 @@ with
 [`incoai/GLM-5.3-DFlash2@425aa61`](https://huggingface.co/incoai/GLM-5.3-DFlash2/tree/425aa615ce320caac34400208b30808c8f14f76c)
 on 2× NVIDIA DGX Station GB300.
 
-## Headline results
+## TP2 headline — SGLang TP2+EP2 · DFlash2 K7
 
-| Goal | Winning profile | Result | Residency / latency |
-| --- | --- | ---: | --- |
-| C1 code | SGLang TP2+EP2 · DFlash2 K7 | **165.5 tok/s** | 5.115 ms median ITL |
-| C1 prose | SGLang TP2+EP2 · DFlash2 K7 | **107.4 tok/s** | 8.206 ms median ITL |
-| C2 code | vLLM PP2 42/36 · DFlash2 K5 | **270.6 tok/s** | 1.9 / 2 active · 0.0% queued |
-| C4 code | vLLM PP2 42/36 · DFlash2 K5 | **409.9 tok/s** | 3.8 / 4 active · 0.0% queued |
-| C8 code | vLLM PP2 42/36 · DFlash2 K7 | **553.8 tok/s** | 7.6 / 8 active · 2.7% queued |
-| C16 code | vLLM PP2 42/36 · DFlash2 K7 | **742.0 tok/s** | 15.1 / 16 active · 3.6% queued |
-| C32 code | vLLM PP2 42/36 · DFlash2 K7 | **1,065.0 tok/s** | 29.9 / 32 active · 9.2% queued |
-| C64 code | vLLM PP2 42/36 · DFlash2 K7 | **1,093.8 tok/s** | 60.2 / 64 active · 11.1% queued |
-| Exact 64K cold prefill | SGLang PP2/AR 40/38 | **25,893 prompt tok/s** | 2.531 s median TTFT |
+| Workload | C1 | C2 | C4 | C8 | C16 | C32 | C64 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Code aggregate tok/s | **165.5** | — | — | — | **506.3†** | **570.0†** | **547.3†** |
+| Prose aggregate tok/s | **107.4** | — | — | — | — | — | — |
+
+† Queueing observed; C32/C64 reached at most 29 active requests.
+
+## PP2 headline — vLLM PP2 42/36 · DFlash2
+
+| Workload | C1 | C2 | C4 | C8 | C16 | C32 | C64 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Code aggregate tok/s | **154.9 K4** | **270.6 K5** | **409.9 K5** | **553.8 K7** | **742.0 K7** | **1,065.0 K7** | **1,093.8 K7** |
+| Prose aggregate tok/s | **106.3 K4** | — | — | — | — | — | — |
+
+## Cold prefill
+
+| Profile | Exact 8K | Exact 64K | Exact 128K |
+| --- | ---: | ---: | ---: |
+| SGLang PP2/AR 40/38 | **16,425 tok/s · 0.499 s** | **25,854 tok/s · 2.535 s** | **25,249 tok/s · 5.191 s** |
+| SGLang TP2+EP2/DFlash2 | — | **8,018 tok/s · 8.174 s** | — |
 
 ![GLM-5.3 output tokens per second per user](charts/per-user-throughput.png)
 

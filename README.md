@@ -19,6 +19,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 
 | Experiment | Checkpoint / precision | Headline result |
 | --- | --- | --- |
+| [GLM-5.3](glm-5.3/) | Full-size 464.8 GB `incoai/GLM-5.3-NVFP4`; SGLang TP2 and patched vLLM PP2 DFlash2 on 2× GB300 | TP2 C1: 165.5 code / 107.4 prose tok/s; PP2 K7: 742.0 C16, 1,093.8 C64; PP2/AR prefill: 16,425 at 8K, 25,854 at 64K, 25,249 at 128K prompt tok/s |
 | [Qwen3.8-Flash-Next](qwen3.8-flash-next/) | local-inference-lab NVFP4-4p89/SGLang on 1× DGX Station GB300; 4× RTX PRO 6000 comparison | 1× TP1/MTP3 + ReplaySSM: 354.6 tok/s C1, 2,927.8 C64; TP1/AR: 4,090.4 C64, 38,653 tok/s 64K prefill |
 | [Qwen3.8-27B](qwen3.8-27b/) | BF16 plus unofficial Huginn FP8 and NVFP4A16 targets; BF16 KV/Mamba state | DFlash2: 265.8 tok/s C1; MTP: 6,348.8 C128. Quant AR C128: FP8 5,494.4 (+8.7% vs BF16), NVFP4A16 3,607.4 (−28.6%) |
 | [Qwen2.5-72B LoRA FSDP training](qwen72b-lora-fsdp/) | BF16 LoRA SFT; FSDP2 over 2× GB300; packed UltraChat 10K at 2,048 tokens | 4,453.19 tokens/s; 29.433 s/optimizer step; global batch 131,072 tokens |
@@ -29,25 +30,19 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 | [DeepSeek-V4-Flash-0731](deepseek-v4-flash-0731/) | 304B/13B-active native mixed FP4-expert/FP8-dense checkpoint | DSpark: 345.8 output tok/s at C1; C128 raw, capacity-limited: 6,511.1 aggregate output tok/s |
 | [Ornith-1.5-397B](ornith-1.5-397b/) | Official ModelOpt NVFP4 W4A4 checkpoint; 1× TP1 and 2× PP2/TP2+EP | 1× C1: 129.8 output tok/s; 2× PP2 stable, capacity-limited C128: 3,799.6 aggregate tok/s |
 | [GLM-5.2](glm-5.2/) | Official NVIDIA NVFP4 checkpoint; 2× TP2+EP (1× does not fit) | C1: 68.0 output tok/s; shared-prefix C128: 2,012.4 aggregate tok/s |
-| [GLM-5.3](glm-5.3/) | Full-size 464.8 GB `incoai/GLM-5.3-NVFP4`; SGLang TP2 and patched vLLM PP2 DFlash2 on 2× GB300 | C1: 165.5 code / 107.4 prose tok/s; PP2 K7: 726.8 C16, 1,093.8 C64 tok/s; PP2/AR exact 64K prefill: 25,893 prompt tok/s |
 | [GLM-5.3-Flash](glm-5.3-flash/) | Official native FP8/vLLM plus `LibertAIDAI/GLM-5.3-Flash-NVFP4`/SGLang on 1× and 2× GB300; DFlash2 speculative decoding uses that NVFP4 base; 4× RTX PRO 6000 reference data | 1×: DFlash2 187.1 tok/s C1, AR 1,005.1 C64; 2×: DFlash2 198.0 C1 and 1,738.6 C64, AR 2,100.4 C64 |
 | [Hy3-FP8](hy3/) | Official FP8 checkpoint; 2× PP2 and TP2+EP (1× does not fit) | MTP2 C1: 141.9 output tok/s; MTP1 C64: 2,563.7; no-spec C128: 3,078.5 aggregate tok/s |
 | [MiniMax H3 video](minimax-h3-video/) | Official BF16 FL2VA checkpoint; resident 1× GB300, no offload | Official 5 s: 116.86 s mean; official 15 s: 719.29 s; experimental patched 30 s: 2,454.44 s |
 | [MiniMax M3](minimax-m3/) | Official NVIDIA NVFP4 (1×) plus official MiniMax MXFP8 (2× PP2) | NVFP4: 152.6 C1, 1,595.8 C16; MXFP8 PP2: 998.3 C32; 128K prefill: 35,683 tok/s; WikiText-2 PPL: 5.7120 / 5.4323 |
 | [Dual-station networking](gb300-networking/) | ConnectX-8 400GbE RoCE with GB300 Data Direct | 392.1 Gb/s one-way raw GPUDirect; 389.8 Gb/s tuned NCCL all-reduce bus bandwidth |
 
-### Qwen3.8-Flash-Next headline
+### GLM-5.3 headline
 
-![Qwen3.8-Flash-Next fixed decode throughput](qwen3.8-flash-next/charts/dgx-nvfp4-decode.png)
+![Full GLM-5.3 NVFP4 DFlash2 decode throughput](glm-5.3/charts/decode-throughput.png)
 
-![Qwen3.8-Flash-Next cold-prefill throughput](qwen3.8-flash-next/charts/dgx-nvfp4-prefill.png)
+![Full GLM-5.3 NVFP4 cold-prefill throughput](glm-5.3/charts/prefill-throughput.png)
 
-Solid curves show one serving engine on one DGX Station; the MTP3 curve uses
-ReplaySSM. Dashed curves show two separate comparison runs on one 4× RTX PRO
-6000 server: TEP4/AR and
-TEP4/MTP3, using
-`RadixArk/Qwen3.8-Flash-Next-NVFP4@7b719225` and patched SGLang.
-No envelope is used.
+[Full GLM-5.3 results, proposal sweep, and recipes →](glm-5.3/)
 
 Each experiment folder contains:
 

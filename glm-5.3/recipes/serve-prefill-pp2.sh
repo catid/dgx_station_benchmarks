@@ -52,7 +52,7 @@ exec docker run --rm --name "$CONTAINER_NAME" \
   --dist-init-addr "${HEAD_IP}:${DIST_PORT}" \
   --host 0.0.0.0 --port "$API_PORT" \
   --mem-fraction-static 0.93 \
-  --context-length 73728 \
+  --context-length 139264 \
   --max-running-requests 1 \
   --max-prefill-tokens 65536 \
   --chunked-prefill-size 8192 \

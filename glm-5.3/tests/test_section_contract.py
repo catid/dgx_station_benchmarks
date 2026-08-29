@@ -68,16 +68,21 @@ class SectionContractTests(unittest.TestCase):
         self.assertEqual(prefill["topology"]["pipeline_parallel"], 2)
         self.assertEqual(prefill["topology"]["expert_parallel"], 1)
         self.assertEqual(prefill["topology"]["pipeline_layer_partition"], [40, 38])
-        self.assertEqual(prefill["result"]["samples"], 5)
+        self.assertEqual(prefill["result"]["samples_per_context"], 5)
         self.assertEqual(
-            prefill["result"]["median_prompt_tokens_per_second"], 25893
+            prefill["result"]["contexts"]["65536"][
+                "median_prompt_tokens_per_second"
+            ],
+            25854,
         )
+        self.assertEqual(prefill["result"]["contexts"]["8192"]["median_ttft_seconds"], 0.499)
+        self.assertEqual(prefill["result"]["contexts"]["131072"]["median_ttft_seconds"], 5.191)
 
     def test_all_real_cells_are_present_without_interpolation(self) -> None:
         decode = rows("throughput.csv")
         prefill = rows("prefill.csv")
         self.assertEqual(len(decode), 35)
-        self.assertEqual(len(prefill), 3)
+        self.assertEqual(len(prefill), 5)
         self.assertEqual({row["profile"] for row in decode}, set(PROFILES))
         actual = {
             (row["profile"], row["workload"], int(row["requested_concurrency"]))
@@ -184,33 +189,47 @@ class SectionContractTests(unittest.TestCase):
         for key, value in expected.items():
             self.assertEqual(float(decode[key]["aggregate_output_tokens_per_second"]), value)
 
-        prefill = {row["profile"]: row for row in rows("prefill.csv")}
-        self.assertEqual(float(prefill[FINAL_PROFILE]["prompt_tokens_per_second"]), 8018)
-        self.assertEqual(float(prefill[FINAL_PROFILE]["client_ttft_seconds"]), 8.174)
-        self.assertEqual(int(prefill[FINAL_PROFILE]["actual_prompt_tokens"]), 65536)
-        self.assertEqual(
-            float(prefill[PP2_PREFILL_PROFILE]["prompt_tokens_per_second"]),
-            25893,
-        )
-        self.assertEqual(
-            float(prefill[PP2_PREFILL_PROFILE]["client_ttft_seconds"]), 2.531
-        )
-        self.assertEqual(int(prefill[PP2_PREFILL_PROFILE]["samples"]), 5)
+        prefill = {
+            (row["profile"], int(row["nominal_context_tokens"])): row
+            for row in rows("prefill.csv")
+        }
+        self.assertEqual(float(prefill[(FINAL_PROFILE, 65536)]["prompt_tokens_per_second"]), 8018)
+        self.assertEqual(float(prefill[(FINAL_PROFILE, 65536)]["client_ttft_seconds"]), 8.174)
+        self.assertEqual(int(prefill[(FINAL_PROFILE, 65536)]["actual_prompt_tokens"]), 65536)
+        expected_pp2 = {
+            8192: (16425.0, 0.499),
+            65536: (25854.0, 2.535),
+            131072: (25249.0, 5.191),
+        }
+        for context, (rate, ttft) in expected_pp2.items():
+            row = prefill[(PP2_PREFILL_PROFILE, context)]
+            self.assertEqual(float(row["prompt_tokens_per_second"]), rate)
+            self.assertEqual(float(row["client_ttft_seconds"]), ttft)
+            self.assertEqual(int(row["samples"]), 5)
         self.assertNotIn("8036", (DATA / "prefill.csv").read_text(encoding="utf-8"))
 
         evidence = DATA / "pp2-prefill-samples.json"
         evidence_sha256 = hashlib.sha256(evidence.read_bytes()).hexdigest()
         self.assertEqual(
-            prefill[PP2_PREFILL_PROFILE]["source_artifact_sha256"],
-            evidence_sha256,
+            {
+                prefill[(PP2_PREFILL_PROFILE, context)]["source_artifact_sha256"]
+                for context in expected_pp2
+            },
+            {evidence_sha256},
         )
         evidence_data = json.loads(evidence.read_text(encoding="utf-8"))
-        self.assertEqual(len(evidence_data["source_samples"]), 5)
+        source_samples = [
+            sample
+            for context in evidence_data["contexts"].values()
+            for sample in context["source_samples"]
+        ]
+        self.assertEqual(len(source_samples), 15)
         self.assertTrue(
             all(
                 len(sample["source_sha256"]) == 64
                 and len(sample["validation_sha256"]) == 64
-                for sample in evidence_data["source_samples"]
+                and sample["validation_status"] == "PASS"
+                for sample in source_samples
             )
         )
 
@@ -219,24 +238,38 @@ class SectionContractTests(unittest.TestCase):
         repository = (REPOSITORY / "README.md").read_text(encoding="utf-8")
         recipe = (ROOT / "recipes/README.md").read_text(encoding="utf-8")
         renderer = (ROOT / "charts/render-charts.py").read_text(encoding="utf-8")
-        self.assertIn("**165.5 tok/s**", section)
-        self.assertIn("**107.4 tok/s**", section)
-        self.assertIn("**742.0 tok/s**", section)
-        self.assertIn("**1,065.0 tok/s**", section)
-        self.assertIn("**1,093.8 tok/s**", section)
-        self.assertIn("**25,893 prompt tok/s**", section)
+        self.assertIn("## TP2 headline", section)
+        self.assertIn("## PP2 headline", section)
+        self.assertLess(section.index("## TP2 headline"), section.index("## PP2 headline"))
+        self.assertIn("| Code aggregate tok/s | **165.5** | — | — | —", section)
+        self.assertIn("| Code aggregate tok/s | **154.9 K4** | **270.6 K5**", section)
+        self.assertIn("**742.0 K7**", section)
+        self.assertIn("**1,065.0 K7**", section)
+        self.assertIn("**1,093.8 K7**", section)
+        self.assertIn("**16,425 tok/s · 0.499 s**", section)
+        self.assertIn("**25,854 tok/s · 2.535 s**", section)
+        self.assertIn("**25,249 tok/s · 5.191 s**", section)
         self.assertIn("PP2/AR 40/38", section)
-        self.assertIn("vLLM PP2 42/36 · DFlash2 K7", section)
+        self.assertIn("vLLM PP2 42/36 · DFlash2", section)
         self.assertIn("FI-TRT MoE", renderer)
         self.assertIn("ChatGPT equivalent speed", renderer)
+        self.assertIn('row["nominal_context_tokens"]', renderer)
+        self.assertIn("sweep_contexts = [8192, 65536, 131072]", renderer)
         self.assertIn("charts/per-user-throughput.png", section)
         self.assertIn("[GLM-5.3](glm-5.3/)", repository)
+        self.assertLess(
+            repository.index("| [GLM-5.3](glm-5.3/)"),
+            repository.index("| [Qwen3.8-Flash-Next](qwen3.8-flash-next/)"),
+        )
+        self.assertIn("### GLM-5.3 headline", repository)
+        self.assertIn("glm-5.3/charts/decode-throughput.png", repository)
+        self.assertIn("glm-5.3/charts/prefill-throughput.png", repository)
         self.assertIn("unmeasured\n64-token compile warmup leaked", recipe)
         self.assertIn("implicit maximum reasoning setting", recipe)
         self.assertIn("schema-v3 framing check", recipe)
         self.assertIn("accepted only 0.248 of seven draft", recipe)
         self.assertIn("DFlash2 is unavailable with\nPP2", recipe)
-        self.assertIn("25,893 prompt tok/s", recipe)
+        self.assertIn("25,854", recipe)
         pp2_recipe = (ROOT / "recipes/pp2_dflash2.md").read_text(encoding="utf-8")
         self.assertIn("VLLM_PP_DFLASH_DECODE_PARTITIONS=2", pp2_recipe)
         self.assertIn("895c5d5c531f13351284133846e2b5c643d744f0", pp2_recipe)
@@ -257,9 +290,15 @@ class SectionContractTests(unittest.TestCase):
 
     def test_headline_per_user_curve(self) -> None:
         headline = rows("headline-per-user.csv")
+        pp2 = [row for row in headline if row["topology"] == "PP2"]
+        tp2 = [row for row in headline if row["topology"] == "TP2+EP2"]
         self.assertEqual(
-            [int(row["offered_concurrency"]) for row in headline],
+            [int(row["offered_concurrency"]) for row in pp2],
             [1, 2, 4, 8, 16, 32, 64],
+        )
+        self.assertEqual(
+            [int(row["offered_concurrency"]) for row in tp2],
+            [1, 16, 32, 64],
         )
         for row in headline:
             concurrency = int(row["offered_concurrency"])
@@ -267,13 +306,13 @@ class SectionContractTests(unittest.TestCase):
             per_user = float(row["output_tokens_per_second_per_user"])
             self.assertEqual(per_user, aggregate / concurrency)
         self.assertGreater(
-            float(headline[3]["output_tokens_per_second_per_user"]), 60
+            float(pp2[3]["output_tokens_per_second_per_user"]), 60
         )
         self.assertLess(
-            float(headline[4]["output_tokens_per_second_per_user"]), 60
+            float(pp2[4]["output_tokens_per_second_per_user"]), 60
         )
         self.assertEqual(
-            float(headline[4]["output_tokens_per_second_per_user"]),
+            float(pp2[4]["output_tokens_per_second_per_user"]),
             741.9938389998094 / 16,
         )
 
@@ -346,6 +385,7 @@ class SectionContractTests(unittest.TestCase):
             "--tp-size 1 --pp-size 2 --ep-size 1",
             "--max-running-requests 1",
             "--max-prefill-tokens 65536",
+            "--context-length 139264",
             "--disable-cuda-graph",
         ):
             self.assertIn(fragment, pp2_launcher)

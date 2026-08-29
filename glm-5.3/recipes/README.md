@@ -39,7 +39,7 @@ GPUDirect RDMA.
 | `g53-s1-tep2-df2-fa4-fi0617-r1` | SGLang | TP2 / EP2 | FA4 | FlashInfer TRTLLM | 0.6.17 | C1 code/prose and C16 diagnostic |
 | `g53-b3-tep2-df2-fi0618rc10-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.18rc10 | C1 code diagnostic |
 | `g53-v2-tep2-df2-cutlass-r1` | vLLM | TP2 / EP2 | FA4 | FlashInfer CUTLASS | 0.6.17 | Valid C1 code challenger |
-| `g53-p0-pp2-ar-40-38-prefill-r1` | SGLang | PP2 40/38 | N/A (AR) | FlashInfer TRTLLM | 0.6.17 | Five exact 64K cold-prefill samples; headline median |
+| `g53-p1-pp2-ar-prefill-sweep-r1` | SGLang | PP2 40/38 | N/A (AR) | FlashInfer TRTLLM | 0.6.17 | Five exact cold-prefill samples each at 8K/64K/128K |
 | `vpp2df-k4-fi-trt-p2-r31` | vLLM + PP cohort patch | PP2 42/36 | FA4, K4 | FlashInfer TRTLLM | 0.6.17 | C1–C8 full cells and C16 screen |
 | `vpp2df-k5-fi-trt-p2-r30` | vLLM + PP cohort patch | PP2 42/36 | FA4, K5 | FlashInfer TRTLLM | 0.6.17 | C1–C16 full cells |
 | `vpp2df-k7-fi-trt-ef25-p2-r29b` | vLLM + PP cohort patch | PP2 42/36 | FA4, K7 | FlashInfer TRTLLM | 0.6.17 | C1–C8 full cells and prior C16 envelope |
@@ -126,9 +126,14 @@ winners.
 
 ## Prefill note
 
-The PP2/AR 40/38 profile produced 25,893 prompt tok/s at a 2.531-second median
-client TTFT over five samples. Individual rates were 25,893, 25,868, 25,896,
-25,568, and 25,908 prompt tok/s. Each sample used a distinct cache namespace.
+The matched PP2/AR 40/38 sweep used five distinct cache namespaces per exact
+prompt size:
+
+| Prompt | Median prompt tok/s | Median client TTFT |
+| ---: | ---: | ---: |
+| 8K | 16,425 | 0.499 s |
+| 64K | 25,854 | 2.535 s |
+| 128K | 25,249 | 5.191 s |
 
 The TP2+EP2 DFlash2 comparison row is the isolated rerun: 65,536 prompt tokens,
 8.174-second client TTFT, and 8,018 prompt tok/s. An earlier 8,036 tok/s sample

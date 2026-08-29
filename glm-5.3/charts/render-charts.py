@@ -263,44 +263,70 @@ def render_decode() -> None:
 
 def render_prefill() -> None:
     prefill = rows("prefill.csv")
-    by_profile = {row["profile"]: row for row in prefill}
+    by_profile: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for row in prefill:
+        by_profile[row["profile"]].append(row)
     profiles = [profile for profile in PREFILL_PROFILE_ORDER if profile in by_profile]
-    values = [float(by_profile[profile]["prompt_tokens_per_second"]) for profile in profiles]
-    colors = [PROFILE_STYLE[profile][0] for profile in profiles]
 
     figure, axis = plt.subplots(figsize=(11.8, 5.8))
-    bars = axis.bar(profiles, values, width=0.58, color=colors)
-    axis.set_title("GLM-5.3 NVFP4 — exact 64K cold prefill")
+    annotation_offsets = {
+        PP2_PREFILL_PROFILE: (0, 9),
+        SGLANG_TEP_PROFILE: (-28, 12),
+        SGLANG_TP_PROFILE: (28, -17),
+    }
+    for profile in profiles:
+        profile_rows = sorted(
+            by_profile[profile], key=lambda row: int(row["nominal_context_tokens"])
+        )
+        contexts = [int(row["nominal_context_tokens"]) for row in profile_rows]
+        values = [float(row["prompt_tokens_per_second"]) for row in profile_rows]
+        color, marker = PROFILE_STYLE[profile]
+        axis.plot(
+            contexts,
+            values,
+            color=color,
+            marker=marker,
+            markersize=9,
+            linewidth=2.7,
+            label=display_profile(profile),
+        )
+        for context, value in zip(contexts, values, strict=True):
+            axis.annotate(
+                f"{value:,.0f}",
+                xy=(context, value),
+                xytext=annotation_offsets[profile],
+                textcoords="offset points",
+                ha="center",
+                va="center",
+                fontsize=8.8,
+            )
+    axis.set_title("GLM-5.3 NVFP4 — cold prefill by exact prompt length")
+    axis.set_xlabel("Prompt length")
     axis.set_ylabel("Prompt tokens/second")
     axis.set_ylim(bottom=0)
+    axis.set_xscale("log", base=2)
+    sweep_contexts = [8192, 65536, 131072]
+    axis.set_xticks(sweep_contexts)
+    axis.set_xticklabels(["8K", "64K", "128K"])
+    axis.set_xlim(6500, 160000)
     axis.yaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:,.0f}"))
-    axis.grid(True, axis="y", alpha=0.65)
-    axis.set_xticks(range(len(profiles)))
-    axis.set_xticklabels(
-        [display_profile(profile) for profile in profiles], rotation=5
-    )
-    for bar, value in zip(bars, values, strict=True):
-        axis.text(
-            bar.get_x() + bar.get_width() / 2,
-            value + 45,
-            f"{value:,.0f}",
-            ha="center",
-            va="bottom",
-        )
+    axis.grid(True, alpha=0.65)
+    axis.legend(loc="upper left", fontsize=8.6)
     figure.tight_layout()
     figure.savefig(OUTPUT_DIR / "prefill-throughput.png", dpi=180, bbox_inches="tight")
     plt.close(figure)
 
 
 def render_per_user() -> None:
-    headline = sorted(
-        all_rows("headline-per-user.csv"),
-        key=lambda row: int(row["offered_concurrency"]),
+    headline = all_rows("headline-per-user.csv")
+    by_topology: dict[str, list[dict[str, str]]] = defaultdict(list)
+    for row in headline:
+        by_topology[row["topology"]].append(row)
+    pp2 = sorted(
+        by_topology["PP2"], key=lambda row: int(row["offered_concurrency"])
     )
-    x_values = [int(row["offered_concurrency"]) for row in headline]
-    y_values = [
-        float(row["output_tokens_per_second_per_user"]) for row in headline
-    ]
+    x_values = [int(row["offered_concurrency"]) for row in pp2]
+    y_values = [float(row["output_tokens_per_second_per_user"]) for row in pp2]
 
     figure, axis = plt.subplots(figsize=(11.8, 5.8))
     axis.plot(
@@ -310,8 +336,22 @@ def render_per_user() -> None:
         marker="o",
         markersize=8,
         linewidth=3,
-        label="Best validated recipe",
+        label="vLLM PP2 · best proposal per C",
         zorder=4,
+    )
+    tp2 = sorted(
+        by_topology["TP2+EP2"], key=lambda row: int(row["offered_concurrency"])
+    )
+    tp2_x = [int(row["offered_concurrency"]) for row in tp2]
+    tp2_y = [float(row["output_tokens_per_second_per_user"]) for row in tp2]
+    axis.scatter(
+        tp2_x,
+        tp2_y,
+        color="#5B8FF9",
+        marker="s",
+        s=78,
+        label="SGLang TP2+EP2 · measured cells",
+        zorder=5,
     )
     axis.axhline(
         60,
@@ -352,7 +392,7 @@ def render_per_user() -> None:
         FuncFormatter(lambda value, _: f"C{int(value)}")
     )
     axis.set_ylim(bottom=0, top=185)
-    axis.set_title("GLM-5.3 NVFP4 + DFlash2 — output tokens/second/user")
+    axis.set_title("GLM-5.3 NVFP4 + DFlash2 — per-user speed by topology")
     axis.set_xlabel("Concurrent sessions")
     axis.set_ylabel("Output tokens/second/user")
     axis.grid(True, alpha=0.65)
@@ -365,6 +405,16 @@ def render_per_user() -> None:
             ha="center",
             va="bottom",
             fontsize=9,
+        )
+    for x_value, y_value in zip(tp2_x, tp2_y, strict=True):
+        axis.text(
+            x_value,
+            y_value + 3.3,
+            f"{y_value:.1f}",
+            ha="center",
+            va="bottom",
+            fontsize=8.5,
+            color="#8DB7FF",
         )
     figure.tight_layout()
     figure.savefig(
