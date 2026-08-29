@@ -29,14 +29,14 @@ GPUDirect RDMA.
 
 ## Working paths
 
-| Run | Topology | Draft attention | FlashInfer | Measured cells |
-| --- | --- | --- | --- | --- |
-| `g53-b2-tep2-df2-low-bs32-r1` | TP2 / EP2 | TRTLLM-MHA | 0.6.17 | C1 code/prose and C16 headline cells |
-| `g53-b4-tep2-df2-low-bs32-schema5-r1` | TP2 / EP2 | TRTLLM-MHA | 0.6.17 | C32, offered C64, and 64K prefill headline cells |
-| `g53-b1-tp2-df2-low-bs32-r1` | TP2 / EP1 | TRTLLM-MHA | 0.6.17 | C1 code/prose, C16, C32, offered C64, 64K prefill diagnostic |
-| `g53-s1-tep2-df2-fa4-fi0617-r1` | TP2 / EP2 | FA4 | 0.6.17 | C1 code/prose and C16 diagnostic |
-| `g53-b3-tep2-df2-fi0618rc10-r1` | TP2 / EP2 | TRTLLM-MHA | 0.6.18rc10 | C1 code diagnostic |
-| `g53-v2-tep2-df2-cutlass-r1` | vLLM TP2 / EP2 | DFlash K7 | 0.6.17 | Valid C1 code challenger |
+| Run | Serving engine | Topology | Draft attention | Target MoE | FlashInfer | Measured cells |
+| --- | --- | --- | --- | --- | --- | --- |
+| `g53-b2-tep2-df2-low-bs32-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.17 | C1 code/prose and C16 headline cells |
+| `g53-b4-tep2-df2-low-bs32-schema5-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.17 | C32, offered C64, and 64K prefill headline cells |
+| `g53-b1-tp2-df2-low-bs32-r1` | SGLang | TP2 / EP1 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.17 | C1 code/prose, C16, C32, offered C64, 64K prefill diagnostic |
+| `g53-s1-tep2-df2-fa4-fi0617-r1` | SGLang | TP2 / EP2 | FA4 | FlashInfer TRTLLM | 0.6.17 | C1 code/prose and C16 diagnostic |
+| `g53-b3-tep2-df2-fi0618rc10-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.18rc10 | C1 code diagnostic |
+| `g53-v2-tep2-df2-cutlass-r1` | vLLM | TP2 / EP2 | FA4 | FlashInfer CUTLASS | 0.6.17 | Valid C1 code challenger |
 
 The charts plot only those cells. They do not fill in missing concurrencies.
 The TP2+EP1 run used the earlier schema-v3 framing check, which did not reject

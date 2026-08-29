@@ -37,6 +37,13 @@ PROFILE_STYLE = {
     PROFILE_ORDER[3]: ("#A78BFA", "D"),
     PROFILE_ORDER[4]: ("#E8684A", "X"),
 }
+PROFILE_DISPLAY = {
+    PROFILE_ORDER[0]: "ENGINE: SGLang · TP2+EP2 · draft: TRTLLM-MHA · FI 0.6.17",
+    PROFILE_ORDER[1]: "ENGINE: SGLang · TP2+EP1 · draft: TRTLLM-MHA · FI 0.6.17",
+    PROFILE_ORDER[2]: "ENGINE: SGLang · TP2+EP2 · draft: FA4 · FI 0.6.17",
+    PROFILE_ORDER[3]: "ENGINE: SGLang · TP2+EP2 · draft: TRTLLM-MHA · FI 0.6.18rc10",
+    PROFILE_ORDER[4]: "ENGINE: vLLM · TP2+EP2 · draft: FA4 · MoE: FI CUTLASS",
+}
 
 
 def style() -> None:
@@ -67,7 +74,7 @@ def rows(name: str) -> list[dict[str, str]]:
 
 
 def display_profile(profile: str) -> str:
-    return profile if profile == VLLM_PROFILE else f"SGLang {profile}"
+    return PROFILE_DISPLAY[profile]
 
 
 def render_decode() -> None:
@@ -142,7 +149,7 @@ def render_decode() -> None:
         FuncFormatter(lambda value, _: f"{value:,.0f}")
     )
     code_axis.grid(True, alpha=0.65)
-    code_axis.legend(loc="lower right", fontsize=9)
+    code_axis.legend(loc="lower right", fontsize=8.4)
 
     prose_profiles = [
         profile for profile in PROFILE_ORDER if profile in prose_by_profile
@@ -165,7 +172,15 @@ def render_decode() -> None:
     for index, value in enumerate(prose_values):
         prose_axis.text(value + 1.0, index, f"{value:.1f}", va="center")
 
-    figure.suptitle("GLM-5.3 NVFP4 + DFlash2 — fixed 8K to 1K decode", y=1.01)
+    figure.suptitle("GLM-5.3 NVFP4 + DFlash2 — fixed 8K to 1K decode", y=1.02)
+    figure.text(
+        0.5,
+        0.965,
+        "Serving engine is shown first. TRTLLM-MHA and FA4 are DFlash2 draft-attention kernels; no standalone TensorRT-LLM result.",
+        ha="center",
+        fontsize=9.5,
+        color="#AEB8C4",
+    )
     figure.tight_layout()
     figure.savefig(OUTPUT_DIR / "decode-throughput.png", dpi=180, bbox_inches="tight")
     plt.close(figure)

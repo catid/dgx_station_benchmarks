@@ -1,8 +1,9 @@
 # GLM-5.3 charts
 
 The renderer reads the section CSVs and produces the decode and cold-prefill
-headline figures. Curve labels contain only the hardware, topology, decode
-method, and workload.
+headline figures. Every curve label starts with the serving engine. TRTLLM-MHA
+and FA4 are explicitly labeled as DFlash2 draft-attention kernels, not serving
+engines; there is no standalone TensorRT-LLM result in these charts.
 
 Use CPython 3.12 and the pinned environment from the section root:
 

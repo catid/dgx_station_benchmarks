@@ -14,13 +14,16 @@ One SGLang server spans both Stations. The final TP2+EP2 profile reached
 **570.0 aggregate tok/s** at offered C32. Decode uses exact 8,192-token prompts
 and 1,024-token outputs.
 
-| DFlash2 path | C1 code | C1 prose | C16 code | C32 code | C64 code |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| TP2+EP2 / TRTLLM-MHA / FI 0.6.17 | **165.5** | **107.4** | 506.3 | **570.0** | 547.3 |
-| TP2+EP1 / TRTLLM-MHA / FI 0.6.17 | 164.7 | 103.6 | **508.5** | 554.2 | **566.9** |
-| TP2+EP2 / FA4 / FI 0.6.17 | 124.4 | 96.3 | 396.5 | — | — |
-| TP2+EP2 / TRTLLM-MHA / FI 0.6.18rc10 | 155.6 | — | — | — | — |
-| vLLM TP2+EP2 / CUTLASS MoE / FI 0.6.17 | 43.8 | — | — | — | — |
+| Serving engine | Topology | DFlash2 draft attention | FlashInfer | C1 code | C1 prose | C16 code | C32 code | C64 code |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| **SGLang** | TP2+EP2 | TRTLLM-MHA | 0.6.17 | **165.5** | **107.4** | 506.3 | **570.0** | 547.3 |
+| **SGLang** | TP2+EP1 | TRTLLM-MHA | 0.6.17 | 164.7 | 103.6 | **508.5** | 554.2 | **566.9** |
+| **SGLang** | TP2+EP2 | FA4 | 0.6.17 | 124.4 | 96.3 | 396.5 | — | — |
+| **SGLang** | TP2+EP2 | TRTLLM-MHA | 0.6.18rc10 | 155.6 | — | — | — | — |
+| **vLLM** | TP2+EP2 | FA4 | 0.6.17 | 43.8 | — | — | — | — |
+
+`TRTLLM-MHA` and `FA4` name the DFlash2 draft-attention kernel. They are not
+serving engines, and this table contains no standalone TensorRT-LLM result.
 
 ![GLM-5.3 decode throughput](charts/decode-throughput.png)
 
