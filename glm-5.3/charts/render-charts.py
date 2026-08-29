@@ -19,33 +19,44 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 CHARTS = ROOT / "charts"
 OUTPUT_DIR = CHARTS
-CHART_NAMES = ("decode-throughput.png", "prefill-throughput.png")
+CHART_NAMES = (
+    "decode-throughput.png",
+    "prefill-throughput.png",
+    "workstation-comparison.png",
+)
 
-FINAL_PROFILE = "TP2+EP2 · TRTLLM-MHA · FI 0.6.17"
-VLLM_PROFILE = "vLLM TP2+EP2 · CUTLASS MoE · FI 0.6.17"
+SGLANG_TEP_PROFILE = "TP2+EP2 · TRTLLM-MHA · FI 0.6.17"
+SGLANG_TP_PROFILE = "TP2+EP1 · TRTLLM-MHA · FI 0.6.17"
+PP2_K4_PROFILE = "vLLM PP2 42/36 · DFlash2 K4 · FI TRT-LLM MoE"
+PP2_K5_PROFILE = "vLLM PP2 42/36 · DFlash2 K5 · FI TRT-LLM MoE"
+PP2_K7_PROFILE = "vLLM PP2 42/36 · DFlash2 K7 · FI TRT-LLM MoE"
 PP2_PREFILL_PROFILE = "PP2/AR 40/38 · FI 0.6.17"
 PROFILE_ORDER = (
-    FINAL_PROFILE,
-    "TP2+EP1 · TRTLLM-MHA · FI 0.6.17",
-    "TP2+EP2 · FA4 · FI 0.6.17",
-    "TP2+EP2 · TRTLLM-MHA · FI 0.6.18rc10",
-    VLLM_PROFILE,
+    SGLANG_TEP_PROFILE,
+    SGLANG_TP_PROFILE,
+    PP2_K4_PROFILE,
+    PP2_K5_PROFILE,
+    PP2_K7_PROFILE,
 )
-PREFILL_PROFILE_ORDER = (PP2_PREFILL_PROFILE, *PROFILE_ORDER)
+PREFILL_PROFILE_ORDER = (
+    PP2_PREFILL_PROFILE,
+    SGLANG_TEP_PROFILE,
+    SGLANG_TP_PROFILE,
+)
 PROFILE_STYLE = {
-    PROFILE_ORDER[0]: ("#61DDAA", "o"),
-    PROFILE_ORDER[1]: ("#5B8FF9", "s"),
-    PROFILE_ORDER[2]: ("#F6903D", "^"),
-    PROFILE_ORDER[3]: ("#A78BFA", "D"),
-    PROFILE_ORDER[4]: ("#E8684A", "X"),
+    SGLANG_TEP_PROFILE: ("#61DDAA", "o"),
+    SGLANG_TP_PROFILE: ("#5B8FF9", "s"),
+    PP2_K4_PROFILE: ("#FFD666", "^"),
+    PP2_K5_PROFILE: ("#F6903D", "D"),
+    PP2_K7_PROFILE: ("#A78BFA", "X"),
     PP2_PREFILL_PROFILE: ("#FFD666", "P"),
 }
 PROFILE_DISPLAY = {
-    PROFILE_ORDER[0]: "ENGINE: SGLang · TP2+EP2 · draft: TRTLLM-MHA · FI 0.6.17",
-    PROFILE_ORDER[1]: "ENGINE: SGLang · TP2+EP1 · draft: TRTLLM-MHA · FI 0.6.17",
-    PROFILE_ORDER[2]: "ENGINE: SGLang · TP2+EP2 · draft: FA4 · FI 0.6.17",
-    PROFILE_ORDER[3]: "ENGINE: SGLang · TP2+EP2 · draft: TRTLLM-MHA · FI 0.6.18rc10",
-    PROFILE_ORDER[4]: "ENGINE: vLLM · TP2+EP2 · draft: FA4 · MoE: FI CUTLASS",
+    SGLANG_TEP_PROFILE: "SGLang · TP2+EP2 · K7 · TRTLLM-MHA draft",
+    SGLANG_TP_PROFILE: "SGLang · TP2+EP1 · K7 · TRTLLM-MHA draft",
+    PP2_K4_PROFILE: "vLLM · PP2 · K4 · FA4 draft · FI-TRT MoE",
+    PP2_K5_PROFILE: "vLLM · PP2 · K5 · FA4 draft · FI-TRT MoE",
+    PP2_K7_PROFILE: "vLLM · PP2 · K7 · FA4 draft · FI-TRT MoE",
     PP2_PREFILL_PROFILE: "ENGINE: SGLang · PP2/AR 40/38 · draft: N/A · FI 0.6.17",
 }
 
@@ -73,8 +84,13 @@ def rows(name: str) -> list[dict[str, str]]:
         return [
             row
             for row in csv.DictReader(stream)
-            if row.get("publication_status") in {"measured", "diagnostic"}
+            if row.get("publication_status") in {"measured", "diagnostic", "screen"}
         ]
+
+
+def all_rows(name: str) -> list[dict[str, str]]:
+    with (DATA / name).open(newline="", encoding="utf-8") as stream:
+        return list(csv.DictReader(stream))
 
 
 def display_profile(profile: str) -> str:
@@ -94,8 +110,8 @@ def render_decode() -> None:
     figure, (code_axis, prose_axis) = plt.subplots(
         1,
         2,
-        figsize=(14.4, 6.2),
-        gridspec_kw={"width_ratios": [1.85, 1]},
+        figsize=(15.8, 6.4),
+        gridspec_kw={"width_ratios": [1.7, 1]},
     )
     for profile in PROFILE_ORDER:
         profile_rows = sorted(
@@ -110,27 +126,33 @@ def render_decode() -> None:
             for row in profile_rows
         ]
         color, marker = PROFILE_STYLE[profile]
-        complete_curve = set(x_values) == {1, 16, 32, 64}
-        if complete_curve:
-            code_axis.plot(
-                x_values,
-                y_values,
-                marker=marker,
-                markersize=7.5 if profile == FINAL_PROFILE else 6.5,
-                linewidth=3.2 if profile == FINAL_PROFILE else 2.1,
-                color=color,
-                label=display_profile(profile),
-                zorder=4 if profile == FINAL_PROFILE else 3,
-            )
-        else:
+        is_pp2 = profile in {PP2_K4_PROFILE, PP2_K5_PROFILE, PP2_K7_PROFILE}
+        code_axis.plot(
+            x_values,
+            y_values,
+            marker=marker,
+            markersize=7.5 if is_pp2 else 6.5,
+            linewidth=2.8 if is_pp2 else 2.1,
+            color=color,
+            label=display_profile(profile),
+            zorder=4 if is_pp2 else 3,
+        )
+        screen_rows = [
+            row for row in profile_rows if row["publication_status"] == "screen"
+        ]
+        if screen_rows:
             code_axis.scatter(
-                x_values,
-                y_values,
+                [int(row["requested_concurrency"]) for row in screen_rows],
+                [
+                    float(row["aggregate_output_tokens_per_second"])
+                    for row in screen_rows
+                ],
                 marker=marker,
-                s=78 if profile == FINAL_PROFILE else 62,
-                color=color,
-                label=display_profile(profile),
-                zorder=3,
+                s=110,
+                facecolors="#151A23",
+                edgecolors=color,
+                linewidths=2.2,
+                zorder=6,
             )
 
     ticks = sorted(
@@ -140,7 +162,7 @@ def render_decode() -> None:
             if row["workload"] == "code_structured"
         }
     )
-    code_axis.set_title("Code / structured output")
+    code_axis.set_title("Code / structured output · aggregate throughput")
     code_axis.set_xlabel("Offered request concurrency")
     code_axis.set_ylabel("Aggregate output tokens/second")
     code_axis.set_xscale("log", base=2)
@@ -153,36 +175,83 @@ def render_decode() -> None:
         FuncFormatter(lambda value, _: f"{value:,.0f}")
     )
     code_axis.grid(True, alpha=0.65)
-    code_axis.legend(loc="lower right", fontsize=8.4)
+    code_axis.legend(loc="upper left", fontsize=8.1)
 
-    prose_profiles = [
-        profile for profile in PROFILE_ORDER if profile in prose_by_profile
+    c1_profiles = [
+        profile
+        for profile in (SGLANG_TEP_PROFILE, PP2_K4_PROFILE, PP2_K5_PROFILE, PP2_K7_PROFILE)
+        if profile in prose_by_profile
     ]
-    prose_values = [
-        float(prose_by_profile[profile]["aggregate_output_tokens_per_second"])
-        for profile in prose_profiles
-    ]
-    prose_colors = [PROFILE_STYLE[profile][0] for profile in prose_profiles]
-    prose_axis.barh(range(len(prose_profiles)), prose_values, color=prose_colors)
-    prose_axis.set_yticks(range(len(prose_profiles)))
-    prose_axis.set_yticklabels(
-        [display_profile(profile) for profile in prose_profiles], fontsize=8.5
+    code_c1 = {
+        profile: next(
+            float(row["aggregate_output_tokens_per_second"])
+            for row in code_by_profile[profile]
+            if int(row["requested_concurrency"]) == 1
+        )
+        for profile in c1_profiles
+    }
+    prose_c1 = {
+        profile: float(prose_by_profile[profile]["aggregate_output_tokens_per_second"])
+        for profile in c1_profiles
+    }
+    positions = list(range(len(c1_profiles)))
+    width = 0.36
+    prose_axis.bar(
+        [position - width / 2 for position in positions],
+        [code_c1[profile] for profile in c1_profiles],
+        width=width,
+        color=[PROFILE_STYLE[profile][0] for profile in c1_profiles],
+        label="Code",
     )
-    prose_axis.invert_yaxis()
-    prose_axis.set_title("Prose at C1")
-    prose_axis.set_xlabel("Output tokens/second")
-    prose_axis.set_xlim(left=0)
-    prose_axis.grid(True, axis="x", alpha=0.65)
-    for index, value in enumerate(prose_values):
-        prose_axis.text(value + 1.0, index, f"{value:.1f}", va="center")
+    prose_axis.bar(
+        [position + width / 2 for position in positions],
+        [prose_c1[profile] for profile in c1_profiles],
+        width=width,
+        color=[PROFILE_STYLE[profile][0] for profile in c1_profiles],
+        alpha=0.48,
+        hatch="//",
+        label="Prose",
+    )
+    prose_axis.set_xticks(positions)
+    prose_axis.set_xticklabels(
+        [
+            "SGLang\nTP2+EP2\nK7",
+            "vLLM\nPP2\nK4",
+            "vLLM\nPP2\nK5",
+            "vLLM\nPP2\nK7",
+        ],
+        fontsize=8.8,
+    )
+    prose_axis.set_title("Interactive decode · C1")
+    prose_axis.set_ylabel("Output tokens/second")
+    prose_axis.set_ylim(bottom=0, top=185)
+    prose_axis.grid(True, axis="y", alpha=0.65)
+    prose_axis.legend(loc="upper right", fontsize=9)
+    for position, profile in zip(positions, c1_profiles, strict=True):
+        for offset, value in (
+            (-width / 2, code_c1[profile]),
+            (width / 2, prose_c1[profile]),
+        ):
+            prose_axis.text(
+                position + offset,
+                value + 2.2,
+                f"{value:.1f}",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
 
-    figure.suptitle("GLM-5.3 NVFP4 + DFlash2 — fixed 8K to 1K decode", y=1.02)
+    figure.suptitle("GLM-5.3 NVFP4 + DFlash2 — exact 8K to 1K decode", y=1.02)
     figure.text(
         0.5,
         0.965,
-        "Serving engine is shown first. TRTLLM-MHA and FA4 are DFlash2 draft-attention kernels; no standalone TensorRT-LLM result.",
+        (
+            "FI-TRT MoE is FlashInfer's TensorRT-LLM-derived NVFP4 kernel "
+            "inside vLLM; no standalone TensorRT-LLM server is shown. "
+            "Hollow K4 C16 marker = two-wave screen."
+        ),
         ha="center",
-        fontsize=9.5,
+        fontsize=9.2,
         color="#AEB8C4",
     )
     figure.tight_layout()
@@ -221,6 +290,115 @@ def render_prefill() -> None:
     plt.close(figure)
 
 
+def render_workstation_comparison() -> None:
+    comparison = all_rows("rtx-pro-6000-comparison.csv")
+    decode_code = sorted(
+        (
+            row
+            for row in comparison
+            if row["metric"] == "output_tokens_per_second"
+            and row["workload"] == "code_structured"
+        ),
+        key=lambda row: int(row["offered_concurrency"]),
+    )
+    decode_prose = next(
+        row
+        for row in comparison
+        if row["metric"] == "output_tokens_per_second"
+        and row["workload"] == "prose"
+    )
+    prefill = sorted(
+        (
+            row
+            for row in comparison
+            if row["metric"] == "prompt_tokens_per_second"
+        ),
+        key=lambda row: int(row["context_tokens"]),
+    )
+
+    figure, (decode_axis, prefill_axis) = plt.subplots(1, 2, figsize=(12.8, 5.4))
+    decode_axis.plot(
+        [int(row["offered_concurrency"]) for row in decode_code],
+        [float(row["value"]) for row in decode_code],
+        color="#5B8FF9",
+        marker="o",
+        markersize=7,
+        linewidth=2.7,
+        label="Code · MTP3",
+    )
+    decode_axis.scatter(
+        [int(decode_prose["offered_concurrency"])],
+        [float(decode_prose["value"])],
+        color="#F6903D",
+        marker="D",
+        s=72,
+        label="Prose · AR",
+        zorder=4,
+    )
+    decode_axis.set_xscale("log", base=2)
+    decode_axis.set_xticks([1, 8, 16, 32])
+    decode_axis.get_xaxis().set_major_formatter(
+        FuncFormatter(lambda value, _: f"{int(value)}")
+    )
+    decode_axis.set_ylim(bottom=0)
+    decode_axis.set_title("Decode")
+    decode_axis.set_xlabel("Offered request concurrency")
+    decode_axis.set_ylabel("Aggregate output tokens/second")
+    decode_axis.grid(True, alpha=0.65)
+    decode_axis.legend(loc="lower right")
+
+    contexts = [int(row["context_tokens"]) for row in prefill]
+    values = [float(row["value"]) for row in prefill]
+    prefill_axis.plot(
+        range(len(contexts)),
+        values,
+        color="#61DDAA",
+        marker="o",
+        markersize=8,
+        linewidth=2.7,
+    )
+    prefill_axis.set_xticks(range(len(contexts)))
+    prefill_axis.set_xticklabels(["8K", "64K", "128K"])
+    prefill_axis.set_ylim(bottom=0)
+    prefill_axis.set_title("Cold prefill")
+    prefill_axis.set_xlabel("Prompt length")
+    prefill_axis.set_ylabel("Prompt tokens/second")
+    prefill_axis.yaxis.set_major_formatter(
+        FuncFormatter(lambda value, _: f"{value:,.0f}")
+    )
+    prefill_axis.grid(True, alpha=0.65)
+    for position, value in enumerate(values):
+        prefill_axis.text(
+            position,
+            value + 55,
+            f"{value:,.0f}",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+
+    figure.suptitle(
+        "4× RTX PRO 6000 Blackwell · EXL3 3.25 bpw derivative · native MTP3",
+        y=1.02,
+    )
+    figure.text(
+        0.5,
+        0.96,
+        (
+            "Separate comparison point: different checkpoint, quantization, "
+            "runtime, and speculative method from the DGX NVFP4 + DFlash2 results."
+        ),
+        ha="center",
+        fontsize=9.2,
+        color="#AEB8C4",
+    )
+    figure.tight_layout()
+    figure.savefig(
+        OUTPUT_DIR / "workstation-comparison.png", dpi=180, bbox_inches="tight"
+    )
+    plt.close(figure)
+
+
 def render_all(output_dir: Path) -> None:
     global OUTPUT_DIR
     OUTPUT_DIR = output_dir
@@ -228,6 +406,7 @@ def render_all(output_dir: Path) -> None:
     style()
     render_decode()
     render_prefill()
+    render_workstation_comparison()
 
 
 def main() -> None:

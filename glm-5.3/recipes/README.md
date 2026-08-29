@@ -1,7 +1,9 @@
 # Reproducing the full GLM-5.3 benchmark
 
 This page contains the exact model, runtime, launch, workload, and capacity
-details kept out of the headline README and graph labels.
+details kept out of the headline README and graph labels. The patched vLLM
+pipeline-parallel series has its own
+[PP2 + DFlash2 recipe](pp2_dflash2.md).
 
 ## Exact target and runtime
 
@@ -38,6 +40,9 @@ GPUDirect RDMA.
 | `g53-b3-tep2-df2-fi0618rc10-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.18rc10 | C1 code diagnostic |
 | `g53-v2-tep2-df2-cutlass-r1` | vLLM | TP2 / EP2 | FA4 | FlashInfer CUTLASS | 0.6.17 | Valid C1 code challenger |
 | `g53-p0-pp2-ar-40-38-prefill-r1` | SGLang | PP2 40/38 | N/A (AR) | FlashInfer TRTLLM | 0.6.17 | Five exact 64K cold-prefill samples; headline median |
+| `vpp2df-k4-fi-trt-p2-r31` | vLLM + PP cohort patch | PP2 42/36 | FA4, K4 | FlashInfer TRTLLM | 0.6.17 | C1–C8 full cells and C16 screen |
+| `vpp2df-k5-fi-trt-p2-r30` | vLLM + PP cohort patch | PP2 42/36 | FA4, K5 | FlashInfer TRTLLM | 0.6.17 | C1–C16 full cells |
+| `vpp2df-k7-fi-trt-ef25-p2-r29b` | vLLM + PP cohort patch | PP2 42/36 | FA4, K7 | FlashInfer TRTLLM | 0.6.17 | C1–C16 full cells; batch leader |
 
 The charts plot only those cells. They do not fill in missing concurrencies.
 The TP2+EP1 run used the earlier schema-v3 framing check, which did not reject
@@ -74,9 +79,10 @@ commit, image, target checkpoint, FP8 KV cache, FlashInfer TRTLLM MoE, target
 DSA backends, and dual-rail GPUDirect RDMA transport as the decode profile.
 
 Prefill itself does not use speculative decoding. DFlash2 is unavailable with
-PP2 in this runtime, so this profile has no draft model or draft-attention
-backend. Switching the same server from PP2 prefill to TP2+EP2 DFlash2 decode
-would require a restart; the publication treats them as separate product
+PP2 in this pinned SGLang runtime, so this profile has no draft model or
+draft-attention backend. The separately documented vLLM source overlay enables
+PP2 + DFlash2 for decode. Switching between the SGLang prefill and vLLM decode
+profiles requires a restart; the publication treats them as separate product
 profiles.
 
 ## Workload

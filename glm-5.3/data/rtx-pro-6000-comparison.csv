@@ -1,0 +1,9 @@
+system,model_stack,metric,workload,mode,offered_concurrency,max_resident,context_tokens,value,ttft_seconds
+4x RTX PRO 6000 Blackwell,EXL3 3.25 bpw derivative checkpoint,output_tokens_per_second,code_structured,MTP3,1,1,,60.03,
+4x RTX PRO 6000 Blackwell,EXL3 3.25 bpw derivative checkpoint,output_tokens_per_second,prose,AR,1,1,,41.53,
+4x RTX PRO 6000 Blackwell,EXL3 3.25 bpw derivative checkpoint,output_tokens_per_second,code_structured,MTP3,8,8,,113.63,
+4x RTX PRO 6000 Blackwell,EXL3 3.25 bpw derivative checkpoint,output_tokens_per_second,code_structured,MTP3,16,16,,158.85,
+4x RTX PRO 6000 Blackwell,EXL3 3.25 bpw derivative checkpoint,output_tokens_per_second,code_structured,MTP3,32,29,,164.64,
+4x RTX PRO 6000 Blackwell,EXL3 3.25 bpw derivative checkpoint,prompt_tokens_per_second,prefill,AR,,,8192,2937.94,2.788
+4x RTX PRO 6000 Blackwell,EXL3 3.25 bpw derivative checkpoint,prompt_tokens_per_second,prefill,AR,,,65536,2698.40,24.290
+4x RTX PRO 6000 Blackwell,EXL3 3.25 bpw derivative checkpoint,prompt_tokens_per_second,prefill,AR,,,131072,2473.41,52.999

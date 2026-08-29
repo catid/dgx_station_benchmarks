@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "target": {
+    "model_id": "incoai/GLM-5.3-NVFP4",
+    "revision": "54e52520606f96b3d9fc84088ad22882a61648ac"
+  },
+  "draft": {
+    "model_id": "incoai/GLM-5.3-DFlash2",
+    "revision": "425aa615ce320caac34400208b30808c8f14f76c",
+    "block_size": 8,
+    "proposal_counts_tested": [4, 5, 7]
+  },
+  "runtime": {
+    "engine": "vLLM",
+    "source_commit": "c01b50e390e6d3d0019aa53f41ff1198c8105e5a",
+    "image_digest": "sha256:343c67ff9c28dca5ae22385804d6276d6c4e45aecdf17f581d583e87000ed482",
+    "flashinfer": "0.6.17",
+    "source_overlay_commit": "895c5d5c531f13351284133846e2b5c643d744f0",
+    "source_overlay_tree": "cd08d251f9fe82ff72ce1df0e21bfe529e8edbf2",
+    "source_overlay_manifest_sha256": "5921028ebd11487c511625a0eb7623e66a42c05b72206741ba5bd2fc7a7f8d2a",
+    "decode_partitions": 2,
+    "execution_mode": "cuda_graphs"
+  },
+  "topology": {
+    "hosts": 2,
+    "gpus_per_host": 1,
+    "tensor_parallel": 1,
+    "pipeline_parallel": 2,
+    "expert_parallel": 1,
+    "pipeline_layer_partition": [42, 36]
+  },
+  "backends": {
+    "target_sparse_attention": "FLASHINFER_MLA_SPARSE",
+    "target_moe": "FLASHINFER_TRTLLM",
+    "draft_attention": "FLASH_ATTN",
+    "draft_attention_kernel": "FlashAttention 4",
+    "target_kv_cache": "fp8",
+    "draft_kv_cache": "bfloat16",
+    "flashinfer_autotune": true
+  },
+  "server_profile": {
+    "max_model_length": 10240,
+    "max_running_requests": 16,
+    "max_batched_tokens": 8192,
+    "gpu_memory_utilization": 0.93,
+    "prefix_caching": false,
+    "block_size": 64,
+    "async_scheduling": false,
+    "cuda_graph_capture_sizes": [1, 2, 4, 8, 16, 32, 64, 80]
+  },
+  "benchmark": {
+    "client": "llm-inference-bench",
+    "client_version": "0.4.29",
+    "client_commit": "0b4185b5b435e948b199c9077a00b084864aa963",
+    "input_tokens": 8192,
+    "output_tokens": 1024,
+    "warmup_requests": "C",
+    "measured_requests": "5*C",
+    "screen_requests": "2*C",
+    "temperature": 0,
+    "ignore_eos": true
+  },
+  "runs": [
+    {
+      "run_id": "vpp2df-k4-fi-trt-p2-r31",
+      "proposals": 4,
+      "status": "SERVER_STOPPED_CLEAN",
+      "correctness": "PASS",
+      "backend_dispatch": "PASS",
+      "teardown": "PASS",
+      "autotune_config_hash": "9a62b4d13e351cd51d404257b2ad5d1afca21aff7ae21dfa1f5915c1d842cfda",
+      "memory": {
+        "model_load_gib_by_stage": [217.11, 205.30],
+        "available_kv_gib_by_stage": [11.61, 22.98],
+        "coordinated_kv_tokens": 480832
+      },
+      "source_sha256": {
+        "run_manifest": "9edc09a03f64880935a0fb0c56901d9dc4078eb5116b18e9b197075215679230",
+        "correctness_battery": "67b8ab647c883a004710e1fed268ce967422a6c6869aced8ce3265f58efb989a",
+        "backend_dispatch_verdict": "87ef4fa74cb64dea71cf92960ca55fb2fc78e74438923dd2255279970185ee9d",
+        "teardown_verdict": "50c24069269adc783d2a0c4cd5204f142e8866119cfd2eafb1a6912f2a099feb"
+      },
+      "note": "C1-C8 use five measured requests per offered stream; C16 is the validated two-wave screen."
+    },
+    {
+      "run_id": "vpp2df-k5-fi-trt-p2-r30",
+      "proposals": 5,
+      "status": "SERVER_STOPPED_CLEAN",
+      "correctness": "PASS",
+      "backend_dispatch": "PASS",
+      "teardown": "PASS",
+      "autotune_config_hash": "e923e2b0354cb6dfbe0cc89bbaedcc765ea707e4fa0e5446c1326e4224b2431f",
+      "memory": {
+        "model_load_gib_by_stage": [217.11, 205.30],
+        "available_kv_gib_by_stage": [11.56, 22.91],
+        "coordinated_kv_tokens": 478656
+      },
+      "source_sha256": {
+        "run_manifest": "0622325bce29a5f9e78c1bd7daee3a68a27adc3599bc1450fa2bb9cd966aedb1",
+        "correctness_battery": "6c12ba7b8edaf41dc0e13106fbc3deaec52fb23eb2162ed9c456f2db03b5b8a0",
+        "backend_dispatch_verdict": "87ef4fa74cb64dea71cf92960ca55fb2fc78e74438923dd2255279970185ee9d",
+        "teardown_verdict": "50c24069269adc783d2a0c4cd5204f142e8866119cfd2eafb1a6912f2a099feb"
+      }
+    },
+    {
+      "run_id": "vpp2df-k7-fi-trt-ef25-p2-r29b",
+      "proposals": 7,
+      "status": "SERVER_STOPPED_CLEAN",
+      "correctness": "PASS",
+      "backend_dispatch": "PASS",
+      "teardown": "PASS",
+      "autotune_config_hash": "ef25dcd0be138e837fa8e31f87218a53a65c81506cb98d98a23565602c0d93df",
+      "memory": {
+        "model_load_gib_by_stage": [217.24, 205.42],
+        "available_kv_gib_by_stage": [11.40, 22.77],
+        "coordinated_kv_tokens": 472320
+      },
+      "source_sha256": {
+        "run_manifest": "c10d378a953cae794553c326373361b5d82f9a1d061a3396a7400bed36f755f6",
+        "correctness_battery": "3342a8d376f7427ac4fbb88908e70a5d08e9065e720f00dd2f481b97728fa01a",
+        "backend_dispatch_verdict": "26c7fe62276f470714adf7faed7e2732c7d6fa77319a8453e7b2477a527dba01",
+        "teardown_verdict": "50c24069269adc783d2a0c4cd5204f142e8866119cfd2eafb1a6912f2a099feb"
+      }
+    }
+  ]
+}

@@ -1,10 +1,15 @@
 # GLM-5.3 charts
 
-The renderer reads the section CSVs and produces the decode and cold-prefill
-headline figures. Every label starts with the serving engine. The PP2/AR
-prefill leader is labeled `draft: N/A`; DFlash2 is not combined with PP2.
-TRTLLM-MHA and FA4 are DFlash2 draft-attention kernels, not serving engines;
-there is no standalone TensorRT-LLM result in these charts.
+The renderer reads the section CSVs and produces:
+
+- the SGLang and vLLM PP2 DFlash2 headline decode figure;
+- the exact 64K cold-prefill figure;
+- a separate 4× RTX PRO 6000 / EXL3 derivative comparison figure.
+
+`FI-TRT MoE` labels FlashInfer's TensorRT-LLM-derived NVFP4 MoE kernel inside
+vLLM. It is not a standalone TensorRT-LLM serving-engine result. The RTX PRO
+6000 series is rendered separately because its checkpoint, quantization,
+runtime, and speculative method differ from the DGX Station experiment.
 
 Use CPython 3.12 and the pinned environment from the section root:
 

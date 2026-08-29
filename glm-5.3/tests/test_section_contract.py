@@ -20,7 +20,19 @@ FA4_PROFILE = "TP2+EP2 · FA4 · FI 0.6.17"
 RC10_PROFILE = "TP2+EP2 · TRTLLM-MHA · FI 0.6.18rc10"
 VLLM_PROFILE = "vLLM TP2+EP2 · CUTLASS MoE · FI 0.6.17"
 PP2_PREFILL_PROFILE = "PP2/AR 40/38 · FI 0.6.17"
-PROFILES = (FINAL_PROFILE, TP2_PROFILE, FA4_PROFILE, RC10_PROFILE, VLLM_PROFILE)
+PP2_K4_PROFILE = "vLLM PP2 42/36 · DFlash2 K4 · FI TRT-LLM MoE"
+PP2_K5_PROFILE = "vLLM PP2 42/36 · DFlash2 K5 · FI TRT-LLM MoE"
+PP2_K7_PROFILE = "vLLM PP2 42/36 · DFlash2 K7 · FI TRT-LLM MoE"
+PROFILES = (
+    FINAL_PROFILE,
+    TP2_PROFILE,
+    FA4_PROFILE,
+    RC10_PROFILE,
+    VLLM_PROFILE,
+    PP2_K4_PROFILE,
+    PP2_K5_PROFILE,
+    PP2_K7_PROFILE,
+)
 
 
 def rows(name: str) -> list[dict[str, str]]:
@@ -64,16 +76,14 @@ class SectionContractTests(unittest.TestCase):
     def test_all_real_cells_are_present_without_interpolation(self) -> None:
         decode = rows("throughput.csv")
         prefill = rows("prefill.csv")
-        self.assertEqual(len(decode), 15)
+        self.assertEqual(len(decode), 33)
         self.assertEqual(len(prefill), 3)
         self.assertEqual({row["profile"] for row in decode}, set(PROFILES))
         actual = {
             (row["profile"], row["workload"], int(row["requested_concurrency"]))
             for row in decode
         }
-        self.assertEqual(
-            actual,
-            {
+        expected = {
                 (FINAL_PROFILE, "code_structured", 1),
                 (FINAL_PROFILE, "prose", 1),
                 (FINAL_PROFILE, "code_structured", 16),
@@ -89,8 +99,14 @@ class SectionContractTests(unittest.TestCase):
                 (FA4_PROFILE, "code_structured", 16),
                 (RC10_PROFILE, "code_structured", 1),
                 (VLLM_PROFILE, "code_structured", 1),
-            },
-        )
+        }
+        for profile in (PP2_K4_PROFILE, PP2_K5_PROFILE, PP2_K7_PROFILE):
+            expected.add((profile, "prose", 1))
+            expected.update(
+                (profile, "code_structured", concurrency)
+                for concurrency in (1, 2, 4, 8, 16)
+            )
+        self.assertEqual(actual, expected)
         self.assertEqual(len(actual), len(decode))
         self.assertTrue(
             all(float(row["aggregate_output_tokens_per_second"]) > 0 for row in decode)
@@ -104,17 +120,27 @@ class SectionContractTests(unittest.TestCase):
     def test_only_matched_final_profile_is_headline_measured(self) -> None:
         decode = rows("throughput.csv")
         prefill = rows("prefill.csv")
-        self.assertTrue(
-            all(
-                row["publication_status"] == (
-                    "measured"
-                    if row["profile"]
-                    in {FINAL_PROFILE, VLLM_PROFILE, PP2_PREFILL_PROFILE}
-                    else "diagnostic"
-                )
-                for row in decode + prefill
+        for row in decode + prefill:
+            key = (
+                row.get("profile"),
+                row.get("workload"),
+                int(row["requested_concurrency"])
+                if row.get("requested_concurrency")
+                else None,
             )
-        )
+            if key == (PP2_K4_PROFILE, "code_structured", 16):
+                self.assertEqual(row["publication_status"], "screen")
+            elif row["profile"] in {
+                FINAL_PROFILE,
+                VLLM_PROFILE,
+                PP2_PREFILL_PROFILE,
+                PP2_K4_PROFILE,
+                PP2_K5_PROFILE,
+                PP2_K7_PROFILE,
+            }:
+                self.assertEqual(row["publication_status"], "measured")
+            else:
+                self.assertEqual(row["publication_status"], "diagnostic")
         run_ids = {
             row["run_id"]
             for row in decode
@@ -143,6 +169,11 @@ class SectionContractTests(unittest.TestCase):
             (FA4_PROFILE, "code_structured", 16): 396.49649846216425,
             (RC10_PROFILE, "code_structured", 1): 155.613221595887,
             (VLLM_PROFILE, "code_structured", 1): 43.81430251737419,
+            (PP2_K4_PROFILE, "code_structured", 1): 154.9179147377031,
+            (PP2_K4_PROFILE, "prose", 1): 106.25905247627794,
+            (PP2_K5_PROFILE, "code_structured", 4): 409.9076978364676,
+            (PP2_K7_PROFILE, "code_structured", 8): 553.8355856788203,
+            (PP2_K7_PROFILE, "code_structured", 16): 726.8489766746203,
         }
         for key, value in expected.items():
             self.assertEqual(float(decode[key]["aggregate_output_tokens_per_second"]), value)
@@ -182,14 +213,14 @@ class SectionContractTests(unittest.TestCase):
         repository = (REPOSITORY / "README.md").read_text(encoding="utf-8")
         recipe = (ROOT / "recipes/README.md").read_text(encoding="utf-8")
         renderer = (ROOT / "charts/render-charts.py").read_text(encoding="utf-8")
-        self.assertIn("**165.5 output tok/s**", section)
+        self.assertIn("**165.5 tok/s**", section)
         self.assertIn("**107.4 tok/s**", section)
-        self.assertIn("**570.0 aggregate tok/s**", section)
+        self.assertIn("**726.8 tok/s**", section)
         self.assertIn("**25,893 prompt tok/s**", section)
         self.assertIn("PP2/AR 40/38", section)
-        self.assertIn("| **SGLang** | TP2+EP2 | TRTLLM-MHA |", section)
-        self.assertIn("no standalone TensorRT-LLM result", section)
-        self.assertIn("Serving engine is shown first", renderer)
+        self.assertIn("vLLM PP2 42/36 · DFlash2 K7", section)
+        self.assertIn("does not denote a standalone TensorRT-LLM server", section)
+        self.assertIn("FI-TRT MoE", renderer)
         self.assertIn("[GLM-5.3](glm-5.3/)", repository)
         self.assertIn("unmeasured\n64-token compile warmup leaked", recipe)
         self.assertIn("implicit maximum reasoning setting", recipe)
@@ -197,9 +228,42 @@ class SectionContractTests(unittest.TestCase):
         self.assertIn("accepted only 0.248 of seven draft", recipe)
         self.assertIn("DFlash2 is unavailable with\nPP2", recipe)
         self.assertIn("25,893 prompt tok/s", recipe)
+        pp2_recipe = (ROOT / "recipes/pp2_dflash2.md").read_text(encoding="utf-8")
+        self.assertIn("VLLM_PP_DFLASH_DECODE_PARTITIONS=2", pp2_recipe)
+        self.assertIn("895c5d5c531f13351284133846e2b5c643d744f0", pp2_recipe)
+        self.assertIn("726.849", pp2_recipe)
+        self.assertIn("did not use the standalone TensorRT-LLM", pp2_recipe)
         for text in (section, renderer):
             self.assertNotIn("source-sealed", text.lower())
             self.assertNotIn("sealed", text.lower())
+
+    def test_separate_workstation_comparison(self) -> None:
+        comparison = rows("rtx-pro-6000-comparison.csv")
+        self.assertEqual(len(comparison), 8)
+        self.assertEqual(
+            {row["system"] for row in comparison},
+            {"4x RTX PRO 6000 Blackwell"},
+        )
+        self.assertEqual(
+            {row["model_stack"] for row in comparison},
+            {"EXL3 3.25 bpw derivative checkpoint"},
+        )
+        decode = {
+            (row["workload"], row["mode"], row["offered_concurrency"]): float(
+                row["value"]
+            )
+            for row in comparison
+            if row["metric"] == "output_tokens_per_second"
+        }
+        self.assertEqual(decode[("code_structured", "MTP3", "1")], 60.03)
+        self.assertEqual(decode[("prose", "AR", "1")], 41.53)
+        self.assertEqual(decode[("code_structured", "MTP3", "32")], 164.64)
+        prefill = {
+            int(row["context_tokens"]): float(row["value"])
+            for row in comparison
+            if row["metric"] == "prompt_tokens_per_second"
+        }
+        self.assertEqual(prefill, {8192: 2937.94, 65536: 2698.4, 131072: 2473.41})
 
     def test_launcher_is_pinned_and_offline(self) -> None:
         launcher = (ROOT / "recipes/serve.sh").read_text(encoding="utf-8")
