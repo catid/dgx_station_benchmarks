@@ -13,7 +13,7 @@ out of the headline page.
 | C2 code | PP2 K5 | 270.6 aggregate tok/s |
 | C4 code | PP2 K5 | 409.9 aggregate tok/s |
 | C8 code | PP2 K7 | 553.8 aggregate tok/s |
-| C16 code | PP2 K7 | 726.8 aggregate tok/s |
+| C16 code | PP2 K7 batch | 742.0 aggregate tok/s |
 | C32 code | PP2 K7 batch | 1,065.0 aggregate tok/s |
 | C64 code | PP2 K7 batch | 1,093.8 aggregate tok/s |
 
@@ -70,7 +70,7 @@ serving engine.
 | K4 | 217.11 / 205.30 GiB | 11.61 / 22.98 GiB | 480,832 |
 | K5 | 217.11 / 205.30 GiB | 11.56 / 22.91 GiB | 478,656 |
 | K7 interactive | 217.24 / 205.42 GiB | 11.40 / 22.77 GiB | 472,320 |
-| K7 C32/C64 | 217.11 / 205.30 GiB | 16.51 / 27.85 GiB | 640,896 |
+| K7 C16/C32/C64 | 217.11 / 205.30 GiB | 16.51 / 27.85 GiB | 640,896 |
 
 ## Launch skeleton
 
@@ -135,7 +135,7 @@ vllm serve /model \
 The real launches bind-mounted the verified overlay into the pinned image. The
 retained `runtime/node{0,1}/launch-command.json` files are the authoritative
 full Docker commands, including all mounted source files and CDI device IDs.
-The C32/C64 profile changes the skeleton to `--max-num-seqs 64`,
+The C16/C32/C64 profile changes the skeleton to `--max-num-seqs 64`,
 `--gpu-memory-utilization 0.95`, K7, and CUDA graph sizes
 `1 2 4 8 16 32 64 128`.
 
@@ -160,16 +160,24 @@ The C32/C64 profile changes the skeleton to `--max-num-seqs 64`,
 | 7 | 2 | 267.044 | 526.3 ms | 6.744 ms | 2.802 | 1.9 / 2 | 0.0% |
 | 7 | 4 | 405.715 | 525.6 ms | 9.342 ms | 2.962 | 3.9 / 4 | 0.0% |
 | 7 | 8 | 553.836 | 527.5 ms | 13.470 ms | 2.894 | 7.6 / 8 | 2.7% |
-| 7 | 16 | 726.849 | 573.3 ms | 20.035 ms | 2.833 | 14.9 / 16 | 3.6% |
+| 7 | 16 | 741.994 | 568.6 ms | 19.803 ms | 2.876 | 15.1 / 16 | 3.6% |
 | 7 | 32 | 1,064.979 | 676.6 ms | 27.664 ms | 2.873 | 29.9 / 32 | 9.2% |
 | 7 | 64 | 1,093.793 | 903.5 ms | 54.904 ms | 2.858 | 60.2 / 64 | 11.1% |
 
 Accepted proposals excludes the guaranteed target/anchor token. K4 C16 used
 32 measured requests (`2×C`) under successive halving; every other row used
 `5×C`. All rows completed the exact request count with zero request errors.
-The C32/C64 validator sets `capacity_limited=true` when it observes scheduler
-queueing; both rows have `underfilled=false`, reached the full offered maximum
-active count, and completed 160/160 and 320/320 requests respectively.
+The batch-profile validator sets `capacity_limited=true` when it observes
+scheduler queueing. C16, C32, and C64 all have `underfilled=false`, reached the
+full offered maximum active count, and completed 80/80, 160/160, and 320/320
+requests respectively. The prior 0.93-memory K7 envelope reached 726.849 tok/s
+at C16; it remains in the matched patch A/B below rather than the headline.
+
+| Batch cell | Result JSON SHA-256 | Validation JSON SHA-256 |
+| ---: | --- | --- |
+| C16 | `fce317d9bf20f848ca25da19f3579c02e213a3c8a5e42230130ced0ea8245cb6` | `e56712376c4e42b682cf1b350029a90cabeab155c42f7f0ac47a72935b36063f` |
+| C32 | `2fd9d1947d277acf94b3f325ede2e8ac2706bf92234c9aaff3e52ee42d4b5e0e` | `5e9c9dc9acf57a7dd5eb4677268d644875015b77c2789dfda2a2efc366960beb` |
+| C64 | `a9a1613c9ff0377745153821d6a2aedc7da9eb4ce845922eca3967251c8855d9` | `2813a15544b40b52b919345f27e89bef75ade23d99e8e2e034983c257336fb0a` |
 
 ## Per-user headline curve
 
@@ -182,7 +190,7 @@ output tok/s/user = aggregate output tok/s / offered concurrency
 
 This intentionally uses offered concurrency, not average scheduler residency.
 The plotted 60 tok/s reference crosses the straight line segment on the
-log2-concurrency axis between measured C8 and C16 at approximately C10.5. That
+log2-concurrency axis between measured C8 and C16 at approximately C10.6. That
 is an interpolated visual crossover, not a measured C10 or C11 benchmark.
 
 ## Patch A/B

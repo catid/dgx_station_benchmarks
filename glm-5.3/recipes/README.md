@@ -33,8 +33,8 @@ GPUDirect RDMA.
 
 | Run | Serving engine | Topology | Draft attention | Target MoE | FlashInfer | Measured cells |
 | --- | --- | --- | --- | --- | --- | --- |
-| `g53-b2-tep2-df2-low-bs32-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.17 | C1 code/prose and C16 headline cells |
-| `g53-b4-tep2-df2-low-bs32-schema5-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.17 | C32, offered C64, and 64K prefill headline cells |
+| `g53-b2-tep2-df2-low-bs32-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.17 | C1 code/prose headline; C16 detail |
+| `g53-b4-tep2-df2-low-bs32-schema5-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.17 | Capacity-limited C32/C64 and 64K prefill detail |
 | `g53-b1-tp2-df2-low-bs32-r1` | SGLang | TP2 / EP1 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.17 | C1 code/prose, C16, C32, offered C64, 64K prefill diagnostic |
 | `g53-s1-tep2-df2-fa4-fi0617-r1` | SGLang | TP2 / EP2 | FA4 | FlashInfer TRTLLM | 0.6.17 | C1 code/prose and C16 diagnostic |
 | `g53-b3-tep2-df2-fi0618rc10-r1` | SGLang | TP2 / EP2 | TRTLLM-MHA | FlashInfer TRTLLM | 0.6.18rc10 | C1 code diagnostic |
@@ -42,8 +42,8 @@ GPUDirect RDMA.
 | `g53-p0-pp2-ar-40-38-prefill-r1` | SGLang | PP2 40/38 | N/A (AR) | FlashInfer TRTLLM | 0.6.17 | Five exact 64K cold-prefill samples; headline median |
 | `vpp2df-k4-fi-trt-p2-r31` | vLLM + PP cohort patch | PP2 42/36 | FA4, K4 | FlashInfer TRTLLM | 0.6.17 | C1–C8 full cells and C16 screen |
 | `vpp2df-k5-fi-trt-p2-r30` | vLLM + PP cohort patch | PP2 42/36 | FA4, K5 | FlashInfer TRTLLM | 0.6.17 | C1–C16 full cells |
-| `vpp2df-k7-fi-trt-ef25-p2-r29b` | vLLM + PP cohort patch | PP2 42/36 | FA4, K7 | FlashInfer TRTLLM | 0.6.17 | C1–C16 full cells; batch leader |
-| `vpp2df-k7-c64-p2-r32` | vLLM + PP cohort patch | PP2 42/36 | FA4, K7 | FlashInfer TRTLLM | 0.6.17 | C32/C64 full cells; batch leader |
+| `vpp2df-k7-fi-trt-ef25-p2-r29b` | vLLM + PP cohort patch | PP2 42/36 | FA4, K7 | FlashInfer TRTLLM | 0.6.17 | C1–C8 full cells and prior C16 envelope |
+| `vpp2df-k7-c64-p2-r32` | vLLM + PP cohort patch | PP2 42/36 | FA4, K7 | FlashInfer TRTLLM | 0.6.17 | C16/C32/C64 full cells; batch leader |
 
 The headline charts select the competitive cells and never fill in missing
 concurrencies.

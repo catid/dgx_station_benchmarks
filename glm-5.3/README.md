@@ -15,7 +15,7 @@ on 2× NVIDIA DGX Station GB300.
 | C2 code | vLLM PP2 42/36 · DFlash2 K5 | **270.6 tok/s** | 1.9 / 2 active · 0.0% queued |
 | C4 code | vLLM PP2 42/36 · DFlash2 K5 | **409.9 tok/s** | 3.8 / 4 active · 0.0% queued |
 | C8 code | vLLM PP2 42/36 · DFlash2 K7 | **553.8 tok/s** | 7.6 / 8 active · 2.7% queued |
-| C16 code | vLLM PP2 42/36 · DFlash2 K7 | **726.8 tok/s** | 14.9 / 16 active · 3.6% queued |
+| C16 code | vLLM PP2 42/36 · DFlash2 K7 | **742.0 tok/s** | 15.1 / 16 active · 3.6% queued |
 | C32 code | vLLM PP2 42/36 · DFlash2 K7 | **1,065.0 tok/s** | 29.9 / 32 active · 9.2% queued |
 | C64 code | vLLM PP2 42/36 · DFlash2 K7 | **1,093.8 tok/s** | 60.2 / 64 active · 11.1% queued |
 | Exact 64K cold prefill | SGLang PP2/AR 40/38 | **25,893 prompt tok/s** | 2.531 s median TTFT |
@@ -30,7 +30,7 @@ on 2× NVIDIA DGX Station GB300.
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **K4** | **154.9** | **106.3** | 270.6 | 399.9 | 542.5 | 725.6* | — | — |
 | **K5** | 152.6 | 104.1 | **270.6** | **409.9** | 538.9 | 723.6 | — | — |
-| **K7** | 146.0 | 92.7 | 267.0 | 405.7 | **553.8** | **726.8** | **1,065.0** | **1,093.8** |
+| **K7** | 146.0 | 92.7 | 267.0 | 405.7 | **553.8** | **742.0** | **1,065.0** | **1,093.8** |
 
 Aggregate output tok/s, exact 8,192-token input and 1,024-token output. All
 cells use `5×C` measured requests except the validated `K4 C16` `2×C` screen.

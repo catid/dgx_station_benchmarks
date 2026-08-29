@@ -49,7 +49,7 @@
       "async_scheduling": false,
       "cuda_graph_capture_sizes": [1, 2, 4, 8, 16, 32, 64, 80]
     },
-    "batch_c32_c64": {
+    "batch_c16_c64": {
       "proposals": 7,
       "max_model_length": 10240,
       "max_running_requests": 64,
@@ -138,7 +138,7 @@
     {
       "run_id": "vpp2df-k7-c64-p2-r32",
       "proposals": 7,
-      "role": "full C32 and C64 batch profile",
+      "role": "full C16, C32, and C64 batch profile",
       "status_at_import": "SERVER_READY",
       "correctness": "PASS",
       "backend_dispatch": "PASS",
@@ -148,6 +148,8 @@
         "coordinated_kv_tokens": 640896
       },
       "source_sha256": {
+        "c16_full": "fce317d9bf20f848ca25da19f3579c02e213a3c8a5e42230130ced0ea8245cb6",
+        "c16_validation": "e56712376c4e42b682cf1b350029a90cabeab155c42f7f0ac47a72935b36063f",
         "c32_full": "2fd9d1947d277acf94b3f325ede2e8ac2706bf92234c9aaff3e52ee42d4b5e0e",
         "c32_validation": "5e9c9dc9acf57a7dd5eb4677268d644875015b77c2789dfda2a2efc366960beb",
         "c64_full": "a9a1613c9ff0377745153821d6a2aedc7da9eb4ce845922eca3967251c8855d9",

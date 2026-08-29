@@ -177,7 +177,7 @@ class SectionContractTests(unittest.TestCase):
             (PP2_K4_PROFILE, "prose", 1): 106.25905247627794,
             (PP2_K5_PROFILE, "code_structured", 4): 409.9076978364676,
             (PP2_K7_PROFILE, "code_structured", 8): 553.8355856788203,
-            (PP2_K7_PROFILE, "code_structured", 16): 726.8489766746203,
+            (PP2_K7_PROFILE, "code_structured", 16): 741.9938389998094,
             (PP2_K7_PROFILE, "code_structured", 32): 1064.9785671015213,
             (PP2_K7_PROFILE, "code_structured", 64): 1093.7931437564482,
         }
@@ -221,7 +221,7 @@ class SectionContractTests(unittest.TestCase):
         renderer = (ROOT / "charts/render-charts.py").read_text(encoding="utf-8")
         self.assertIn("**165.5 tok/s**", section)
         self.assertIn("**107.4 tok/s**", section)
-        self.assertIn("**726.8 tok/s**", section)
+        self.assertIn("**742.0 tok/s**", section)
         self.assertIn("**1,065.0 tok/s**", section)
         self.assertIn("**1,093.8 tok/s**", section)
         self.assertIn("**25,893 prompt tok/s**", section)
@@ -240,7 +240,12 @@ class SectionContractTests(unittest.TestCase):
         pp2_recipe = (ROOT / "recipes/pp2_dflash2.md").read_text(encoding="utf-8")
         self.assertIn("VLLM_PP_DFLASH_DECODE_PARTITIONS=2", pp2_recipe)
         self.assertIn("895c5d5c531f13351284133846e2b5c643d744f0", pp2_recipe)
+        self.assertIn("741.994", pp2_recipe)
         self.assertIn("726.849", pp2_recipe)
+        self.assertIn(
+            "fce317d9bf20f848ca25da19f3579c02e213a3c8a5e42230130ced0ea8245cb6",
+            pp2_recipe,
+        )
         self.assertIn("1,093.793", pp2_recipe)
         self.assertIn("did not use the standalone TensorRT-LLM", pp2_recipe)
         self.assertIn("capacity-limited detail rows", pp2_recipe)
@@ -266,6 +271,27 @@ class SectionContractTests(unittest.TestCase):
         )
         self.assertLess(
             float(headline[4]["output_tokens_per_second_per_user"]), 60
+        )
+        self.assertEqual(
+            float(headline[4]["output_tokens_per_second_per_user"]),
+            741.9938389998094 / 16,
+        )
+
+    def test_batch_profile_evidence_hashes(self) -> None:
+        provenance = json.loads(
+            (DATA / "pp2-dflash2-provenance.json").read_text(encoding="utf-8")
+        )
+        batch = next(
+            run for run in provenance["runs"] if run["run_id"] == "vpp2df-k7-c64-p2-r32"
+        )
+        self.assertEqual(batch["role"], "full C16, C32, and C64 batch profile")
+        self.assertEqual(
+            batch["source_sha256"]["c16_full"],
+            "fce317d9bf20f848ca25da19f3579c02e213a3c8a5e42230130ced0ea8245cb6",
+        )
+        self.assertEqual(
+            batch["source_sha256"]["c16_validation"],
+            "e56712376c4e42b682cf1b350029a90cabeab155c42f7f0ac47a72935b36063f",
         )
 
     def test_separate_workstation_comparison(self) -> None:
