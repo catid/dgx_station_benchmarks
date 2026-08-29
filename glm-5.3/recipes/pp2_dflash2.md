@@ -51,7 +51,7 @@ handoff that previously serialized or blocked C2+ PP decoding.
 | Target MoE | `FLASHINFER_TRTLLM` |
 | Draft attention | `FLASH_ATTN` dispatching FlashAttention 4 |
 | Target / draft KV | FP8 / BF16 |
-| Advertised context | 1,048,576 tokens |
+| Hosted context | 500,000 tokens |
 | Maximum sequences | 16 interactive / 64 batch |
 | Scheduler batch-token budget | 8,192; not a request-context limit |
 | HBM fraction | 0.93 interactive / 0.95 batch |
@@ -118,7 +118,7 @@ vllm serve /model \
   --tool-call-parser glm47 \
   --enable-auto-tool-choice \
   --kv-cache-dtype fp8 \
-  --max-model-len 1048576 \
+  --max-model-len 500000 \
   --max-num-seqs 16 \
   --max-num-batched-tokens 8192 \
   --gpu-memory-utilization 0.93 \
@@ -144,9 +144,12 @@ The C16/C32/C64 profile changes the skeleton to `--max-num-seqs 64`,
 `--gpu-memory-utilization 0.95`, K7, and CUDA graph sizes
 `1 2 4 8 16 32 64 128`.
 
-The serving skeleton advertises the model's 1M-token context window. The
-published throughput runs deliberately used exact 8,192-token input and
-1,024-token output; those workload lengths are not a production client cap.
+The checkpoint declares a native 1,048,576-token context. A guarded PP2 +
+DFlash2 launch at that value needed 25.31 GiB of KV memory on the limiting
+rank, where 22.82 GiB was available, and reported an estimated 945,408-token
+ceiling. The hosted recipe therefore advertises 500,000 tokens. The published
+throughput runs deliberately used exact 8,192-token input and 1,024-token
+output; those workload lengths are not a production client cap.
 `--max-num-batched-tokens 8192` controls scheduler work per iteration and does
 not reduce the advertised request context. Verify the deployed KV envelope
 before relying on one request occupying the entire window.
@@ -156,12 +159,13 @@ disabled. Nonzero values introduce device-to-host copies and verbose logging;
 they are for correctness debugging only and were not used for any published
 throughput result.
 
-## OpenCode 1M context
+## OpenCode
 
 Use [`opencode-1m.jsonc`](opencode-1m.jsonc) as the custom-provider overlay.
 It points at the same OpenAI-compatible endpoint without setting a client-side
-context or output limit. Do not copy a short benchmark acquisition envelope
-into the OpenCode model configuration.
+context or output limit; the server-side recipe advertises 500,000 tokens. Do
+not copy a short benchmark acquisition envelope into the OpenCode model
+configuration.
 
 ## Proposal sweep details
 

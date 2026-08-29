@@ -9,7 +9,7 @@
       },
       "models": {
         "incoai/GLM-5.3-NVFP4": {
-          "name": "GLM-5.3 NVFP4 (1M)"
+          "name": "GLM-5.3 NVFP4 (500K server)"
         }
       }
     }

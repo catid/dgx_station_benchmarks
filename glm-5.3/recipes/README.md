@@ -59,12 +59,14 @@ challenger passed its schema-v5 C1 cell, but accepted only 0.248 of seven draft
 proposals per verification cycle (3.54%); its 43.8 tok/s is a valid measurement
 of that acceptance collapse, not a competitive recipe.
 
-## 1M-context serving
+## 500K hosted context
 
-Both serving launchers advertise a 1,048,576-token request context. Their
-65,536 maximum-prefill and 8,192 chunk/batch settings are scheduler work
-budgets, not client context limits. Actual admission still depends on the KV
-pool available to the selected topology and concurrency envelope.
+The serving launchers advertise a 500,000-token request context. Their 65,536
+maximum-prefill and 8,192 chunk/batch settings are scheduler work budgets, not
+client context limits. The checkpoint's native context is 1,048,576 tokens,
+but a guarded PP2+DFlash2 1M launch required 25.31 GiB of KV memory on the
+limiting rank with only 22.82 GiB available. The resulting estimated ceiling
+was 945,408 tokens, so the production recipe uses a conservative 500,000.
 
 Run `serve.sh` on the worker first (`NODE_RANK=1`), then on the controller
 (`NODE_RANK=0`). Set the node-specific GPU CDI device and the exact local model
@@ -73,7 +75,7 @@ digest.
 
 For OpenCode, copy [`opencode-1m.jsonc`](opencode-1m.jsonc), replace the
 controller address, and select the listed model. The overlay sets no client-side
-context or output limit; the server exposes the native 1M context.
+context or output limit; the server advertises 500,000 tokens.
 
 The published TP2+EP2 decode measurements used a smaller acquisition envelope:
 `mem-fraction-static=0.93`, 32 maximum running requests, 65,536 maximum prefill
@@ -85,7 +87,7 @@ limit.
 
 Run `serve-prefill-pp2.sh` on the worker first and then the controller for the
 long-prefill leader. It uses TP1 / PP2 / EP1, a 40/38 transformer-layer split,
-AR, one maximum running request, a 1,048,576-token advertised context, 65,536
+AR, one maximum running request, a 500,000-token advertised context, 65,536
 maximum prefill tokens, 8,192-token chunks, and CUDA graphs disabled. It uses
 the same SGLang commit, image, target checkpoint, FP8 KV cache, FlashInfer
 TRTLLM MoE, target DSA backends, and dual-rail GPUDirect RDMA transport as the
