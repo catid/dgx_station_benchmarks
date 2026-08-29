@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "target": {
+    "model_id": "incoai/GLM-5.3-NVFP4",
+    "revision": "54e52520606f96b3d9fc84088ad22882a61648ac",
+    "architecture": "GlmMoeDsaForCausalLM",
+    "model_type": "glm_moe_dsa",
+    "config_sha256": "48025a5f559f7a747734be8499810a22d34330577e1566a28810466319f57ef4",
+    "safetensors_files": 87,
+    "safetensors_bytes": 464822872912,
+    "quantization": "ModelOpt NVFP4",
+    "dtype": "bfloat16",
+    "kv_cache_dtype": "fp8_e4m3"
+  },
+  "draft": {
+    "model_id": "incoai/GLM-5.3-DFlash2",
+    "revision": "425aa615ce320caac34400208b30808c8f14f76c",
+    "architecture": "DFlash2DraftModel",
+    "config_sha256": "f59e1da17d41d24a1aba588aecee1607788adb34a03805f2c883add8ca954e9b",
+    "safetensors_files": 1,
+    "safetensors_bytes": 4918859112,
+    "dtype": "bfloat16",
+    "proposals_per_verify": 7
+  },
+  "runtime": {
+    "engine": "SGLang",
+    "source_commit": "4d78d59e516f96b1a86e1dd1a458fda2664427d6",
+    "image_digest": "sha256:e73ae9252ba7cd877b8ff98cddba11e65dcd6b8ff6817c7b680622cca7fa64b2",
+    "flashinfer": "0.6.17",
+    "benchmark_client_commit": "0b4185b5b435e948b199c9077a00b084864aa963"
+  },
+  "runtime_challengers": [
+    {
+      "engine": "vLLM",
+      "source_commit": "c01b50e390e6d3d0019aa53f41ff1198c8105e5a",
+      "image_digest": "sha256:343c67ff9c28dca5ae22385804d6276d6c4e45aecdf17f581d583e87000ed482",
+      "flashinfer": "0.6.17",
+      "moe_backend": "flashinfer_cutlass"
+    }
+  ],
+  "topology": {
+    "hosts": 2,
+    "gpus_per_host": 1,
+    "tensor_parallel": 2,
+    "pipeline_parallel": 1,
+    "expert_parallel": 2,
+    "network": "two 400 GbE ConnectX-8 RoCE rails"
+  },
+  "memory": {
+    "mem_fraction_static": 0.93,
+    "context_length": 73728,
+    "max_running_requests": 32,
+    "target_kv_tokens_per_rank": 311680,
+    "target_weight_memory_gb_per_rank": 210.17,
+    "draft_weight_memory_gb_per_rank": 3.19,
+    "target_kv_memory_gb_per_rank": 13.85
+  },
+  "runs": [
+    {
+      "run_id": "g53-b2-tep2-df2-low-bs32-r1",
+      "role": "validated C1 and C16 cells",
+      "source_summary_sha256": "13ed5192ccd2a7e24c6c42754494bf6066ffb8389b086c7e96e73822252ee0f7"
+    },
+    {
+      "run_id": "g53-b4-tep2-df2-low-bs32-schema5-r1",
+      "role": "validated C32, offered C64, and exact 64K prefill cells",
+      "source_summary_sha256": "96916fda18db4409862f5954ab706148299bf6746dd62d5a39ace196aa545de9"
+    }
+  ]
+}
