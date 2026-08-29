@@ -43,8 +43,10 @@ GPUDirect RDMA.
 | `vpp2df-k4-fi-trt-p2-r31` | vLLM + PP cohort patch | PP2 42/36 | FA4, K4 | FlashInfer TRTLLM | 0.6.17 | C1–C8 full cells and C16 screen |
 | `vpp2df-k5-fi-trt-p2-r30` | vLLM + PP cohort patch | PP2 42/36 | FA4, K5 | FlashInfer TRTLLM | 0.6.17 | C1–C16 full cells |
 | `vpp2df-k7-fi-trt-ef25-p2-r29b` | vLLM + PP cohort patch | PP2 42/36 | FA4, K7 | FlashInfer TRTLLM | 0.6.17 | C1–C16 full cells; batch leader |
+| `vpp2df-k7-c64-p2-r32` | vLLM + PP cohort patch | PP2 42/36 | FA4, K7 | FlashInfer TRTLLM | 0.6.17 | C32/C64 full cells; batch leader |
 
-The charts plot only those cells. They do not fill in missing concurrencies.
+The headline charts select the competitive cells and never fill in missing
+concurrencies.
 The TP2+EP1 run used the earlier schema-v3 framing check, which did not reject
 raw reasoning tags in API content. The FA4 screen preceded the low-reasoning
 launch default and used the template's implicit maximum reasoning setting, so
@@ -104,7 +106,7 @@ profiles.
 - The PP2/AR headline is the median of five independently cache-isolated exact
   65,536-token prompts with one output token.
 
-## Observed concurrency
+## SGLang observed concurrency detail
 
 | Offered C | Average / maximum active | Average / maximum queued | Queue fraction |
 | ---: | ---: | ---: | ---: |
@@ -119,7 +121,8 @@ every offered request remained resident for the full interval. The C64 client
 used a 589,824-token client-side capacity override so it would offer the cell;
 the server's actual 311,680-token KV pool did not change. Every measured request
 completed with zero errors. The public graph uses offered concurrency on the
-x-axis; this table preserves residency.
+x-axis. C32 and C64 are capacity-limited detail rows and are not headline
+winners.
 
 ## Prefill note
 

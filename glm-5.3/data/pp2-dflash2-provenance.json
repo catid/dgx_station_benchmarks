@@ -38,15 +38,28 @@
     "draft_kv_cache": "bfloat16",
     "flashinfer_autotune": true
   },
-  "server_profile": {
-    "max_model_length": 10240,
-    "max_running_requests": 16,
-    "max_batched_tokens": 8192,
-    "gpu_memory_utilization": 0.93,
-    "prefix_caching": false,
-    "block_size": 64,
-    "async_scheduling": false,
-    "cuda_graph_capture_sizes": [1, 2, 4, 8, 16, 32, 64, 80]
+  "server_profiles": {
+    "interactive_c1_c16": {
+      "max_model_length": 10240,
+      "max_running_requests": 16,
+      "max_batched_tokens": 8192,
+      "gpu_memory_utilization": 0.93,
+      "prefix_caching": false,
+      "block_size": 64,
+      "async_scheduling": false,
+      "cuda_graph_capture_sizes": [1, 2, 4, 8, 16, 32, 64, 80]
+    },
+    "batch_c32_c64": {
+      "proposals": 7,
+      "max_model_length": 10240,
+      "max_running_requests": 64,
+      "max_batched_tokens": 8192,
+      "gpu_memory_utilization": 0.95,
+      "prefix_caching": false,
+      "block_size": 64,
+      "async_scheduling": false,
+      "cuda_graph_capture_sizes": [1, 2, 4, 8, 16, 32, 64, 128]
+    }
   },
   "benchmark": {
     "client": "llm-inference-bench",
@@ -120,6 +133,27 @@
         "correctness_battery": "3342a8d376f7427ac4fbb88908e70a5d08e9065e720f00dd2f481b97728fa01a",
         "backend_dispatch_verdict": "26c7fe62276f470714adf7faed7e2732c7d6fa77319a8453e7b2477a527dba01",
         "teardown_verdict": "50c24069269adc783d2a0c4cd5204f142e8866119cfd2eafb1a6912f2a099feb"
+      }
+    },
+    {
+      "run_id": "vpp2df-k7-c64-p2-r32",
+      "proposals": 7,
+      "role": "full C32 and C64 batch profile",
+      "status_at_import": "SERVER_READY",
+      "correctness": "PASS",
+      "backend_dispatch": "PASS",
+      "memory": {
+        "model_load_gib_by_stage": [217.11, 205.30],
+        "available_kv_gib_by_stage": [16.51, 27.85],
+        "coordinated_kv_tokens": 640896
+      },
+      "source_sha256": {
+        "c32_full": "2fd9d1947d277acf94b3f325ede2e8ac2706bf92234c9aaff3e52ee42d4b5e0e",
+        "c32_validation": "5e9c9dc9acf57a7dd5eb4677268d644875015b77c2789dfda2a2efc366960beb",
+        "c64_full": "a9a1613c9ff0377745153821d6a2aedc7da9eb4ce845922eca3967251c8855d9",
+        "c64_validation": "2813a15544b40b52b919345f27e89bef75ade23d99e8e2e034983c257336fb0a",
+        "correctness_battery": "f184c45ef6138549208d30e9dfbffc28722b71e0d25def44f866366194663499",
+        "backend_dispatch_verdict": "26c7fe62276f470714adf7faed7e2732c7d6fa77319a8453e7b2477a527dba01"
       }
     }
   ]

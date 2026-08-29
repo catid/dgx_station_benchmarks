@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import tempfile
 from collections import defaultdict
 from pathlib import Path
@@ -21,6 +22,7 @@ CHARTS = ROOT / "charts"
 OUTPUT_DIR = CHARTS
 CHART_NAMES = (
     "decode-throughput.png",
+    "per-user-throughput.png",
     "prefill-throughput.png",
     "workstation-comparison.png",
 )
@@ -38,6 +40,7 @@ PROFILE_ORDER = (
     PP2_K5_PROFILE,
     PP2_K7_PROFILE,
 )
+PP2_PROFILE_ORDER = (PP2_K4_PROFILE, PP2_K5_PROFILE, PP2_K7_PROFILE)
 PREFILL_PROFILE_ORDER = (
     PP2_PREFILL_PROFILE,
     SGLANG_TEP_PROFILE,
@@ -113,7 +116,7 @@ def render_decode() -> None:
         figsize=(15.8, 6.4),
         gridspec_kw={"width_ratios": [1.7, 1]},
     )
-    for profile in PROFILE_ORDER:
+    for profile in PP2_PROFILE_ORDER:
         profile_rows = sorted(
             code_by_profile.get(profile, []),
             key=lambda row: int(row["requested_concurrency"]),
@@ -126,16 +129,15 @@ def render_decode() -> None:
             for row in profile_rows
         ]
         color, marker = PROFILE_STYLE[profile]
-        is_pp2 = profile in {PP2_K4_PROFILE, PP2_K5_PROFILE, PP2_K7_PROFILE}
         code_axis.plot(
             x_values,
             y_values,
             marker=marker,
-            markersize=7.5 if is_pp2 else 6.5,
-            linewidth=2.8 if is_pp2 else 2.1,
+            markersize=7.5,
+            linewidth=2.8,
             color=color,
             label=display_profile(profile),
-            zorder=4 if is_pp2 else 3,
+            zorder=4,
         )
         screen_rows = [
             row for row in profile_rows if row["publication_status"] == "screen"
@@ -162,7 +164,7 @@ def render_decode() -> None:
             if row["workload"] == "code_structured"
         }
     )
-    code_axis.set_title("Code / structured output · aggregate throughput")
+    code_axis.set_title("vLLM PP2 · code aggregate throughput")
     code_axis.set_xlabel("Offered request concurrency")
     code_axis.set_ylabel("Aggregate output tokens/second")
     code_axis.set_xscale("log", base=2)
@@ -290,6 +292,87 @@ def render_prefill() -> None:
     plt.close(figure)
 
 
+def render_per_user() -> None:
+    headline = sorted(
+        all_rows("headline-per-user.csv"),
+        key=lambda row: int(row["offered_concurrency"]),
+    )
+    x_values = [int(row["offered_concurrency"]) for row in headline]
+    y_values = [
+        float(row["output_tokens_per_second_per_user"]) for row in headline
+    ]
+
+    figure, axis = plt.subplots(figsize=(11.8, 5.8))
+    axis.plot(
+        x_values,
+        y_values,
+        color="#61DDAA",
+        marker="o",
+        markersize=8,
+        linewidth=3,
+        label="Best validated recipe",
+        zorder=4,
+    )
+    axis.axhline(
+        60,
+        color="#FFD666",
+        linestyle=":",
+        linewidth=2.6,
+        label="ChatGPT equivalent speed",
+        zorder=2,
+    )
+
+    y_c8 = y_values[x_values.index(8)]
+    y_c16 = y_values[x_values.index(16)]
+    fraction = (y_c8 - 60) / (y_c8 - y_c16)
+    crossover = 2 ** (math.log2(8) + fraction * (math.log2(16) - math.log2(8)))
+    axis.axvspan(8, 16, color="#FFD666", alpha=0.07, zorder=1)
+    axis.scatter(
+        [crossover],
+        [60],
+        s=95,
+        facecolors="#151A23",
+        edgecolors="#FFD666",
+        linewidths=2.2,
+        zorder=5,
+    )
+    axis.annotate(
+        f"Estimated crossover ~C{crossover:.1f}\n(interpolated between C8 and C16)",
+        xy=(crossover, 60),
+        xytext=(18, 18),
+        textcoords="offset points",
+        fontsize=9.2,
+        color="#FFD666",
+        arrowprops={"arrowstyle": "->", "color": "#FFD666"},
+    )
+
+    axis.set_xscale("log", base=2)
+    axis.set_xticks(x_values)
+    axis.get_xaxis().set_major_formatter(
+        FuncFormatter(lambda value, _: f"C{int(value)}")
+    )
+    axis.set_ylim(bottom=0, top=185)
+    axis.set_title("GLM-5.3 NVFP4 + DFlash2 — output tokens/second/user")
+    axis.set_xlabel("Concurrent sessions")
+    axis.set_ylabel("Output tokens/second/user")
+    axis.grid(True, alpha=0.65)
+    axis.legend(loc="upper right")
+    for x_value, y_value in zip(x_values, y_values, strict=True):
+        axis.text(
+            x_value,
+            y_value + 3.3,
+            f"{y_value:.1f}",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+    figure.tight_layout()
+    figure.savefig(
+        OUTPUT_DIR / "per-user-throughput.png", dpi=180, bbox_inches="tight"
+    )
+    plt.close(figure)
+
+
 def render_workstation_comparison() -> None:
     comparison = all_rows("rtx-pro-6000-comparison.csv")
     decode_code = sorted(
@@ -405,6 +488,7 @@ def render_all(output_dir: Path) -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     style()
     render_decode()
+    render_per_user()
     render_prefill()
     render_workstation_comparison()
 

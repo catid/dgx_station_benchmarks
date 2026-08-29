@@ -3,6 +3,7 @@
 The renderer reads the section CSVs and produces:
 
 - the SGLang and vLLM PP2 DFlash2 headline decode figure;
+- the best-recipe output-tokens/second/user curve;
 - the exact 64K cold-prefill figure;
 - a separate 4× RTX PRO 6000 / EXL3 derivative comparison figure.
 

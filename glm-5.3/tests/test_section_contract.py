@@ -76,7 +76,7 @@ class SectionContractTests(unittest.TestCase):
     def test_all_real_cells_are_present_without_interpolation(self) -> None:
         decode = rows("throughput.csv")
         prefill = rows("prefill.csv")
-        self.assertEqual(len(decode), 33)
+        self.assertEqual(len(decode), 35)
         self.assertEqual(len(prefill), 3)
         self.assertEqual({row["profile"] for row in decode}, set(PROFILES))
         actual = {
@@ -106,6 +106,10 @@ class SectionContractTests(unittest.TestCase):
                 (profile, "code_structured", concurrency)
                 for concurrency in (1, 2, 4, 8, 16)
             )
+        expected.update(
+            (PP2_K7_PROFILE, "code_structured", concurrency)
+            for concurrency in (32, 64)
+        )
         self.assertEqual(actual, expected)
         self.assertEqual(len(actual), len(decode))
         self.assertTrue(
@@ -174,6 +178,8 @@ class SectionContractTests(unittest.TestCase):
             (PP2_K5_PROFILE, "code_structured", 4): 409.9076978364676,
             (PP2_K7_PROFILE, "code_structured", 8): 553.8355856788203,
             (PP2_K7_PROFILE, "code_structured", 16): 726.8489766746203,
+            (PP2_K7_PROFILE, "code_structured", 32): 1064.9785671015213,
+            (PP2_K7_PROFILE, "code_structured", 64): 1093.7931437564482,
         }
         for key, value in expected.items():
             self.assertEqual(float(decode[key]["aggregate_output_tokens_per_second"]), value)
@@ -216,11 +222,14 @@ class SectionContractTests(unittest.TestCase):
         self.assertIn("**165.5 tok/s**", section)
         self.assertIn("**107.4 tok/s**", section)
         self.assertIn("**726.8 tok/s**", section)
+        self.assertIn("**1,065.0 tok/s**", section)
+        self.assertIn("**1,093.8 tok/s**", section)
         self.assertIn("**25,893 prompt tok/s**", section)
         self.assertIn("PP2/AR 40/38", section)
         self.assertIn("vLLM PP2 42/36 · DFlash2 K7", section)
-        self.assertIn("does not denote a standalone TensorRT-LLM server", section)
         self.assertIn("FI-TRT MoE", renderer)
+        self.assertIn("ChatGPT equivalent speed", renderer)
+        self.assertIn("charts/per-user-throughput.png", section)
         self.assertIn("[GLM-5.3](glm-5.3/)", repository)
         self.assertIn("unmeasured\n64-token compile warmup leaked", recipe)
         self.assertIn("implicit maximum reasoning setting", recipe)
@@ -232,10 +241,32 @@ class SectionContractTests(unittest.TestCase):
         self.assertIn("VLLM_PP_DFLASH_DECODE_PARTITIONS=2", pp2_recipe)
         self.assertIn("895c5d5c531f13351284133846e2b5c643d744f0", pp2_recipe)
         self.assertIn("726.849", pp2_recipe)
+        self.assertIn("1,093.793", pp2_recipe)
         self.assertIn("did not use the standalone TensorRT-LLM", pp2_recipe)
+        self.assertIn("capacity-limited detail rows", pp2_recipe)
+        self.assertNotIn("**570.0 tok/s**", section)
+        self.assertNotIn("**566.9 tok/s**", section)
         for text in (section, renderer):
             self.assertNotIn("source-sealed", text.lower())
             self.assertNotIn("sealed", text.lower())
+
+    def test_headline_per_user_curve(self) -> None:
+        headline = rows("headline-per-user.csv")
+        self.assertEqual(
+            [int(row["offered_concurrency"]) for row in headline],
+            [1, 2, 4, 8, 16, 32, 64],
+        )
+        for row in headline:
+            concurrency = int(row["offered_concurrency"])
+            aggregate = float(row["aggregate_output_tokens_per_second"])
+            per_user = float(row["output_tokens_per_second_per_user"])
+            self.assertEqual(per_user, aggregate / concurrency)
+        self.assertGreater(
+            float(headline[3]["output_tokens_per_second_per_user"]), 60
+        )
+        self.assertLess(
+            float(headline[4]["output_tokens_per_second_per_user"]), 60
+        )
 
     def test_separate_workstation_comparison(self) -> None:
         comparison = rows("rtx-pro-6000-comparison.csv")

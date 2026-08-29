@@ -11,6 +11,8 @@
   and source-artifact pins.
 - `pp2-dflash2-provenance.json` pins the vLLM image/source overlay, PP cohort
   patch, launch profile, autotune keys, and evidence hashes for K4/K5/K7.
+- `headline-per-user.csv` selects the best validated headline recipe at each
+  offered concurrency and stores `aggregate output tok/s / offered C`.
 - `rtx-pro-6000-comparison.csv` contains the separately labeled 4× RTX PRO
   6000 Blackwell / EXL3 3.25 bpw derivative / native-MTP3 comparison points.
   It is not merged with the exact Inco NVFP4 + DFlash2 result set.
