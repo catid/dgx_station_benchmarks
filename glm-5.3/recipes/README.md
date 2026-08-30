@@ -6,7 +6,10 @@ pipeline-parallel series has its own
 [PP2 + DFlash2 recipe](pp2_dflash2.md), including the complete
 [21-file vLLM source overlay](vllm-overlay/).
 
-## Exact target and runtime
+## Measured target and runtime
+
+Every benchmark result and resource figure in this section is attributed to
+the measured target below.
 
 | Item | Pin |
 | --- | --- |
@@ -25,6 +28,26 @@ pipeline-parallel series has its own
 | vLLM challenger source | `c01b50e390e6d3d0019aa53f41ff1198c8105e5a` |
 | vLLM challenger image | `sha256:343c67ff9c28dca5ae22385804d6276d6c4e45aecdf17f581d583e87000ed482` |
 | Benchmark client | `llm-inference-bench` 0.4.29, commit `0b4185b5b435e948b199c9077a00b084864aa963` |
+
+## Current serving target — unmeasured
+
+The launchers and OpenCode overlay now select
+[`local-inference-lab/GLM-5.3-NVFP4@cca10d1`](https://huggingface.co/local-inference-lab/GLM-5.3-NVFP4/tree/cca10d1586255195d3279785fc85577bfc1e9227).
+Its exact metadata audit is recorded in
+[`current-target.json`](current-target.json). The repository has no model card
+or published evaluation at that revision, so this publication makes no quality
+or speed claim for the replacement.
+
+The architecture, all non-quantization config fields, tokenizer/chat assets,
+and 232,385 indexed tensor names match the measured target. The new flat
+ModelOpt configuration uses wildcard exclusions supported by both pinned
+runtimes, but its producer version, exclusion representation, calibrated
+weights, and auxiliary scale assets differ. It does not declare a KV-cache
+scheme, so the explicit
+`--kv-cache-dtype fp8_e4m3` SGLang setting and `--kv-cache-dtype fp8` vLLM
+setting are required and must not be removed. No parser, draft, or source
+overlay change is needed from this static audit. Runtime correctness, HBM
+headroom, draft acceptance, proposal count, and throughput must be requalified.
 
 The server is one distributed endpoint across two DGX Stations, one GB300 per
 host. Both 400 GbE ConnectX-8 RoCE rails carried NCCL traffic through
@@ -88,10 +111,11 @@ limit.
 Run `serve-prefill-pp2.sh` on the worker first and then the controller for the
 long-prefill leader. It uses TP1 / PP2 / EP1, a 40/38 transformer-layer split,
 AR, one maximum running request, a 500,000-token advertised context, 65,536
-maximum prefill tokens, 8,192-token chunks, and CUDA graphs disabled. It uses
-the same SGLang commit, image, target checkpoint, FP8 KV cache, FlashInfer
-TRTLLM MoE, target DSA backends, and dual-rail GPUDirect RDMA transport as the
-decode profile.
+maximum prefill tokens, 8,192-token chunks, and CUDA graphs disabled. The
+published run used the measured target above; the current launcher replaces
+only that target. It otherwise uses the same SGLang commit, image, FP8 KV
+cache, FlashInfer TRTLLM MoE, target DSA backends, and dual-rail GPUDirect RDMA
+transport as the decode profile.
 
 Prefill itself does not use speculative decoding. DFlash2 is unavailable with
 PP2 in this pinned SGLang runtime, so this profile has no draft model or

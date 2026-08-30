@@ -78,6 +78,40 @@ class SectionContractTests(unittest.TestCase):
         self.assertEqual(prefill["result"]["contexts"]["8192"]["median_ttft_seconds"], 0.499)
         self.assertEqual(prefill["result"]["contexts"]["131072"]["median_ttft_seconds"], 5.191)
 
+    def test_current_serving_target_is_separate_from_history(self) -> None:
+        current = json.loads(
+            (ROOT / "recipes/current-target.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(current["status"], "unmeasured_serving_default")
+        self.assertEqual(
+            current["target"]["model_id"],
+            "local-inference-lab/GLM-5.3-NVFP4",
+        )
+        self.assertEqual(
+            current["target"]["revision"],
+            "cca10d1586255195d3279785fc85577bfc1e9227",
+        )
+        self.assertFalse(current["target"]["has_model_card"])
+        self.assertFalse(
+            current["static_compatibility"]["runtime_validation_performed"]
+        )
+        self.assertTrue(
+            current["static_compatibility"][
+                "explicit_fp8_kv_launch_override_required"
+            ]
+        )
+        for evidence_name in (
+            "checkpoint.json",
+            "pp2-dflash2-provenance.json",
+            "pp2-prefill-samples.json",
+        ):
+            evidence = json.loads((DATA / evidence_name).read_text(encoding="utf-8"))
+            self.assertEqual(evidence["target"]["model_id"], "incoai/GLM-5.3-NVFP4")
+            self.assertEqual(
+                evidence["target"]["revision"],
+                "54e52520606f96b3d9fc84088ad22882a61648ac",
+            )
+
     def test_all_real_cells_are_present_without_interpolation(self) -> None:
         decode = rows("throughput.csv")
         prefill = rows("prefill.csv")
@@ -371,7 +405,11 @@ class SectionContractTests(unittest.TestCase):
             "--tp-size 2 --pp-size 1 --ep-size 2",
             "--speculative-draft-attention-backend trtllm_mha",
             "--speculative-dflash-block-size 8",
-            "--context-length 1048576",
+            "TARGET_MODEL_ID='local-inference-lab/GLM-5.3-NVFP4'",
+            "TARGET_REVISION='cca10d1586255195d3279785fc85577bfc1e9227'",
+            "--quantization modelopt_fp4",
+            "--kv-cache-dtype fp8_e4m3",
+            "--context-length 500000",
         ):
             self.assertIn(fragment, launcher)
 
@@ -386,7 +424,11 @@ class SectionContractTests(unittest.TestCase):
             "--tp-size 1 --pp-size 2 --ep-size 1",
             "--max-running-requests 1",
             "--max-prefill-tokens 65536",
-            "--context-length 1048576",
+            "TARGET_MODEL_ID='local-inference-lab/GLM-5.3-NVFP4'",
+            "TARGET_REVISION='cca10d1586255195d3279785fc85577bfc1e9227'",
+            "--quantization modelopt_fp4",
+            "--kv-cache-dtype fp8_e4m3",
+            "--context-length 500000",
             "--disable-cuda-graph",
         ):
             self.assertIn(fragment, pp2_launcher)
@@ -395,7 +437,9 @@ class SectionContractTests(unittest.TestCase):
         pp2_recipe = (ROOT / "recipes/pp2_dflash2.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("--max-model-len 1048576", pp2_recipe)
+        self.assertIn("--max-model-len 500000", pp2_recipe)
+        self.assertIn("--kv-cache-dtype fp8", pp2_recipe)
+        self.assertIn("local-inference-lab/GLM-5.3-NVFP4", pp2_recipe)
         self.assertNotIn("--max-model-len 10240", pp2_recipe)
         self.assertNotIn("10,240", pp2_recipe)
 
@@ -403,7 +447,7 @@ class SectionContractTests(unittest.TestCase):
             (ROOT / "recipes/opencode-1m.jsonc").read_text(encoding="utf-8")
         )
         model = opencode["provider"]["dgx-glm53"]["models"][
-            "incoai/GLM-5.3-NVFP4"
+            "local-inference-lab/GLM-5.3-NVFP4"
         ]
         self.assertNotIn("limit", model)
 

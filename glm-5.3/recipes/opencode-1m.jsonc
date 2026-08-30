@@ -8,7 +8,7 @@
         "baseURL": "http://<CONTROLLER_IP>:30000/v1"
       },
       "models": {
-        "incoai/GLM-5.3-NVFP4": {
+        "local-inference-lab/GLM-5.3-NVFP4": {
           "name": "GLM-5.3 NVFP4 (500K server)"
         }
       }

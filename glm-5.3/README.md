@@ -1,10 +1,15 @@
 # GLM-5.3 NVFP4 + DFlash2
 
-Full-size
+The published measurements below use full-size
 [`incoai/GLM-5.3-NVFP4@54e5252`](https://huggingface.co/incoai/GLM-5.3-NVFP4/tree/54e52520606f96b3d9fc84088ad22882a61648ac)
 with
 [`incoai/GLM-5.3-DFlash2@425aa61`](https://huggingface.co/incoai/GLM-5.3-DFlash2/tree/425aa615ce320caac34400208b30808c8f14f76c)
 on 2× NVIDIA DGX Station GB300.
+
+The current serving recipes instead pin
+[`local-inference-lab/GLM-5.3-NVFP4@cca10d1`](https://huggingface.co/local-inference-lab/GLM-5.3-NVFP4/tree/cca10d1586255195d3279785fc85577bfc1e9227).
+That replacement has passed a metadata and source-compatibility audit only;
+none of the performance, acceptance, or memory figures on this page measure it.
 
 ## TP2 headline — SGLang TP2+EP2 · DFlash2 K7
 

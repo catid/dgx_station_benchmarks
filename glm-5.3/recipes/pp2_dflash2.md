@@ -17,10 +17,13 @@ out of the headline page.
 | C32 code | PP2 K7 batch | 1,065.0 aggregate tok/s |
 | C64 code | PP2 K7 batch | 1,093.8 aggregate tok/s |
 
-K4 is the interactive profile. K7 is the current batch profile. K5 is a narrow
-middle point rather than a universal winner.
+K4 is the measured interactive winner. K7 is the measured batch winner. K5 is
+a narrow middle point rather than a universal winner.
 
-## Exact target and runtime
+All winning cells, acceptance rates, model-load sizes, HBM headroom, and KV
+envelopes on this page were measured with the historical target below.
+
+## Measured target and runtime
 
 | Item | Pin |
 | --- | --- |
@@ -33,6 +36,26 @@ middle point rather than a universal winner.
 | Overlay manifest SHA-256 | `5921028ebd11487c511625a0eb7623e66a42c05b72206741ba5bd2fc7a7f8d2a` |
 | FlashInfer | 0.6.17 |
 | Benchmark | `llm-inference-bench` 0.4.29, commit `0b4185b5b435e948b199c9077a00b084864aa963` |
+
+## Current target compatibility
+
+The launch skeleton now pins
+[`local-inference-lab/GLM-5.3-NVFP4@cca10d1`](https://huggingface.co/local-inference-lab/GLM-5.3-NVFP4/tree/cca10d1586255195d3279785fc85577bfc1e9227).
+The exact static audit is in [`current-target.json`](current-target.json). Its
+non-quantization model geometry, tokenizer/chat assets, and indexed tensor-name
+set match the measured target. The draft still targets the same 78-layer GLM
+geometry and is statically compatible.
+
+The pinned vLLM ModelOpt loader already supports the replacement's flat
+quantization config and wildcard exclusions, and the PP2+DFlash2 overlay is
+architecture-based rather than repository-name-based. No overlay, parser,
+quantization flag, or draft-config change is warranted. The quantization
+producer version, exclusion representation, calibrated weights, and auxiliary
+scale assets differ from the measured target. The replacement also omits
+the previous checkpoint's KV-cache scheme metadata, so the explicit
+`--kv-cache-dtype fp8` is required. This is not a runtime or performance
+validation: rerun output correctness, load/HBM checks, draft acceptance, and
+the K4/K5/K7 sweep before promoting a profile.
 
 The overlay is opt-in through `VLLM_PP_DFLASH_DECODE_PARTITIONS=2`. Its default
 value is one, which preserves upstream scheduling. With two partitions, active
@@ -99,10 +122,12 @@ export VLLM_KV_CACHE_LAYOUT=BLHNC
 export VLLM_PP_DFLASH_DECODE_PARTITIONS=2
 export VLLM_PP_DFLASH_TRACE_STEPS=0
 export VLLM_PP_LAYER_PARTITION=42,36
+export TARGET_MODEL_ID='local-inference-lab/GLM-5.3-NVFP4'
+export TARGET_REVISION='cca10d1586255195d3279785fc85577bfc1e9227'
 
 vllm serve /model \
-  --revision 54e52520606f96b3d9fc84088ad22882a61648ac \
-  --served-model-name incoai/GLM-5.3-NVFP4 \
+  --revision "$TARGET_REVISION" \
+  --served-model-name "$TARGET_MODEL_ID" \
   --trust-remote-code \
   --model-impl vllm \
   --dtype bfloat16 \

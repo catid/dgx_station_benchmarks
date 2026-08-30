@@ -19,7 +19,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 
 | Experiment | Checkpoint / precision | Headline result |
 | --- | --- | --- |
-| [GLM-5.3](glm-5.3/) | Full-size 464.8 GB `incoai/GLM-5.3-NVFP4`; SGLang TP2 and patched vLLM PP2 DFlash2 on 2× GB300 | TP2 C1: 165.5 code / 107.4 prose tok/s; PP2 K7: 742.0 C16, 1,093.8 C64; PP2/AR prefill: 16,425 at 8K, 25,854 at 64K, 25,249 at 128K prompt tok/s |
+| [GLM-5.3](glm-5.3/) | Current recipe: `local-inference-lab/GLM-5.3-NVFP4` (unmeasured); published 464.8 GB results: `incoai/GLM-5.3-NVFP4`, SGLang TP2 and patched vLLM PP2 DFlash2 on 2× GB300 | TP2 C1: 165.5 code / 107.4 prose tok/s; PP2 K7: 742.0 C16, 1,093.8 C64; PP2/AR prefill: 16,425 at 8K, 25,854 at 64K, 25,249 at 128K prompt tok/s |
 | [Qwen3.8-Flash-Next](qwen3.8-flash-next/) | local-inference-lab NVFP4-4p89/SGLang on 1× DGX Station GB300; 4× RTX PRO 6000 comparison | 1× TP1/MTP3 + ReplaySSM: 354.6 tok/s C1, 2,927.8 C64; TP1/AR: 4,090.4 C64, 38,653 tok/s 64K prefill |
 | [Qwen3.8-27B](qwen3.8-27b/) | BF16 plus unofficial Huginn FP8 and NVFP4A16 targets; BF16 KV/Mamba state | DFlash2: 265.8 tok/s C1; MTP: 6,348.8 C128. Quant AR C128: FP8 5,494.4 (+8.7% vs BF16), NVFP4A16 3,607.4 (−28.6%) |
 | [Qwen2.5-72B LoRA FSDP training](qwen72b-lora-fsdp/) | BF16 LoRA SFT; FSDP2 over 2× GB300; packed UltraChat 10K at 2,048 tokens | 4,453.19 tokens/s; 29.433 s/optimizer step; global batch 131,072 tokens |

@@ -8,7 +8,8 @@ set -euo pipefail
 : "${HEAD_IP:?set HEAD_IP to the controller RoCE address}"
 
 readonly IMAGE_ID='sha256:e73ae9252ba7cd877b8ff98cddba11e65dcd6b8ff6817c7b680622cca7fa64b2'
-readonly TARGET_REVISION='54e52520606f96b3d9fc84088ad22882a61648ac'
+readonly TARGET_MODEL_ID='local-inference-lab/GLM-5.3-NVFP4'
+readonly TARGET_REVISION='cca10d1586255195d3279785fc85577bfc1e9227'
 readonly DRAFT_REVISION='425aa615ce320caac34400208b30808c8f14f76c'
 readonly DIST_PORT="${DIST_PORT:-29673}"
 readonly API_PORT="${API_PORT:-30000}"
@@ -41,7 +42,7 @@ exec docker run --rm --name "$CONTAINER_NAME" \
   "$IMAGE_ID" -m sglang.launch_server \
   --model-path /model \
   --revision "$TARGET_REVISION" \
-  --served-model-name incoai/GLM-5.3-NVFP4 \
+  --served-model-name "$TARGET_MODEL_ID" \
   --trust-remote-code \
   --default-chat-template-kwargs '{"enable_thinking":true,"reasoning_effort":"low"}' \
   --model-impl sglang \

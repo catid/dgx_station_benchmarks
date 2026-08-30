@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "status": "unmeasured_serving_default",
+  "retrieved_at": "2026-08-30T03:14:26Z",
+  "target": {
+    "model_id": "local-inference-lab/GLM-5.3-NVFP4",
+    "revision": "cca10d1586255195d3279785fc85577bfc1e9227",
+    "last_modified": "2026-08-30T02:14:07.000Z",
+    "architecture": "GlmMoeDsaForCausalLM",
+    "model_type": "glm_moe_dsa",
+    "has_model_card": false,
+    "modelopt_producer_version": "0.39.0.dev290+gf9d9a71de.d20260407",
+    "quantization_ignore_patterns": 155,
+    "config_sha256": "55ebc619e0b6a820d27e81394254c821a8f83391db51eaa821278a78d54136c5",
+    "hf_quant_config_sha256": "4b6c9a76627717100d62b1295e81dcf5f03a7f37e9278ad7808ebeb852fa3f95",
+    "model_index_sha256": "8b1381efe25b45d5130633813b550ccbcc40a9dd8ac51fc60ee77f94a00e0ba4",
+    "indexed_tensor_count": 232385,
+    "indexed_safetensors_files": 85,
+    "indexed_safetensors_bytes": 464823066832
+  },
+  "static_compatibility": {
+    "historical_benchmark_target": {
+      "model_id": "incoai/GLM-5.3-NVFP4",
+      "revision": "54e52520606f96b3d9fc84088ad22882a61648ac"
+    },
+    "non_quantization_config_matches_historical_target": true,
+    "quantization_metadata_matches_historical_target": false,
+    "historical_modelopt_producer_version": "0.45.0",
+    "historical_quantization_ignore_entries": 1880,
+    "tensor_key_set_sha256": "14cd5e7a924f6960cdf71e79f35c37a4f65dc1d32beb921bd002a26630b5b647",
+    "tensor_key_set_matches_historical_target": true,
+    "tokenizer_and_chat_assets_match_historical_target": true,
+    "flat_modelopt_config_supported_by_pinned_runtimes": true,
+    "checkpoint_declares_kv_cache_scheme": false,
+    "explicit_fp8_kv_launch_override_required": true,
+    "dflash2_draft_layout_check": "compatible_static_only",
+    "runtime_validation_performed": false,
+    "performance_validation_performed": false
+  }
+}
