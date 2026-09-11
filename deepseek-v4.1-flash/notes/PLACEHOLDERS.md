@@ -11,7 +11,6 @@ placeholder for a pending run.
 | --- | --- | --- |
 | `{{STATUS_VLLM_TP2_DECODE}}` | notes/README.md | lane disposition wording for the 'What was measured' table (accepted / pending / diagnostic only / failed: reason) |
 | `{{STATUS_VLLM_TP2_DSPARK_DECODE}}` | notes/README.md | lane disposition wording for the 'What was measured' table (accepted / pending / diagnostic only / failed: reason) |
-| `{{STATUS_VLLM_TP2_PREFILL}}` | notes/README.md | lane disposition wording for the 'What was measured' table (accepted / pending / diagnostic only / failed: reason) |
 | `{{VLLM_TP2_DECODE_C16}}` | notes/README.md | throughput.csv aggregate_output_tokens_per_second, vLLM TP2 AR, f'{v:,.1f}' |
 | `{{VLLM_TP2_DECODE_C1}}` | notes/README.md | throughput.csv aggregate_output_tokens_per_second, vLLM TP2 AR, f'{v:,.1f}' |
 | `{{VLLM_TP2_DECODE_C32}}` | notes/README.md | throughput.csv aggregate_output_tokens_per_second, vLLM TP2 AR, f'{v:,.1f}' |
@@ -27,22 +26,10 @@ placeholder for a pending run.
 | `{{VLLM_TP2_DSPARK_USER_C32}}` | notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 DSpark, f'{v:,.1f}' |
 | `{{VLLM_TP2_DSPARK_USER_C4}}` | notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 DSpark, f'{v:,.1f}' |
 | `{{VLLM_TP2_DSPARK_USER_C64}}` | notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 DSpark, f'{v:,.1f}' |
-| `{{VLLM_TP2_PREFILL_128K_BEST}}` | notes/README.md | prefill.csv aggregate_prompt_tokens_per_second, vllm/cross_node_tp2/ar, f'{v:,.0f}' |
-| `{{VLLM_TP2_PREFILL_128K_C1}}` | README.md | prefill.csv aggregate_prompt_tokens_per_second at 128K C1, vllm/cross_node_tp2/ar, f'{v:,.0f}' |
-| `{{VLLM_TP2_PREFILL_16K_BEST}}` | notes/README.md | prefill.csv aggregate_prompt_tokens_per_second, vllm/cross_node_tp2/ar, f'{v:,.0f}' |
-| `{{VLLM_TP2_PREFILL_32K_BEST}}` | notes/README.md | prefill.csv aggregate_prompt_tokens_per_second, vllm/cross_node_tp2/ar, f'{v:,.0f}' |
-| `{{VLLM_TP2_PREFILL_64K_BEST}}` | notes/README.md | prefill.csv aggregate_prompt_tokens_per_second, vllm/cross_node_tp2/ar, f'{v:,.0f}' |
-| `{{VLLM_TP2_PREFILL_64K_C16}}` | README.md, notes/README.md | prefill.csv aggregate_prompt_tokens_per_second, vllm/cross_node_tp2/ar, f'{v:,.0f}' |
-| `{{VLLM_TP2_PREFILL_64K_C1}}` | notes/README.md | prefill.csv aggregate_prompt_tokens_per_second, vllm/cross_node_tp2/ar, f'{v:,.0f}' |
-| `{{VLLM_TP2_PREFILL_64K_C4}}` | notes/README.md | prefill.csv aggregate_prompt_tokens_per_second, vllm/cross_node_tp2/ar, f'{v:,.0f}' |
-| `{{VLLM_TP2_TTFT_128K_C1}}` | notes/README.md | prefill.csv ttft_p50_seconds at C1, vLLM TP2 lane, f'{v:.3f}s' |
-| `{{VLLM_TP2_TTFT_16K_C1}}` | notes/README.md | prefill.csv ttft_p50_seconds at C1, vLLM TP2 lane, f'{v:.3f}s' |
-| `{{VLLM_TP2_TTFT_32K_C1}}` | notes/README.md | prefill.csv ttft_p50_seconds at C1, vLLM TP2 lane, f'{v:.3f}s' |
-| `{{VLLM_TP2_TTFT_64K_C1}}` | notes/README.md | prefill.csv ttft_p50_seconds at C1, vLLM TP2 lane, f'{v:.3f}s' |
 | `{{VLLM_TP2_USER_C16}}` | notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 AR, f'{v:,.1f}' |
 | `{{VLLM_TP2_USER_C1}}` | README.md, notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 AR, f'{v:,.1f}' |
 | `{{VLLM_TP2_USER_C32}}` | notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 AR, f'{v:,.1f}' |
 | `{{VLLM_TP2_USER_C4}}` | notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 AR, f'{v:,.1f}' |
 | `{{VLLM_TP2_USER_C64}}` | notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 AR, f'{v:,.1f}' |
 
-35 placeholders.
+22 placeholders.

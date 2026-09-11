@@ -1,6 +1,6 @@
 # DeepSeek-V4.1-Flash on 2× NVIDIA GB300 DGX Stations
 
-The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) checkpoint at revision `dba1be0a40aa45a94ad051997016db3960a90277` (48 native FP8-dense / FP4-expert shards, 510,286,023,000 bytes, more than one GB300 holds), served across two DGX Stations over dual 400GbE RoCE rails by SGLang (TP2+EP2) and vLLM (TP1 × PP2; the TP2 and DSpark lanes are pending), autoregressive and with DSpark speculative decoding.
+The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) checkpoint at revision `dba1be0a40aa45a94ad051997016db3960a90277` (48 native FP8-dense / FP4-expert shards, 510,286,023,000 bytes, more than one GB300 holds), served across two DGX Stations over dual 400GbE RoCE rails by SGLang (TP2+EP2) and vLLM (TP1 × PP2 and TP2; the vLLM TP2 decode and DSpark lanes are pending), autoregressive and with DSpark speculative decoding.
 
 [![vLLM PP2 social clip: one 128K request across two DGX Stations](assets/fly-vllm-preview.gif)](assets/fly-vllm-2xdgx.mp4)
 
@@ -13,6 +13,7 @@ The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek
 ## Headline
 
 - **55,992 prompt tok/s** for a single 128K request (TTFT **2.340s**) and **65,966 aggregate prompt tok/s** at 64K / C16 (**63,048** at 128K / C16) — vLLM TP1 × PP2 over Data Direct RDMA, text-only, with the two local source patches this image needs to start under pipeline parallelism. At those three points that is +48.6% / +68.6% / +67.3% over SGLang's SWA-replay lane (37,674 / 39,133 / 37,693) and +129.5% / +157.3% / +158.2% over SGLang's exact full prefill (24,394 / 25,638 / 24,419).
+- On the same vLLM image the pipeline split beats splitting every layer: PP2 delivers **55,992** versus **32,672 prompt tok/s** for one 128K request (+71.4%) and **65,966** versus **34,695** at 64K / C16 (+90.1%) over TP2, which pays a cross-node all-reduce in every layer while PP2 keeps both Engram layers on one stage.
 - SGLang TP2+EP2 with SWA bounded replay (the deployment technique DeepSeek's V4.1 report describes; faster than full prefill but not bit-identical to it): **39,549 tok/s** for a single 16K request (TTFT **0.415s**; a 128K prompt in **3.480s**) and **37,693 prompt tok/s** at 128K / C16 — the fastest single 16K request of any lane.
 - Exact full prefill (SGLang, replay off, the numerically exact reference): **24,419 prompt tok/s** at 128K / C16 and **26,316 tok/s** for a single 16K request (TTFT **0.623s**).
 - Per-user decode at C1: SGLang DSpark **180.0 tok/s per user at C1** (2.80 accepted tokens per step) versus **106.8 tok/s** SGLang autoregressive; vLLM PP2 autoregressive **141.3 tok/s**, ahead of SGLang autoregressive at every concurrency and of DSpark from C4 upward.
@@ -29,7 +30,7 @@ The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek
 | SGLang AR + SWA replay | 37,674 | 39,133 | — | — |
 | SGLang DSpark† | — | — | **180.0** | — |
 | vLLM PP2 · AR | **55,992** | **65,966** | 141.3 | **2,805.9** |
-| vLLM TP2 · AR | {{VLLM_TP2_PREFILL_128K_C1}} | {{VLLM_TP2_PREFILL_64K_C16}} | {{VLLM_TP2_USER_C1}} | {{VLLM_TP2_DECODE_C64}} |
+| vLLM TP2 · AR | 32,672 | 34,695 | {{VLLM_TP2_USER_C1}} | {{VLLM_TP2_DECODE_C64}} |
 | vLLM TP2 · DSpark | — | — | {{VLLM_TP2_DSPARK_USER_C1}} | {{VLLM_TP2_DSPARK_DECODE_C64}} |
 
 *Prompt tok/s for one 128K request and aggregate at 64K with 16 requests in flight; output tok/s per user at C1 and aggregate at C64. Bold is the best accepted value in the column, † a diagnostic lane that is drawn but never ranked, — a point outside the lane's measured grid. Every measured configuration is its own series on every chart; accepted lanes rank, and the replay-off SGLang lane is the numerically exact reference. One station was not attempted. Full per-lane grids with TTFT, ITL, and accept lengths: [notes/](notes/).*
@@ -44,7 +45,7 @@ The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek
 
 ![DeepSeek-V4.1-Flash prefill throughput at 64K by concurrency](charts/prefill-concurrency.png)
 
-*64K prompts with 1, 4, and 16 requests in flight. The two-stage vLLM pipeline needs more than one request to fill (its C1 bar is 81% of its C16 bar); the SGLang lanes are flat across C1–C16.*
+*64K prompts with 1, 4, and 16 requests in flight. The two-stage vLLM pipeline needs more than one request to fill (its C1 bar is 81% of its C16 bar); the SGLang lanes and vLLM TP2 are flat across C1–C16.*
 
 ## Time to first token
 

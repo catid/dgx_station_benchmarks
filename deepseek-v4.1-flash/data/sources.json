@@ -245,21 +245,23 @@
         "swa_bounded_replay": false,
         "nccl_hcas": "mlx5_0,mlx5_1",
         "host_rdma": true,
-        "kv_cache_dtype": "model_default"
+        "kv_cache_dtype": "model_default",
+        "engram": "cpu_offload",
+        "language_model_only": true
       },
       "prefill": {
-        "publication_status": "pending",
+        "publication_status": "accepted",
         "rankable": true,
         "jsonl": [
-          "results/prefill/*-vllm-tp2-ar*.jsonl"
+          "results/prefill/20260910-175558-vllm-tp2-datadirect.jsonl"
         ],
-        "note": "Pending: the TP2 sweep has not completed; its first attempt was queued with vLLM rank 0 moved to node1 (SWAP_RANKS=1) and did not launch"
+        "note": "Accepted: run 20260910-175558 completed the full 16K-128K x C1/C4/C16 grid (12/12 points) with zero errors on vLLM TP2 x PP1 (--language-model-only, Engram cpu_offload, --max-num-batched-tokens 16384) on the same image and Data Direct overlay as the PP2 lane; the PP patches are mounted but inactive without pipeline parallelism. Launched with SWAP_RANKS=1 (vLLM rank 0 on node1, rank 1 on node0), so the GPU utilisation/power columns, sampled on node0, describe TP rank 1; under TP2 both ranks do the same work. The client's cache-flush call (/reset_prefix_cache) returned HTTP 404, but the vllm:request_prefill_kv_computed_tokens_sum delta equals the prompt-token total at every point, so no prefill work was skipped."
       },
       "decode": {
         "publication_status": "pending",
         "rankable": true,
         "run_dir": null,
-        "note": "Pending: same server as the TP2 prefill lane"
+        "note": "Pending: the TP2 AR decode sweep is running on the same server; accepted only once C1-C64 complete with zero errors"
       }
     },
     "vllm_tp2_dspark": {
