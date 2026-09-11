@@ -1,6 +1,6 @@
 # DeepSeek-V4.1-Flash on 2× NVIDIA GB300 DGX Stations
 
-The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) checkpoint at revision `dba1be0a40aa45a94ad051997016db3960a90277` (48 native FP8-dense / FP4-expert shards, 510,286,023,000 bytes, more than one GB300 holds), served across two DGX Stations over dual 400GbE RoCE rails by SGLang (TP2+EP2) and vLLM (TP1 × PP2 and TP2; the vLLM TP2 decode and DSpark lanes are pending), autoregressive and with DSpark speculative decoding.
+The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) checkpoint at revision `dba1be0a40aa45a94ad051997016db3960a90277` (48 native FP8-dense / FP4-expert shards, 510,286,023,000 bytes, more than one GB300 holds), served across two DGX Stations over dual 400GbE RoCE rails by SGLang (TP2+EP2) and vLLM (TP1 × PP2 and TP2; the vLLM TP2 DSpark lane is pending), autoregressive and with DSpark speculative decoding.
 
 [![vLLM PP2 social clip: one 128K request across two DGX Stations](assets/fly-vllm-preview.gif)](assets/fly-vllm-2xdgx.mp4)
 
@@ -30,7 +30,7 @@ The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek
 | SGLang AR + SWA replay | 37,674 | 39,133 | — | — |
 | SGLang DSpark† | — | — | **180.0** | — |
 | vLLM PP2 · AR | **55,992** | **65,966** | 141.3 | **2,805.9** |
-| vLLM TP2 · AR | 32,672 | 34,695 | {{VLLM_TP2_USER_C1}} | {{VLLM_TP2_DECODE_C64}} |
+| vLLM TP2 · AR | 32,672 | 34,695 | 102.3 | 1,964.5 |
 | vLLM TP2 · DSpark | — | — | {{VLLM_TP2_DSPARK_USER_C1}} | {{VLLM_TP2_DSPARK_DECODE_C64}} |
 
 *Prompt tok/s for one 128K request and aggregate at 64K with 16 requests in flight; output tok/s per user at C1 and aggregate at C64. Bold is the best accepted value in the column, † a diagnostic lane that is drawn but never ranked, — a point outside the lane's measured grid. Every measured configuration is its own series on every chart; accepted lanes rank, and the replay-off SGLang lane is the numerically exact reference. One station was not attempted. Full per-lane grids with TTFT, ITL, and accept lengths: [notes/](notes/).*
@@ -57,7 +57,7 @@ The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek
 
 ![DeepSeek-V4.1-Flash aggregate decode throughput versus concurrency](charts/decode-throughput.png)
 
-*Aggregate output tok/s versus concurrency, AR and DSpark on both engines; 8,192-token input, 1,024 forced output tokens, temperature 0, `C` warm-ups then `5 × C` measured requests. DSpark was requested at C1–C32.*
+*Aggregate output tok/s versus concurrency, AR and DSpark on both engines; 8,192-token input, 1,024 forced output tokens, temperature 0, `C` warm-ups then `5 × C` measured requests. vLLM TP2 trails PP2 at every concurrency; DSpark was requested at C1–C32.*
 
 ## Per-user decode speed
 
