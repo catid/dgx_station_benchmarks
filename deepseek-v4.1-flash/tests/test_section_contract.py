@@ -2,9 +2,12 @@
 """Offline consistency gates for the DeepSeek-V4.1-Flash publication section.
 
 The section's rule: every configuration (lane) with complete, error-free rows is a series on the charts
-and a column or row in the matching README table, accepted and diagnostic lanes alike. Placeholders may
+and a column or row in the matching detailed table, accepted and diagnostic lanes alike. Placeholders may
 only stand for lanes that have no rows yet; numbers must round from the CSV tables; the accepted versus
 diagnostic distinction lives in publication_status/rankable and the lane ledger, never in what is drawn.
+
+README.md is a deck: headline bullets, one best-numbers table, and the eight charts with a caption each.
+The per-chart tables live in notes/README.md under "## Detailed tables"; both files are bound to the CSVs.
 """
 
 from __future__ import annotations
@@ -39,6 +42,7 @@ HEADLINE_LANE = "sglang_tp2_ep2_ar"
 
 # Headline placeholder -> (lane, isl, concurrency, kind); accepted prefill rows only, as before.
 REPLAY_LANE = "sglang_tp2_ep2_ar_replay"  # accepted and ranked, but not bit-identical to the exact reference
+VLLM_PP2_LANE = "vllm_pp2_ar"  # the other engine: accepted, ranked, text-only, two local source patches
 HEADLINE_PREFILL = (
     ("SGLANG_PREFILL_128K_C16", HEADLINE_LANE, 131072, 16, "rate"),
     ("SGLANG_PREFILL_16K_C1", HEADLINE_LANE, 16384, 1, "rate"),
@@ -47,13 +51,39 @@ HEADLINE_PREFILL = (
     ("SGLANG_REPLAY_PREFILL_16K_C1", REPLAY_LANE, 16384, 1, "rate"),
     ("SGLANG_REPLAY_TTFT_16K_C1", REPLAY_LANE, 16384, 1, "ttft"),
     ("SGLANG_REPLAY_TTFT_128K_C1", REPLAY_LANE, 131072, 1, "ttft"),
+    ("VLLM_PP2_PREFILL_128K_C1", VLLM_PP2_LANE, 131072, 1, "rate"),
+    ("VLLM_PP2_TTFT_128K_C1", VLLM_PP2_LANE, 131072, 1, "ttft"),
+    ("VLLM_PP2_PREFILL_64K_C16", VLLM_PP2_LANE, 65536, 16, "rate"),
+    ("VLLM_PP2_PREFILL_128K_C16", VLLM_PP2_LANE, 131072, 16, "rate"),
 )
 # Headline placeholder -> (lane, concurrency, kind); accepted decode rows only.
 HEADLINE_DECODE = (
     ("SGLANG_DSPARK_USER_C1", "sglang_tp2_ep2_dspark", 1, "user"),
     ("SGLANG_DSPARK_ACCEPT_C1", "sglang_tp2_ep2_dspark", 1, "accept"),
     ("SGLANG_AR_USER_C1", HEADLINE_LANE, 1, "user"),
+    ("VLLM_PP2_USER_C1", VLLM_PP2_LANE, 1, "user"),
 )
+# Repository overview row -> the (isl, concurrency) prefill points each lane contributes to it.
+OVERVIEW_PREFILL_POINTS = {
+    HEADLINE_LANE: ((16384, 1), (131072, 16)),
+    REPLAY_LANE: ((16384, 1), (131072, 16)),
+    VLLM_PP2_LANE: ((131072, 1), (65536, 16)),
+}
+# The deck's single table and the per-chart tables that moved to notes/README.md.
+BEST_NUMBERS_HEADING = "## Best numbers"
+BEST_NUMBERS_COLUMNS = ["Configuration", "Prefill 128K · C1", "Prefill 64K · C16", "Decode C1 · per user",
+                        "Decode C64 · aggregate"]
+DECK_MAX_LINES = 100
+DETAILED_TABLES = {
+    "prefill": "### Prefill throughput",
+    "concurrency": "### Prefill scaling with concurrency",
+    "ttft": "### Time to first token",
+    "decode": "### Decode throughput",
+    "user": "### Per-user decode speed",
+    "ladder": "### SGLang prefill tuning ladder",
+    "kernel": "### Where the GPU time goes",
+    "fabric": "### NCCL all-reduce bus bandwidth",
+}
 
 
 def rows(name: str) -> list[dict[str, str]]:
@@ -134,7 +164,7 @@ def table_after_heading(text: str, heading: str) -> tuple[list[str], list[list[s
     start = next(index for index, line in enumerate(lines) if line.strip() == heading)
     table: list[str] = []
     for line in lines[start + 1:]:
-        if line.startswith("## "):
+        if line.startswith("#"):  # the next heading of any level ends the table's section
             break
         if line.startswith("|"):
             table.append(line)
@@ -144,7 +174,7 @@ def table_after_heading(text: str, heading: str) -> tuple[list[str], list[list[s
 
 
 def section_text(text: str, heading: str) -> str:
-    return text.split(heading, 1)[1].split("\n## ", 1)[0]
+    return re.split(r"\n#{1,6} ", text.split(heading, 1)[1], maxsplit=1)[0]
 
 
 def unstyle(cell: str) -> str:
@@ -177,6 +207,7 @@ def write_csv(path: Path, rows_: list[dict[str, str]]) -> None:
 class SectionContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.notes = (ROOT / "notes/README.md").read_text(encoding="utf-8")
         self.ledger = (ROOT / "notes/PLACEHOLDERS.md").read_text(encoding="utf-8")
         self.lanes = manifest_lanes()
         self.renderer = load_chart_renderer()
@@ -372,14 +403,39 @@ class SectionContractTests(unittest.TestCase):
                 "no accepted prefill rows, so no lane may be ledgered as PASS_RANKABLE_PREFILL",
             )
 
-    def test_readme_tables_round_from_canonical_rows(self) -> None:
+    def test_best_numbers_table_rounds_from_csv(self) -> None:
+        """The deck's only table: one row per lane in sources.json, four best-number cells that round from the CSVs."""
+        renderer = self.renderer
+        rates = {entry["lane"]: entry for entry in renderer.prefill_series(renderer.RATE)}
+        users = {entry["lane"]: entry for entry in renderer.decode_series(renderer.DECODE_PER_USER)}
+        aggregates = {entry["lane"]: entry for entry in renderer.decode_series(renderer.DECODE_AGGREGATE)}
+        columns, body = table_after_heading(self.readme, BEST_NUMBERS_HEADING)
+        self.assertEqual(columns, BEST_NUMBERS_COLUMNS)
+        lanes = self.lane_columns([row[0] for row in body])
+        self.assertEqual(set(lanes), set(self.lanes), "every lane in sources.json is a row of the best-numbers table")
+        for lane, row in zip(lanes, body):
+            prefill = rates.get(lane)
+            c1 = prefill["points"].get(1, {}).get(131072) if prefill else None
+            c16 = prefill["points"].get(16, {}).get(CONCURRENCY_REFERENCE_ISL) if prefill else None
+            self.check_cell(row[1], c1, f"{c1:,.0f}" if c1 is not None else None, prefill is not None, f"best {lane} 128K C1")
+            self.check_cell(row[2], c16, f"{c16:,.0f}" if c16 is not None else None, prefill is not None, f"best {lane} 64K C16")
+            user = users.get(lane)
+            u1 = user["cells"].get(1) if user else None
+            self.check_cell(row[3], u1, f"{u1:,.1f}" if u1 is not None else None, user is not None, f"best {lane} decode C1")
+            aggregate = aggregates.get(lane)
+            a64 = aggregate["cells"].get(64) if aggregate else None
+            self.check_cell(row[4], a64, f"{a64:,.1f}" if a64 is not None else None, aggregate is not None,
+                            f"best {lane} decode C64")
+
+    def test_detailed_tables_round_from_canonical_rows(self) -> None:
         self.assertIn(f"revision `{REVISION}`", self.readme)
+        self.assertIn("## Detailed tables", self.notes)
         renderer = self.renderer
         labels = {lane["lane_label"]: lane_id for lane_id, lane in self.lanes.items()}
         rates = {entry["lane"]: entry for entry in renderer.prefill_series(renderer.RATE)}
         ttfts = {entry["lane"]: entry for entry in renderer.prefill_series(renderer.TTFT)}
 
-        columns, body = table_after_heading(self.readme, "## Prefill throughput")
+        columns, body = table_after_heading(self.notes, DETAILED_TABLES["prefill"])
         lanes = self.lane_columns(columns[1:])
         self.assert_drawn_lanes_present("prefill-throughput.png", lanes, labels)
         for row in body:
@@ -391,7 +447,7 @@ class SectionContractTests(unittest.TestCase):
                 self.check_cell(cell, best, f"{best:,.0f}" if best is not None else None, entry is not None,
                                 f"prefill {row[0]} {lane}")
 
-        columns, body = table_after_heading(self.readme, "## Prefill scaling with concurrency")
+        columns, body = table_after_heading(self.notes, DETAILED_TABLES["concurrency"])
         self.assertEqual(columns[1:], [f"C{c}" for c in CONCURRENCIES])
         lanes = self.lane_columns([row[0] for row in body])
         self.assert_drawn_lanes_present("prefill-concurrency.png", lanes, labels)
@@ -402,7 +458,7 @@ class SectionContractTests(unittest.TestCase):
                 self.check_cell(cell, value, f"{value:,.0f}" if value is not None else None, entry is not None,
                                 f"64K C{c} {lane}")
 
-        columns, body = table_after_heading(self.readme, "## Time to first token")
+        columns, body = table_after_heading(self.notes, DETAILED_TABLES["ttft"])
         lanes = self.lane_columns(columns[1:])
         self.assert_drawn_lanes_present("prefill-ttft.png", lanes, labels)
         for row in body:
@@ -414,11 +470,11 @@ class SectionContractTests(unittest.TestCase):
                                 f"TTFT {row[0]} {lane}")
 
         for heading, chart, column in (
-            ("## Decode throughput", "decode-throughput.png", renderer.DECODE_AGGREGATE),
-            ("## Per-user decode speed", "decode-per-user.png", renderer.DECODE_PER_USER),
+            (DETAILED_TABLES["decode"], "decode-throughput.png", renderer.DECODE_AGGREGATE),
+            (DETAILED_TABLES["user"], "decode-per-user.png", renderer.DECODE_PER_USER),
         ):
             decode = {entry["lane"]: entry for entry in renderer.decode_series(column)}
-            columns, body = table_after_heading(self.readme, heading)
+            columns, body = table_after_heading(self.notes, heading)
             lanes = self.lane_columns(columns[1:])
             self.assert_drawn_lanes_present(chart, lanes, labels)
             for row in body:
@@ -430,7 +486,7 @@ class SectionContractTests(unittest.TestCase):
                                     f"{heading} C{concurrency} {lane}")
 
         reference, bars = renderer.ladder_bars()
-        columns, body = table_after_heading(self.readme, "## SGLang prefill tuning ladder")
+        columns, body = table_after_heading(self.notes, DETAILED_TABLES["ladder"])
         self.assertEqual(columns, ["Step", "Configuration", "Change", "Prompt tok/s", "vs step 1"])
         lanes = self.lane_columns([row[1] for row in body])
         self.assert_drawn_lanes_present("tuning-ladder.png", lanes, labels)
@@ -449,10 +505,10 @@ class SectionContractTests(unittest.TestCase):
                 self.assertEqual(unstyle(row[4]), f"{(value / base - 1) * 100:+.1f}%", f"ladder {lane} gain")
         if reference is not None:
             self.assertIn(f"{reference[0] // 1024}K prompts, C{reference[1]}",
-                          section_text(self.readme, "## SGLang prefill tuning ladder"))
+                          section_text(self.notes, DETAILED_TABLES["ladder"]))
 
         fabric = {row["config_id"]: row for row in rows("fabric.csv") if row["in_place"] == "false"}
-        columns, body = table_after_heading(self.readme, "## NCCL all-reduce bus bandwidth")
+        columns, body = table_after_heading(self.notes, DETAILED_TABLES["fabric"])
         for row in fabric.values():
             line = next((line for line in body if line[0] == row["label"]), None)
             self.assertIsNotNone(line, f"fabric config {row['config_id']} missing from README table")
@@ -511,7 +567,7 @@ class SectionContractTests(unittest.TestCase):
             if row["in_place"] == "false":
                 fabric[row["config_id"]][int(row["message_bytes"])] = row
         self.assertTrue(fabric)
-        columns, body = table_after_heading(self.readme, "## NCCL all-reduce bus bandwidth")
+        columns, body = table_after_heading(self.notes, DETAILED_TABLES["fabric"])
         sizes = {"64 MiB": 64 << 20, "512 MiB": 512 << 20, "2 GiB": 2 << 30}
         self.assertEqual(columns, ["Configuration", *sizes, "Average"])
         self.assertEqual(len(body), len(fabric), "every fabric configuration is a README row, nothing else is")
@@ -527,7 +583,7 @@ class SectionContractTests(unittest.TestCase):
             profile[(row["label"], row["node"])][row["category"]] = row
         self.assertTrue(profile)
         shown = {"NCCL": "nccl", "Attention": "attention", "GEMM": "gemm", "Norm/RoPE/quant": "norm/rope/quant"}
-        columns, body = table_after_heading(self.readme, "## Where the GPU time goes")
+        columns, body = table_after_heading(self.notes, DETAILED_TABLES["kernel"])
         self.assertEqual(columns, ["Profile", "Node", *shown, "Other", "Total"])
         self.assertEqual(len(body), len(profile), "every profiled node is a README row, nothing else is")
         for line in body:
@@ -565,8 +621,8 @@ class SectionContractTests(unittest.TestCase):
             candidates = [line for line in proposed.splitlines() if "| [DeepSeek-V4.1-Flash](deepseek-v4.1-flash/) |" in line]
         row = candidates[0]
         self.assertIn("(deepseek-v4.1-flash/)", row)
-        for lane in (HEADLINE_LANE, REPLAY_LANE):
-            for isl, concurrency in ((16384, 1), (131072, 16)):
+        for lane, points in OVERVIEW_PREFILL_POINTS.items():
+            for isl, concurrency in points:
                 point = accepted.get(lane, {}).get((isl, concurrency))
                 if point is not None:
                     self.assertIn(f"{float(point['aggregate_prompt_tokens_per_second']):,.0f}", row, (lane, isl))
@@ -630,17 +686,21 @@ class SectionContractTests(unittest.TestCase):
     def test_headline_is_a_deck_with_captioned_charts(self) -> None:
         renderer = self.renderer
         lines = self.readme.splitlines()
-        self.assertLessEqual(len(lines), 170, "the headline README must stay a short deck")
+        self.assertLessEqual(len(lines), DECK_MAX_LINES, "the README is a deck: headline, one table, eight captioned charts")
+        self.assertEqual(sum(1 for line in lines if line.startswith("| ---")), 1,
+                         "the deck carries exactly one table (best numbers); per-chart tables live in notes/")
         self.assertTrue(lines[0].startswith("# DeepSeek-V4.1-Flash on 2× NVIDIA GB300 DGX Stations"))
         for unrelated in ("MiniMax", "GLM", "Qwen", "Hy3", "Ornith"):
             self.assertNotIn(unrelated, self.readme)
         for name in renderer.CHART_NAMES:
             embeds = [index for index, line in enumerate(lines) if f"](charts/{name})" in line]
             self.assertEqual(len(embeds), 1, f"{name} must be embedded exactly once")
+            heading = next(line for line in reversed(lines[:embeds[0]]) if line.strip())
+            self.assertTrue(heading.startswith("## "), f"{name} must sit directly under its own '## ' heading")
             caption = next(line for line in lines[embeds[0] + 1:] if line.strip())
             self.assertTrue(caption.startswith("*") and caption.endswith("*"), f"{name} needs an italic caption")
             self.assertTrue((ROOT / "charts" / name).is_file(), f"{name} is not rendered")
-        self.assertIn("Details: [recipes/](recipes/) · [notes/](notes/) · [data/](data/)", self.readme)
+        self.assertIn("Details: [notes/](notes/) · [data/](data/) · [recipes/](recipes/)", self.readme)
         self.assertTrue(self.readme.rstrip().endswith("Return to the [repository overview](../)."))
         listed = set(re.findall(r"^\| `(\{\{[A-Z0-9_]+\}\})` \|", self.ledger, re.M))  # table rows, not the prose
         present: set[str] = set()

@@ -8,7 +8,7 @@ its diagnostic spot checks. Lanes without rows are simply absent, so the charts
 re-render correctly as lanes land; `render-charts.py --list-series` prints the
 series each chart would draw. The tuning ladder is built from the lanes that
 carry a `ladder_step`, plus the vLLM PP2 lane as a hatched comparison bar at the
-same point once it exists; the kernel-time and fabric charts read the profile
+same point; the kernel-time and fabric charts read the profile
 and nccl-tests tables. A chart whose tables have no drawable rows shows an
 explicit “pending” annotation. No missing, failed, or pending point is drawn as
 zero. `publication_status`/`rankable` decide ranking and README tables, never

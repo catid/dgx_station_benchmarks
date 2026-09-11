@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# ./chat.sh [--thinking] "prompt"   -> one chat completion against the local API
+# ./chat.sh [--thinking] "prompt"   -> one chat completion against the API (API_URL from config.env follows SWAP_RANKS)
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"; source "$script_dir/config.env"
-effort=none; if [[ "${1:-}" == --thinking ]]; then effort=high; shift; fi
+client_host="${API_URL#http://}"; client_host="${client_host%%:*}"; effort=none; if [[ "${1:-}" == --thinking ]]; then effort=high; shift; fi
 prompt="${1:?prompt required}"
-python3 - "$prompt" "$effort" "$API_HOST" "$API_PORT" "$SERVED_MODEL_NAME" <<'PY'
+python3 - "$prompt" "$effort" "$client_host" "$API_PORT" "$SERVED_MODEL_NAME" <<'PY'
 import json,sys,urllib.request,time
 prompt,effort,host,port,model=sys.argv[1:6]
 body={"model":model,"messages":[{"role":"user","content":prompt}],"max_tokens":2048,"temperature":1.0,"top_p":0.95,"reasoning_effort":effort}

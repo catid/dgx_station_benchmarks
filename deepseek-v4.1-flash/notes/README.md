@@ -1,10 +1,129 @@
 # DeepSeek-V4.1-Flash notes
 
-Working notes kept out of the headline deck: how the two-station SGLang and
-vLLM servers were tuned, what the profiles showed, what went wrong, and what
-the numbers do not claim. Generic names only: `node0` is rank 0 (API host),
-`node1` is rank 1. Placeholders in `{{...}}` are listed in
-[`PLACEHOLDERS.md`](PLACEHOLDERS.md).
+Working notes kept out of the headline deck: the detailed tables behind every
+chart, how the two-station SGLang and vLLM servers were tuned, what the
+profiles showed, what went wrong, and what the numbers do not claim. Generic
+names only: `node0` is rank 0 (API host), `node1` is rank 1. Placeholders in
+`{{...}}` are listed in [`PLACEHOLDERS.md`](PLACEHOLDERS.md).
+
+## Detailed tables
+
+One table per chart in [the deck](../README.md), same numbers and rounding
+rules: bold is the best accepted (rankable) value in the row, † a diagnostic
+lane that is drawn but never ranked, — a point outside that lane's measured
+grid (never a placeholder for a pending run). Every cell rounds from the CSV
+tables in [`../data/`](../data/), which the section tests enforce.
+
+### Prefill throughput
+
+*Best concurrency per cell, aggregate prompt tok/s; unique random-id prompts, one output token, a cache flush before every point; 16K–128K × C1/C4/C16 (the stock-path baseline also ran 8K). Both SGLang AR lanes are accepted: Data Direct (replay off) is the numerically exact full-prefill reference, and SWA replay is not bit-identical to it (see Tuning story). The vLLM PP2 lane is text-only on the default 20/20 layer split with two local source patches; its cache-flush endpoint answered 404 and its prefill-token counter shows no work was skipped (see Incidents). The DSpark prefill check is 16K/64K at C1 only. Full grids with TTFT and server-counter parity: [`prefill.csv`](../data/prefill.csv), [`diagnostic-prefill.csv`](../data/diagnostic-prefill.csv).*
+
+| Prompt length | SGLang AR · stock RDMA† | SGLang AR · Data Direct | SGLang AR + SWA replay | SGLang DSpark† | vLLM PP2 · AR | vLLM TP2 · AR |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 16K | 17,082 | 26,702 | 40,358 | 25,954 | **61,518** | {{VLLM_TP2_PREFILL_16K_BEST}} |
+| 32K | 16,910 | 26,300 | 39,967 | — | **64,935** | {{VLLM_TP2_PREFILL_32K_BEST}} |
+| 64K | 16,638 | 25,654 | 39,139 | 25,357 | **65,966** | {{VLLM_TP2_PREFILL_64K_BEST}} |
+| 128K | 16,112 | 24,419 | 37,711 | — | **63,048** | {{VLLM_TP2_PREFILL_128K_BEST}} |
+
+### Prefill scaling with concurrency
+
+*Aggregate prompt tok/s for 64K prompts with 1, 4, and 16 requests held in flight; one row per configuration with a 64K cell. The two-stage vLLM pipeline needs more than one request in flight to fill: its C1 cell is 81% of its C16 cell, the SGLang lanes are flat across C1–C16.*
+
+| Lane | C1 | C4 | C16 |
+| --- | ---: | ---: | ---: |
+| SGLang AR · stock RDMA† | 16,599 | 16,638 | 16,621 |
+| SGLang AR · Data Direct | 25,571 | 25,654 | 25,638 |
+| SGLang AR + SWA replay | 39,014 | 39,139 | 39,133 |
+| SGLang DSpark† | 25,357 | — | — |
+| vLLM PP2 · AR | **53,515** | **65,338** | **65,966** |
+| vLLM TP2 · AR | {{VLLM_TP2_PREFILL_64K_C1}} | {{VLLM_TP2_PREFILL_64K_C4}} | {{VLLM_TP2_PREFILL_64K_C16}} |
+
+### Time to first token
+
+*TTFT p50 for one request in flight (C1) versus prompt length; with one output token this is the prefill time. SGLang with SWA replay is fastest for a lone 16K request; vLLM PP2 is fastest from 32K up.*
+
+| Prompt length | SGLang AR · stock RDMA† | SGLang AR · Data Direct | SGLang AR + SWA replay | SGLang DSpark† | vLLM PP2 · AR | vLLM TP2 · AR |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 16K | 0.969s | 0.623s | **0.415s** | 0.632s | 0.458s | {{VLLM_TP2_TTFT_16K_C1}} |
+| 32K | 1.947s | 1.257s | 0.827s | — | **0.710s** | {{VLLM_TP2_TTFT_32K_C1}} |
+| 64K | 3.948s | 2.563s | 1.680s | 2.585s | **1.224s** | {{VLLM_TP2_TTFT_64K_C1}} |
+| 128K | 8.142s | 5.373s | 3.480s | — | **2.340s** | {{VLLM_TP2_TTFT_128K_C1}} |
+
+### Decode throughput
+
+*Aggregate output tok/s versus request concurrency (AR and DSpark, both engines); 8,192-token input, 1,024 forced output tokens, temperature 0, `C` warm-ups then `5 × C` measured requests. All three decode lanes are accepted; the SGLang DSpark lane was requested at C1–C32 only, so its C64 cell does not exist (a C64 point is queued but not yet measured). The C2 and C8 cells and every TTFT, ITL, and accept length are in [`throughput.csv`](../data/throughput.csv).*
+
+| C | SGLang AR · Data Direct | SGLang DSpark | vLLM PP2 · AR | vLLM TP2 · AR | vLLM TP2 · DSpark |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 104.2 | **169.2** | 140.6 | {{VLLM_TP2_DECODE_C1}} | {{VLLM_TP2_DSPARK_DECODE_C1}} |
+| 4 | 352.4 | 416.6 | **431.1** | {{VLLM_TP2_DECODE_C4}} | {{VLLM_TP2_DSPARK_DECODE_C4}} |
+| 16 | 906.8 | 946.2 | **1,033.4** | {{VLLM_TP2_DECODE_C16}} | {{VLLM_TP2_DSPARK_DECODE_C16}} |
+| 32 | 1,410.3 | 1,418.3 | **1,878.0** | {{VLLM_TP2_DECODE_C32}} | {{VLLM_TP2_DSPARK_DECODE_C32}} |
+| 64 | 2,236.7 | — | **2,805.9** | {{VLLM_TP2_DECODE_C64}} | {{VLLM_TP2_DSPARK_DECODE_C64}} |
+
+### Per-user decode speed
+
+*Median per-request output tok/s at each concurrency; the per-cell DSpark accept length is retained in [`throughput.csv`](../data/throughput.csv).*
+
+| C | SGLang AR · Data Direct | SGLang DSpark | vLLM PP2 · AR | vLLM TP2 · AR | vLLM TP2 · DSpark |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 106.8 | **180.0** | 141.3 | {{VLLM_TP2_USER_C1}} | {{VLLM_TP2_DSPARK_USER_C1}} |
+| 4 | 91.6 | 108.4 | **122.2** | {{VLLM_TP2_USER_C4}} | {{VLLM_TP2_DSPARK_USER_C4}} |
+| 16 | 59.0 | 61.3 | **72.8** | {{VLLM_TP2_USER_C16}} | {{VLLM_TP2_DSPARK_USER_C16}} |
+| 32 | 45.7 | 45.5 | **60.2** | {{VLLM_TP2_USER_C32}} | {{VLLM_TP2_DSPARK_USER_C32}} |
+| 64 | 36.5 | — | **43.9** | {{VLLM_TP2_USER_C64}} | {{VLLM_TP2_DSPARK_USER_C64}} |
+
+### SGLang prefill tuning ladder
+
+*Aggregate prompt tok/s of the same TP2+EP2 server at 64K prompts, C16 after each cumulative tuning step; the superseded stock-path step is a non-rankable diagnostic, steps 2 and 3 are both accepted (step 3 is not bit-identical to step 2). The hatched vLLM PP2 bar on the chart is another engine at the same point: a comparison, not a tuning step. Bold marks the largest value in the column.*
+
+| Step | Configuration | Change | Prompt tok/s | vs step 1 |
+| ---: | --- | --- | ---: | ---: |
+| 1 | SGLang AR · stock RDMA† | Stock container RDMA path (image rdma-core 50, no Data Direct) | 16,621 | — |
+| 2 | SGLang AR · Data Direct | Host rdma-core overlay → ConnectX-8 Data Direct RDMA | 25,638 | +54.2% |
+| 3 | SGLang AR + SWA replay | + SWA bounded replay (`--enable-decoder-swa-bounded-replay`; +52.6% over step 2) | 39,133 | +135.4% |
+| — | vLLM PP2 · AR | Other engine at the same point (comparison, not a tuning step; +68.6% over step 3) | **65,966** | **+296.9%** |
+
+### Where the GPU time goes
+
+*Summed GPU kernel time by category for one profiled 32K random-token prefill request on each node; the NCCL all-reduce share is what the RDMA path changes. After the fix the largest single non-NCCL kernel is the hyper-connection mixing-statistics Triton kernel (about 245 ms per 32K prefill, in "Other"; see Profiles).*
+
+| Profile | Node | NCCL | Attention | GEMM | Norm/RoPE/quant | Other | Total |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Data Direct RDMA · 32K prefill | node0 | **354 ms** · 29.2% | 122 ms | 140 ms | 147 ms | 452 ms | 1,215 ms |
+| Data Direct RDMA · 32K prefill | node1 | **359 ms** · 29.6% | 121 ms | 141 ms | 147 ms | 442 ms | 1,210 ms |
+| Stock RDMA path · 32K prefill | node0 | **1,046 ms** · 54.8% | 122 ms | 141 ms | 147 ms | 453 ms | 1,908 ms |
+| Stock RDMA path · 32K prefill | node1 | **1,053 ms** · 55.2% | 121 ms | 142 ms | 147 ms | 443 ms | 1,906 ms |
+
+### NCCL all-reduce bus bandwidth
+
+*nccl-tests `all_reduce_perf` between the two stations (one GB300 each), out-of-place bus bandwidth in GB/s from 64 MiB to 2 GiB; single rail versus dual rail, tuned ring/simple versus NCCL auto.*
+
+| Configuration | 64 MiB | 512 MiB | 2 GiB | Average |
+| --- | ---: | ---: | ---: | ---: |
+| Dual rail · NCCL auto | 79.5 | 89.5 | 89.7 | 86.4 |
+| Dual rail · tuned (16 ch, 4 QP) | 77.9 | 83.8 | 84.2 | 82.7 |
+| Dual rail · tuned (8 ch, 4 QP) | **81.2** | **91.3** | **93.7** | **88.7** |
+| Single rail · tuned (8 ch, 4 QP) | 44.5 | 47.9 | 48.7 | 47.2 |
+
+### What was measured
+
+| Engine | Topology | Mode | Prefill 16K–128K × C1/4/16 | Decode C1–C64 |
+| --- | --- | --- | --- | --- |
+| SGLang `dev-dsv41` | TP2+EP2 | AR · stock RDMA | diagnostic only: superseded tuning step (8K–128K × C1/4/16, 0 errors) | not measured |
+| SGLang `dev-dsv41` | TP2+EP2 | AR · Data Direct | accepted (12/12 points, 0 errors); exact full-prefill reference | accepted (C1–C64, 0 errors) |
+| SGLang `dev-dsv41` | TP2+EP2 | AR + SWA replay | accepted (12/12 points, 0 errors); not bit-identical to full prefill | not measured (prefill-only flag) |
+| SGLang `dev-dsv41` | TP2+EP2 | DSpark | diagnostic only: 16K/64K C1 spot check (0 errors) | accepted (C1–C32 as requested, 0 errors) |
+| vLLM `deepseekv41-flash-0909` | TP1 × PP2 | AR · text-only, two local patches | accepted (12/12 points, 0 errors) | accepted (C1–C64, 0 errors) |
+| vLLM `deepseekv41-flash-0909` | TP2 | AR | {{STATUS_VLLM_TP2_PREFILL}} | {{STATUS_VLLM_TP2_DECODE}} |
+| vLLM `deepseekv41-flash-0909` | TP2 | DSpark | not measured | {{STATUS_VLLM_TP2_DSPARK_DECODE}} |
+| — | 1× GB300 | — | not attempted | not attempted |
+
+Pending, failed, unsupported, and unmeasured cells never appear as numeric
+zeroes; diagnostic lanes (†) are drawn on every chart but are never ranked.
+vLLM's DSpark runner rejects pipeline parallelism, so there is no PP2 DSpark
+lane. One station was not attempted: 510,286,023,000 checkpoint bytes exceed
+one GB300. The lane ledger is [`qualification.csv`](../data/qualification.csv).
 
 ## Tuning story
 
@@ -96,10 +215,53 @@ the numbers do not claim. Generic names only: `node0` is rank 0 (API host),
   prefill buffers. The stock-path baseline (ladder step 1) ran at 0.85.
 - `--context-length 262144` so 128K prompts plus one output token fit.
 - vLLM: PP2 default (both Engram layers on stage 0, no cross-node traffic for
-  them); TP2 measured for parity; DSpark requires TP (PP is rejected by the
+  them); TP2 queued for parity; DSpark requires TP (PP is rejected by the
   DSpark runner). FlashInfer autotune off, custom all-reduce off. PP2 needs
-  the one-line text-only source patch described under Incidents
+  the two local source patches described under Incidents
   (`VLLM_PATCH_PP=1`, `recipes/patches/vllm/`).
+
+### vLLM TP1 × PP2: the other engine at the same points
+
+- Server: `vllm/vllm-openai:deepseekv41-flash-0909` (image id
+  `sha256:00d577a6…`), `--tensor-parallel-size 1 --pipeline-parallel-size 2`
+  on vLLM's default even 20/20 layer split, `--language-model-only`,
+  `--engram-config '{"cpu_offload": true}'`, `--max-num-batched-tokens 16384`,
+  `--max-num-seqs 64`, `--max-model-len 262144`,
+  `--gpu-memory-utilization 0.90`, prefix caching on (irrelevant for unique
+  prompts), FlashInfer autotune off, custom all-reduce off, the same Data
+  Direct overlay and NCCL tuning as SGLang, and the two local source patches.
+  Rank 0 ran on node0 for this lane.
+- Prefill (`data/prefill.csv`, lane `vllm_pp2_ar`, 12/12 points, 0 errors):
+  16K 35,872 / 60,072 / 61,518; 32K 46,129 / 63,826 / 64,935; 64K 53,515 /
+  65,338 / 65,966; 128K 55,992 / 62,750 / 63,048 aggregate prompt tok/s at
+  C1 / C4 / C16; C1 TTFT 0.458 s / 0.710 s / 1.224 s / 2.340 s. At 64K / C16
+  that is +68.6% over SGLang with SWA replay (39,133) and +157.3% over exact
+  full prefill (25,638); for a single 128K request 55,992 versus 37,674 and
+  24,394. The one point where SGLang is faster is a lone 16K request (replay
+  39,549 versus 35,872): a single 16K request is one chunk, so it crosses the
+  two pipeline stages one after the other, whereas a 128K request (eight
+  chunks) or C4+ keeps both stages busy; vLLM's C1 cells climb from 35.9K at
+  16K to 56.0K at 128K while the SGLang lanes are flat in prompt length.
+- Decode (`data/throughput.csv`, C1–C64, 0 errors, none underfilled): 140.6
+  aggregate / 141.3 per-user tok/s at C1 (ITL p50 7.08 ms) versus 106.8
+  per-user for SGLang AR and 180.0 for SGLang DSpark; 2,805.9 aggregate tok/s
+  at C64 versus 2,236.7 for SGLang AR (+25.4%). vLLM exposes no engine-step
+  counter, so `engine_steps_per_second` is empty for this lane (and for
+  SGLang AR, whose counter reads zero); it is never published as zero.
+- Cache flush: the client's per-point flush call (`/reset_prefix_cache` for
+  vLLM) answered HTTP 404 on this image. Every point still ran on fresh
+  prompts (unique random ids seeded per request), and the server's
+  `vllm:request_prefill_kv_computed_tokens_sum` delta equals the prompt-token
+  total at all 12 points (`server_prompt_tokens_delta` in `prefill.csv`), so
+  no prefill work was skipped by the prefix cache.
+- Power: the GPU utilisation/power columns are sampled on node0, which under
+  PP2 is pipeline stage 0. That GPU averaged 1,092–1,219 W at the C4/C16
+  points (peaks up to 1,254 W) at 100% utilisation, against 733–879 W mean for
+  the SGLang TP2+EP2 lanes, which spend part of every layer in the cross-node
+  all-reduce. Stage 1 was not sampled.
+- Sanity: the lane's chat checks answered 17 × 19 = 323 and the 3:40 pm to
+  6:05 pm trip as 145 minutes (`logs/chat-vllm-pp2-ar.txt` in the private
+  working directory).
 
 ## Profiles
 
@@ -165,8 +327,9 @@ the numbers do not claim. Generic names only: `node0` is rank 0 (API host),
   reboots rank 1 when it still holds more than 512 MiB with no process and
   waits for a new boot id, docker, NFS, and ACTIVE rails. The threshold was
   lowered from tens of GiB to 512 MiB after the 4.5 GiB launch failure. After
-  the vLLM PP2 crash node0 also retained 82,292 MiB and needed an operator
-  reboot before the vLLM lanes could continue.
+  the vLLM PP2 crashes node0 also retained 82,292 and 66,258 MiB and needed
+  operator reboots before the vLLM lanes could continue (see the vLLM items
+  below).
 - **vLLM PP2 first launch failed** with `DeepSeek V4 vision MoE routing
   requires input_ids`: vLLM's model runner hands non-first pipeline-parallel
   ranks `input_ids=None` (and none during the memory-profile dummy run), and
@@ -178,7 +341,46 @@ the numbers do not claim. Generic names only: `node0` is rank 0 (API host),
   Under `--language-model-only` there are no image tokens, so the patch
   changes no routing. The patched file and the unmodified `.orig` are in
   `recipes/patches/vllm/` with the same description in its README. The crash
-  itself left node0 with 82 GiB retained (see above).
+  itself left node0 with 82,292 MiB retained (see above).
+- **vLLM PP2 second launch died allocating the KV cache on stage 1**:
+  `StopIteration` in `allocate_kv_cache` (`vllm/v1/worker/utils.py`) on
+  `Worker_PP1`. Root cause: `_project_kv_cache_groups_to_worker` in
+  `vllm/v1/core/kv_cache_utils.py` leaves the global, unfiltered
+  `UniformTypeKVCacheSpecs` on a KV-cache group when a pipeline rank owns none
+  of that group's layers. V4.1-Flash has exactly one such group, the three
+  `CircularBufferSpec` compressor caches of kv-source layers 2, 8, and 14
+  (`model.layers.{2,8,14}.attn.compressor.state_cache`), which all live on
+  stage 0 under the even 20/20 split; `get_kv_cache_config_from_groups`
+  therefore emitted tensors for stage-0 layers on stage 1, and the allocator
+  found no group for them. Fix: the second local patch
+  (`recipes/patches/vllm/kv_cache_utils.py`, unified diff beside it) emits
+  tensors only for the layers named in the group's own `layer_names`; without
+  PP every group already lists all of its layers, so the output is identical.
+  The no-code alternative is an unbalanced split that gives both ranks a
+  ratio-2 kv-source layer (`VLLM_PP_LAYER_PARTITION=14,26` or `8,32`); 20/20
+  is the only balanced valid split because layers 21–39 must stay with
+  kv-source layer 20. This crash left node0 with 66,258 MiB retained and the
+  operator rebooted it; the relaunch with both patches produced the accepted
+  lane.
+- **vLLM rank 0 strands HBM on its host at every teardown, crash or not**:
+  82,292 MiB after the `input_ids` crash, 66,258 MiB after the KV-allocation
+  crash, and 51,470 MiB after the clean `docker stop` that ended the accepted
+  PP2 lane (node1, which ran rank 1, showed 363 MiB). node0 has no automated
+  reboot (only node1's is preauthorized), so the later vLLM lanes were queued
+  with `SWAP_RANKS=1`, which starts vLLM rank 0 on node1 and rank 1 on node0
+  (`config.env` swaps rail addresses and checkpoint paths and binds the API
+  on the remote node; every script then uses `API_URL`). The first swapped
+  launch failed before any GPU work because the remote rank re-sourced
+  `config.env` with the already-swapped values and swapped them back
+  (checkpoint index reported missing); the `SWAP_APPLIED` guard now applies
+  the swap once. To rule out the transport, a seven-configuration host-side
+  NCCL bisect (`results/fabric/bisect/*.log`: `all_reduce_perf` 256 MiB–1 GiB
+  with dual/single rail, DMA-BUF on/off, GDR on/off, cuMem on/off, Data Direct
+  on/off, 10 iterations each) changed idle HBM by at most 23 MiB per run on
+  either host, so the retention is tied to the engine process teardown, not to
+  the RDMA settings. The same bisect reproduced the transport ladder: 93.5 GB/s
+  with Data Direct, DMA-BUF and GDR on; 27.8 GB/s with any one of DMA-BUF,
+  GDR, or Data Direct off; 48.5 GB/s on a single rail.
 - **Cold launch time.** First launch took about 11 minutes: 376 s weight load
   of which 285 s was the TileLang mHC compile; compiler caches under
   `cache/` make later launches faster, and `SGLANG_OPT_USE_TILELANG_MHC_PRE=0`
@@ -196,7 +398,13 @@ the numbers do not claim. Generic names only: `node0` is rank 0 (API host),
   time, so the last wave's tail lowers C4/C16 numbers slightly; they are not
   interchangeable with single-request cold prefill cells elsewhere in the
   repository.
-- GPU utilisation and power are sampled on node0 only.
+- GPU utilisation and power are sampled on node0 only; for the vLLM PP2 lane
+  node0 is pipeline stage 0 (the stage that holds both Engram layers), whose
+  1,092–1,219 W mean draw at C4/C16 says nothing about stage 1.
+- vLLM's cache-flush endpoint answered 404 on this image; the prompts are
+  unique per request and the server's prefill-token counter matched the client
+  at every point, so no cached prefix was reused, but the flush itself did not
+  happen.
 - The SGLang image is a locally built preview (`dev-dsv41`) with no recorded
   git commit; V4.1 support comes from the unmerged `dsv4.1` branch
   (sgl-project/sglang PR #38798). The vLLM image is a dev build
@@ -212,10 +420,16 @@ the numbers do not claim. Generic names only: `node0` is rank 0 (API host),
   occupancy-bound Triton split-K kernel with no runtime toggle; a fewer-slice
   or single-pass variant (bit-identical or re-baselined) is the next SGLang
   prefill step, followed by the two attention-side copies.
-- node1 retained HBM after teardown has no root cause yet (driver 595.84;
-  its kernel log carried NVRM `refcntRequestReference_IMPL: Failed to enter
-  state 1` entries during the session, no Xid); the OS-reboot-between-lanes
-  workaround is in the recipe, the vendor question is open.
-- vLLM TP2 and TP2 DSpark lanes are pending: their prefill/decode grids fill
-  the remaining placeholders once they complete error-free. The PP2 lane
-  (launched with the text-only patch) is accepted and published.
+- Retained HBM after teardown has no root cause yet: node1 after SGLang
+  teardowns (driver 595.84; its kernel log carried NVRM
+  `refcntRequestReference_IMPL: Failed to enter state 1` entries during the
+  session, no Xid) and node0 after every vLLM rank-0 teardown (NCCL/RDMA
+  settings excluded by the bisect above). The OS-reboot-between-lanes
+  workaround and `SWAP_RANKS=1` are in the recipe; the vendor question is
+  open.
+- vLLM TP2 and TP2 DSpark lanes are pending: their first queued attempt with
+  `SWAP_RANKS=1` did not launch (see Incidents), and their prefill/decode
+  grids fill the remaining placeholders once they complete error-free. vLLM's
+  DSpark runner rejects pipeline parallelism, so there is no PP2 DSpark lane.
+- A SGLang DSpark C64 decode point is queued; the accepted DSpark lane was
+  requested at C1–C32.

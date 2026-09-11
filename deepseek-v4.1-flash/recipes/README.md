@@ -20,21 +20,30 @@ your own SSH alias, interfaces, and addresses.
 | SGLang source | unmerged `dsv4.1` branch, [sgl-project/sglang PR #38798](https://github.com/sgl-project/sglang/pull/38798) |
 | vLLM image tag | `vllm/vllm-openai:deepseekv41-flash-0909` (arm64) |
 | vLLM version | `0.1.dev20904+g179dd0fa9` (dev build from commit `179dd0fa9`; the only distribution of the V4.1 architecture) |
-| vLLM local image id | {{VLLM_IMAGE_ID}} |
+| vLLM local image id | `sha256:00d577a6a63281e15336029d5bcee4e9a2cf182214a4f20ba6111b1c8e79893d` (recorded by `serve_vllm_node.sh` into `logs/launch-vllm-rank<N>.txt` on the measured node) |
 | Decode client | [`llm-inference-bench`](https://github.com/local-inference-lab/llm-inference-bench) 0.4.29, commit `0b4185b5b435e948b199c9077a00b084864aa963` |
 | Prefill client | [`bench_prefill.py`](bench_prefill.py) in this directory (stdlib; `requests` optional) |
 | NCCL fabric test | host NCCL 2.31.2, nccl-tests 2.19.7 `all_reduce_perf` |
 
 The SGLang image must be rebuilt from the `dsv4.1` branch; `serve_node.sh`
-records `docker image inspect --format '{{.Id}}'` into
-`logs/launch-rank<N>.txt`, and that id must match the pin above before a row
-is accepted.
+(and `serve_vllm_node.sh` for vLLM) records `docker image inspect --format
+'{{.Id}}'` into `logs/launch-rank<N>.txt` (`logs/launch-vllm-rank<N>.txt`),
+and that id must match the pin above before a row is accepted.
 
 ## Two-station topology
 
 - One GB300 per station. SGLang runs TP2 + EP2 (`--tp 2 --ep-size 2 --nnodes 2`);
-  vLLM runs TP1 × PP2 by default (`VLLM_PARALLEL=pp`) or TP2 × PP1
-  (`VLLM_PARALLEL=tp`, required for DSpark).
+  vLLM runs TP1 × PP2 by default (`VLLM_PARALLEL=pp`; the measured lane used
+  vLLM's default even 20/20 layer split, `--language-model-only`, and the Engram
+  tables in host memory via `--engram-config '{"cpu_offload": true}'`) or
+  TP2 × PP1 (`VLLM_PARALLEL=tp`, required for DSpark: vLLM's DSpark runner
+  rejects pipeline parallelism).
+- Rank 0 (the API host) runs on node0 unless `SWAP_RANKS=1`, which starts
+  rank 0 on node1 and rank 1 on node0 and swaps rail addresses, checkpoint
+  paths, and the API bind address (clients then use `API_URL`, which every
+  script reads from `config.env`). The vLLM lanes after PP2 were queued that
+  way because vLLM's rank-0 teardown strands HBM on the host it runs on and
+  only node1 has an automated reboot (see Safety).
 - Two direct 400GbE ConnectX-8 RoCE rails between the stations. Rail 0
   (`FABRIC_IFACE`, `RANK0_IP`/`RANK1_IP`, example `192.168.200.1/30` and
   `.2/30`) carries the torch.distributed bootstrap; both rails are handed to
@@ -73,18 +82,39 @@ NCCL INFO NET/IB: Data Direct DMA Interface is detected for device mlx5_0
 (once per HCA, per rank) followed by `[send] via NET/IB/2/GDRDMA` channel
 lines. `launch_cluster.sh` greps for both after `/health` answers.
 
-### vLLM pipeline parallel needs a one-line text-only patch
+### vLLM pipeline parallel needs two local source patches
 
-The `deepseekv41-flash-0909` build raises `DeepSeek V4 vision MoE routing
-requires input_ids` on every non-first pipeline-parallel rank (vLLM hands those
-ranks no `input_ids`, and none during the memory-profile dummy run). With
-`VLLM_PATCH_PP=1` (the default) `serve_vllm_node.sh` bind-mounts
-[`patches/vllm/deepseek_v4_nvidia_model.py`](patches/vllm/deepseek_v4_nvidia_model.py)
-over `vllm/models/deepseek_v4/nvidia/model.py` inside the container; the only
-change routes every token as text when the vision routing bias exists but
-`input_ids` is `None`, which under `--language-model-only` changes nothing.
-The unmodified file is kept beside it as `.orig`; see
-[`patches/vllm/README.md`](patches/vllm/README.md).
+The `deepseekv41-flash-0909` build cannot start DeepSeek-V4.1-Flash with
+`--pipeline-parallel-size 2` as shipped. With `VLLM_PATCH_PP=1` (the default)
+`serve_vllm_node.sh` bind-mounts two patched files from
+[`patches/vllm/`](patches/vllm/) over the image on both ranks; each is kept
+beside its unmodified `.orig`, and [`patches/vllm/README.md`](patches/vllm/README.md)
+describes both. Without pipeline parallelism neither patch changes anything.
+
+1. [`deepseek_v4_nvidia_model.py`](patches/vllm/deepseek_v4_nvidia_model.py)
+   over `vllm/models/deepseek_v4/nvidia/model.py`. vLLM's model runner hands
+   non-first pipeline-parallel ranks `input_ids=None` (and none during the
+   memory-profile dummy run), and the stock V4 MoE raises `DeepSeek V4 vision
+   MoE routing requires input_ids` even though the ids are only used to find
+   image-span tokens for the vision routing bias. The patch routes every token
+   as text when the bias exists but the ids are absent, which is exact under
+   `--language-model-only` (there are no image tokens).
+2. [`kv_cache_utils.py`](patches/vllm/kv_cache_utils.py) over
+   `vllm/v1/core/kv_cache_utils.py` (unified diff in
+   [`kv_cache_utils.diff`](patches/vllm/kv_cache_utils.diff)). With the patch
+   above the launch got as far as KV-cache allocation and stage 1 died with
+   `StopIteration` in `allocate_kv_cache` (`vllm/v1/worker/utils.py`). Root
+   cause: `_project_kv_cache_groups_to_worker` leaves the global (unfiltered)
+   `UniformTypeKVCacheSpecs` on a KV-cache group when a pipeline rank owns none
+   of that group's layers. V4.1-Flash has one such group, the three
+   `CircularBufferSpec` compressor caches of kv-source layers 2, 8, and 14,
+   which all live on stage 0, so `get_kv_cache_config_from_groups` emitted
+   tensors for stage-0 layers on stage 1 and the allocator found no group for
+   them. The patch emits tensors only for the layers named in the group's own
+   `layer_names`. The no-code alternative is an unbalanced split that puts a
+   ratio-2 kv-source layer on both ranks (`VLLM_PP_LAYER_PARTITION=14,26` or
+   `8,32`); the default even 20/20 split is the only balanced valid split,
+   because layers 21–39 must stay with kv-source layer 20.
 
 ## Launch
 
@@ -97,11 +127,13 @@ The unmodified file is kept beside it as `.orig`; see
    processes or containers, image present on both nodes, current-boot kernel
    NVIDIA signatures, 48/48 shards on both ranks, jumbo-frame ping on both
    rails, `rdma link` ACTIVE for every HCA in `NCCL_HCAS`, host memory.
-4. `./launch_cluster.sh` — starts rank 1 over SSH, then rank 0, and waits for
-   `http://127.0.0.1:30000/health`. `MODE=low-latency` adds DSpark
+4. `./launch_cluster.sh` — starts the remote rank over SSH, then the local
+   rank, and waits for `$API_URL/health` (`http://127.0.0.1:30000` unless
+   `SWAP_RANKS=1`). `MODE=low-latency` adds DSpark
    (`--speculative-algorithm DSPARK --speculative-dspark-block-size 5`;
    vLLM: `--speculative-config '{"method":"dspark","num_speculative_tokens":5,…}'`).
-   `ENGINE=vllm` selects `serve_vllm_node.sh`.
+   `ENGINE=vllm` selects `serve_vllm_node.sh`; `ENGINE=vllm SWAP_RANKS=1` puts
+   vLLM rank 0 on node1.
 5. `./status.sh`, `./logs.sh 0 -f`, `./chat.sh "prompt"` to inspect.
 6. `./bench_prefill.sh <label> --tag-env "<description>"` and
    `./bench_decode.sh <label>` (see the contract below);
@@ -116,6 +148,10 @@ The unmodified file is kept beside it as `.orig`; see
    `THRESHOLD_MIB` (512) of HBM with no compute process, performs the
    preauthorized normal OS reboot of node1 and waits for a new boot id,
    docker, NFS, and ACTIVE rails (see [`../notes/`](../notes/) for why).
+   node0 is never rebooted automatically; after an operator reboot of node0,
+   `tools/after_reboot_node0.sh` remounts the checkpoint share
+   (`MODEL_NFS_EXPORT`, if used), restages the host rdma-core libraries, and
+   re-runs the preflight.
 9. Publish: `python3 ../data/build_data.py --source-root <this directory>`
    from the section root, then `--check`.
 
@@ -156,10 +192,14 @@ or errored cells are never published.
 `preflight.sh` refuses to launch when a GB300 retains more than 8 GiB with no
 process attached; retained HBM is evidence to record, not something to
 compensate for with a lower memory fraction. In the measured session node1
-retained 4–5 GiB after every graceful stop and 35–69 GiB after a forced
+retained 4–5 GiB after every graceful SGLang stop and 35–69 GiB after a forced
 removal, and even the small residue cost 52 GB at weight-load time, so the
 recipe reboots node1 between lanes (`tools/ensure_clean_rank1.sh`, 512 MiB
-threshold) instead of launching on top of it. The recovery boundary and the
+threshold) instead of launching on top of it. vLLM's rank 0 strands HBM on
+whichever host it runs on at every teardown, crash or clean stop (82,292 /
+66,258 / 51,470 MiB in the measured session), which is why the later vLLM
+lanes are launched with `SWAP_RANKS=1`: rank 0 then lives on node1, the only
+node with an automated reboot. The recovery boundary and the
 residual-HBM quirk are described in the
 [DGX Station guide](../../dgx-station-guide/). Only passing rows are copied
 into [`../data/`](../data/) by `build_data.py`.

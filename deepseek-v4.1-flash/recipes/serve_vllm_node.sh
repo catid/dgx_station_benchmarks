@@ -75,6 +75,8 @@ fi
 if [[ "$VLLM_PATCH_PP" == 1 ]]; then
   [[ -s "$script_dir/patches/vllm/deepseek_v4_nvidia_model.py" ]] || { echo "missing patches/vllm/deepseek_v4_nvidia_model.py" >&2; exit 1; }
   extra_mounts+=(--volume "$script_dir/patches/vllm/deepseek_v4_nvidia_model.py:/usr/local/lib/python3.12/dist-packages/vllm/models/deepseek_v4/nvidia/model.py:ro")
+  [[ -s "$script_dir/patches/vllm/kv_cache_utils.py" ]] || { echo "missing patches/vllm/kv_cache_utils.py" >&2; exit 1; }
+  extra_mounts+=(--volume "$script_dir/patches/vllm/kv_cache_utils.py:/usr/local/lib/python3.12/dist-packages/vllm/v1/core/kv_cache_utils.py:ro")
 fi
 
 args=(

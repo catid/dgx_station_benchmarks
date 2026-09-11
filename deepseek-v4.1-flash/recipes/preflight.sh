@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Pre-launch checks for the two-node DeepSeek-V4.1-Flash server. Read-only; never resets a GPU.
-# node0 = this host (rank 0), node1 = $RANK1_SSH (rank 1). Retained-HBM handling follows the
-# "Safe recovery and the residual-HBM quirk" section of ../../dgx-station-guide/.
+# node0 = this host, node1 = $RANK1_SSH. This host runs rank 0 unless SWAP_RANKS=1 (then it runs rank 1 and the
+# remote node runs rank 0). Retained-HBM handling follows the "Safe recovery and the residual-HBM quirk" section of
+# ../../dgx-station-guide/.
 set -uo pipefail
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/config.env"
@@ -26,10 +27,12 @@ for h in node0 node1; do
   bad="$("${pre[@]}" bash -c 'sudo -n journalctl -k -b --no-pager 2>/dev/null | grep -cE "RmInitAdapter failed|NV_ERR_INVALID_STATE|Xid|kmemsysRemoveAllAtsPeers.*Failed|PMA usage is non-zero|Oops" || true')"
   [[ "${bad:-0}" == 0 ]] && say "$h kernel NVIDIA signatures" "none (ok)" || { say "$h kernel NVIDIA signatures" "$bad hits in current boot dmesg - inspect before GPU work"; fail=1; }
 done
-[[ -s "$MODEL_DIR_RANK0/model.safetensors.index.json" ]] && say "rank0 checkpoint" "$MODEL_DIR_RANK0 (ok)" || { say "rank0 checkpoint" "MISSING $MODEL_DIR_RANK0"; fail=1; }
-ssh -o BatchMode=yes "$RANK1_SSH" test -s "$MODEL_DIR_RANK1/model.safetensors.index.json" && say "rank1 checkpoint" "$MODEL_DIR_RANK1 (ok)" || { say "rank1 checkpoint" "MISSING $MODEL_DIR_RANK1"; fail=1; }
-n0="$(ls "$MODEL_DIR_RANK0"/*.safetensors 2>/dev/null | wc -l)"; n1="$(ssh -o BatchMode=yes "$RANK1_SSH" "ls $MODEL_DIR_RANK1/*.safetensors 2>/dev/null | wc -l")"
-[[ "$n0" == 48 && "$n1" == 48 ]] && say "safetensors shards" "48/48 on both (ok)" || { say "safetensors shards" "rank0=$n0 rank1=$n1 (expected 48)"; fail=1; }
+# This host runs rank 0 unless SWAP_RANKS=1 (then it runs rank 1 and the remote node runs rank 0).
+if [[ "${SWAP_RANKS:-0}" == 1 ]]; then local_dir="$MODEL_DIR_RANK1"; remote_dir="$MODEL_DIR_RANK0"; else local_dir="$MODEL_DIR_RANK0"; remote_dir="$MODEL_DIR_RANK1"; fi
+[[ -s "$local_dir/model.safetensors.index.json" ]] && say "local checkpoint" "$local_dir (ok)" || { say "local checkpoint" "MISSING $local_dir"; fail=1; }
+ssh -o BatchMode=yes "$RANK1_SSH" test -s "$remote_dir/model.safetensors.index.json" && say "remote checkpoint" "$remote_dir (ok)" || { say "remote checkpoint" "MISSING $remote_dir"; fail=1; }
+n0="$(ls "$local_dir"/*.safetensors 2>/dev/null | wc -l)"; n1="$(ssh -o BatchMode=yes "$RANK1_SSH" "ls $remote_dir/*.safetensors 2>/dev/null | wc -l")"
+[[ "$n0" == 48 && "$n1" == 48 ]] && say "safetensors shards" "48/48 on both (ok)" || { say "safetensors shards" "local=$n0 remote=$n1 (expected 48)"; fail=1; }
 for ip in "$RANK1_IP" ${RANK1_RAIL1_IP:-}; do   # jumbo frames must survive both point-to-point rails
   ping -c 1 -W 1 -M do -s 8972 "$ip" >/dev/null 2>&1 && say "jumbo ping $ip" "ok" || { say "jumbo ping $ip" "FAILED"; fail=1; }
 done

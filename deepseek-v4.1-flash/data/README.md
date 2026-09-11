@@ -13,10 +13,13 @@ Every table is produced by [`build_data.py`](build_data.py) from the manifest
   `prompt_tokens_total` counter delta, token-count parity, rank-0 GPU
   utilisation/power, the run id, and the SHA-256 of the source JSONL. A lane is
   accepted only when its full 16K/32K/64K/128K × C1/C4/C16 grid completed with
-  zero request errors. Two SGLang lanes are accepted: the replay-off Data
+  zero request errors. Three lanes are accepted: the replay-off SGLang Data
   Direct lane (`swa_bounded_replay=false`, the numerically exact full-prefill
-  reference) and the SWA bounded replay lane (`swa_bounded_replay=true`,
-  DeepSeek's documented deployment technique, faster and not bit-identical).
+  reference), the SGLang SWA bounded replay lane (`swa_bounded_replay=true`,
+  DeepSeek's documented deployment technique, faster and not bit-identical),
+  and the vLLM TP1 × PP2 lane (text-only, two local source patches; its
+  `server_prompt_tokens_delta` comes from the `vllm:prompt_tokens_total`
+  counter and its GPU columns were sampled on node0 = pipeline stage 0).
 - `diagnostic-prefill.csv` — the same columns plus `diagnostic_status`, for
   tuning-ladder steps and spot checks that are never ranked
   (`publication_status=diagnostic`, `rankable=false`) but are still drawn as
@@ -25,7 +28,10 @@ Every table is produced by [`build_data.py`](build_data.py) from the manifest
   input, 1,024 forced output tokens, `5 × C` requests after `C` warm-ups, with
   per-user p50 rate, TTFT, ITL, effective concurrency, and the DSpark accept
   length/rate for speculative lanes (`mtp_accept_length` stays empty: V4.1
-  has no classic MTP head), plus `lane_label`/`series_order`. Accepted and
+  has no classic MTP head), plus `lane_label`/`series_order`.
+  `engine_steps_per_second` is filled only where the server reports a
+  positive step counter (SGLang DSpark); SGLang AR reports zero and vLLM has
+  no such counter, and neither is ever published as a zero. Accepted and
   diagnostic decode lanes share this table; `publication_status` tells them apart.
 - `fabric.csv` — nccl-tests `all_reduce_perf` rows (out-of-place and in-place)
   per rail configuration and message size, with the run average, the

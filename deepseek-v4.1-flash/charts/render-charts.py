@@ -367,7 +367,7 @@ def render_prefill_throughput() -> None:
     axis.grid(True, alpha=0.65)
     finish(figure, "prefill-throughput.png",
            "One series per configuration at its best concurrency (solid); its other concurrencies faint. Unique "
-           "random-id prompts, one output token, /flush_cache before each point; aggregate prompt tokens ÷ wave wall time.")
+           "random-id prompts, one output token, a cache flush requested before each point; aggregate prompt tokens ÷ wave wall time.")
 
 
 def render_prefill_concurrency() -> None:

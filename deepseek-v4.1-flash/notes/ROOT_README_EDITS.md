@@ -10,7 +10,7 @@ rows adjacent). Three cells, `tok/s` units, `;`-separated facts, no trailing
 period:
 
 ```markdown
-| [DeepSeek-V4.1-Flash](deepseek-v4.1-flash/) | Official native FP8-dense/FP4-expert checkpoint; 2× SGLang TP2+EP2 and vLLM PP2/TP2 over Data Direct RDMA (1× not attempted) | Prefill with SWA bounded replay: 16K C1 39,549 prompt tok/s; 128K C16 37,693 aggregate prompt tok/s (exact full prefill 26,316 and 24,419); DSpark C1 180.0 output tok/s |
+| [DeepSeek-V4.1-Flash](deepseek-v4.1-flash/) | Official native FP8-dense/FP4-expert checkpoint; 2× vLLM TP1×PP2 (two local source patches) and SGLang TP2+EP2 over Data Direct RDMA (1× not attempted) | vLLM PP2 prefill: 128K C1 55,992 prompt tok/s; 64K C16 65,966 aggregate prompt tok/s; SGLang with SWA bounded replay 16K C1 39,549 and 128K C16 37,693 (exact full prefill 26,316 and 24,419); SGLang DSpark C1 180.0 output tok/s; vLLM PP2 AR C64 2,805.9 aggregate tok/s |
 ```
 
 ## 2. Contents block
