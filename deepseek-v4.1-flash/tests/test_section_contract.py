@@ -6,8 +6,10 @@ and a column or row in the matching detailed table, accepted and diagnostic lane
 only stand for lanes that have no rows yet; numbers must round from the CSV tables; the accepted versus
 diagnostic distinction lives in publication_status/rankable and the lane ledger, never in what is drawn.
 
-README.md is a deck: headline bullets, one best-numbers table, and the eight charts with a caption each.
-The per-chart tables live in notes/README.md under "## Detailed tables"; both files are bound to the CSVs.
+README.md is a deck: headline bullets, one best-numbers table, the eight charts with a caption each, and
+three compact by-concurrency tables (prefill at 64K/128K, decode aggregate, decode per user) directly beneath
+the captions of their chart sections. The full per-chart tables live in notes/README.md under
+"## Detailed tables"; both files are bound to the CSVs.
 """
 
 from __future__ import annotations
@@ -76,7 +78,13 @@ OVERVIEW_PREFILL_POINTS = {
 BEST_NUMBERS_HEADING = "## Best numbers"
 BEST_NUMBERS_COLUMNS = ["Configuration", "Prefill 128K · C1", "Prefill 64K · C16", "Decode C1 · per user",
                         "Decode C64 · aggregate"]
-DECK_MAX_LINES = 100
+DECK_MAX_LINES = 130
+# Deck tables beneath a chart caption: heading -> (columns, kind). Cells round from the CSVs like the notes tables.
+DECK_PREFILL_HEADING = "## Prefill by concurrency"
+DECK_PREFILL_COLUMNS = ["Configuration", "64K · C1", "64K · C4", "64K · C16", "128K · C1", "128K · C4", "128K · C16"]
+DECK_DECODE_TABLES = {"## Decode throughput": "aggregate", "## Per-user decode speed": "user"}
+DECK_DECODE_COLUMNS = ["Configuration", "C1", "C4", "C16", "C32", "C64"]
+DECK_TABLE_HEADINGS = (BEST_NUMBERS_HEADING, DECK_PREFILL_HEADING, *DECK_DECODE_TABLES)
 DETAILED_TABLES = {
     "prefill": "### Prefill throughput",
     "concurrency": "### Prefill scaling with concurrency",
@@ -430,6 +438,73 @@ class SectionContractTests(unittest.TestCase):
             self.check_cell(row[4], a64, f"{a64:,.1f}" if a64 is not None else None, aggregate is not None,
                             f"best {lane} decode C64")
 
+    def assert_bold_marks_best_accepted(self, cells: list[str], values: list[float | None], accepted: list[bool],
+                                        where: str) -> None:
+        """Exactly the best accepted value in a column is bold; dashes, placeholders and diagnostic cells never are."""
+        candidates = [v for v, ok in zip(values, accepted) if ok and v is not None]
+        best = max(candidates) if candidates else None
+        for cell, value, ok in zip(cells, values, accepted):
+            expect_bold = ok and value is not None and value == best
+            self.assertEqual(cell.startswith("**") and cell.endswith("**"), expect_bold,
+                             f"{where}: {cell!r} bold state disagrees with the best accepted value {best}")
+
+    def test_deck_concurrency_tables_round_from_csv(self) -> None:
+        """The three by-concurrency tables beneath the deck's chart captions: every lane the chart draws is a row,
+        every cell rounds from the CSV the renderer draws, bold marks the best accepted value per column, and a
+        placeholder may only stand for a lane whose ledger row is PENDING."""
+        renderer = self.renderer
+        labels = {lane["lane_label"]: lane_id for lane_id, lane in self.lanes.items()}
+        pending = {row["lane"] for row in rows("qualification.csv")
+                   if row["status"] == "PENDING" and row["profile"].endswith("_decode")}
+        accepted_prefill_lanes = set(accepted_prefill())
+        accepted_decode_lanes = set(accepted_decode())
+
+        rates = {entry["lane"]: entry for entry in renderer.prefill_series(renderer.RATE)}
+        columns, body = table_after_heading(self.readme, DECK_PREFILL_HEADING)
+        self.assertEqual(columns, DECK_PREFILL_COLUMNS)
+        lanes = self.lane_columns([row[0] for row in body])
+        self.assertEqual(set(lanes), set(rates), "every lane with prefill rows is a row of the deck prefill table")
+        self.assert_drawn_lanes_present("prefill-concurrency.png", lanes, labels)
+        for index, label in enumerate(columns[1:], start=1):
+            isl_label, c_label = label.split(" · ")
+            isl, concurrency = int(isl_label.rstrip("K")) * 1024, int(c_label.lstrip("C"))
+            values = []
+            for lane, row in zip(lanes, body):
+                entry = rates.get(lane)
+                value = entry["points"].get(concurrency, {}).get(isl) if entry else None
+                self.check_cell(row[index], value, f"{value:,.0f}" if value is not None else None, entry is not None,
+                                f"deck prefill {label} {lane}")
+                self.assertEqual(placeholders_in(row[index]), set(), f"deck prefill {label} {lane}: no placeholders")
+                values.append(value)
+            self.assert_bold_marks_best_accepted([row[index] for row in body], values,
+                                                 [lane in accepted_prefill_lanes for lane in lanes],
+                                                 f"deck prefill {label}")
+
+        for heading, kind in DECK_DECODE_TABLES.items():
+            column = renderer.DECODE_AGGREGATE if kind == "aggregate" else renderer.DECODE_PER_USER
+            chart = "decode-throughput.png" if kind == "aggregate" else "decode-per-user.png"
+            decode = {entry["lane"]: entry for entry in renderer.decode_series(column)}
+            columns, body = table_after_heading(self.readme, heading)
+            self.assertEqual(columns, DECK_DECODE_COLUMNS)
+            lanes = self.lane_columns([row[0] for row in body])
+            self.assertEqual(set(decode) | pending, set(lanes),
+                             f"{heading}: rows are exactly the lanes with decode rows plus the pending decode lanes")
+            self.assert_drawn_lanes_present(chart, lanes, labels)
+            for index, label in enumerate(columns[1:], start=1):
+                concurrency = int(label.lstrip("C"))
+                values = []
+                for lane, row in zip(lanes, body):
+                    entry = decode.get(lane)
+                    value = entry["cells"].get(concurrency) if entry else None
+                    self.check_cell(row[index], value, f"{value:,.1f}" if value is not None else None,
+                                    entry is not None, f"{heading} {label} {lane}")
+                    if placeholders_in(row[index]):
+                        self.assertIn(lane, pending, f"{heading} {label}: placeholder for a lane that is not PENDING")
+                    values.append(value)
+                self.assert_bold_marks_best_accepted([row[index] for row in body], values,
+                                                     [lane in accepted_decode_lanes for lane in lanes],
+                                                     f"{heading} {label}")
+
     def test_detailed_tables_round_from_canonical_rows(self) -> None:
         self.assertIn(f"revision `{REVISION}`", self.readme)
         self.assertIn("## Detailed tables", self.notes)
@@ -689,9 +764,23 @@ class SectionContractTests(unittest.TestCase):
     def test_headline_is_a_deck_with_captioned_charts(self) -> None:
         renderer = self.renderer
         lines = self.readme.splitlines()
-        self.assertLessEqual(len(lines), DECK_MAX_LINES, "the README is a deck: headline, one table, eight captioned charts")
-        self.assertEqual(sum(1 for line in lines if line.startswith("| ---")), 1,
-                         "the deck carries exactly one table (best numbers); per-chart tables live in notes/")
+        self.assertLessEqual(len(lines), DECK_MAX_LINES,
+                             "the README is a deck: headline, four tables, eight captioned charts")
+        self.assertEqual(sum(1 for line in lines if line.startswith("| ---")), len(DECK_TABLE_HEADINGS),
+                         "the deck carries exactly four tables (best numbers + three by-concurrency tables); "
+                         "the full per-chart tables live in notes/")
+        for heading in DECK_TABLE_HEADINGS:
+            start = lines.index(heading)
+            end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("#")), len(lines))
+            section = lines[start:end]
+            table_rows = [i for i, line in enumerate(section) if line.startswith("|")]
+            self.assertTrue(table_rows, f"{heading} carries no table")
+            self.assertEqual(table_rows, list(range(table_rows[0], table_rows[0] + len(table_rows))),
+                             f"{heading}: the table must be one contiguous block")
+            if heading != BEST_NUMBERS_HEADING:
+                caption = next(i for i, line in enumerate(section) if line.startswith("*") and line.endswith("*"))
+                above = [line for line in section[caption + 1:table_rows[0]] if line.strip()]
+                self.assertEqual(above, [], f"{heading}: the table must sit directly beneath the chart caption")
         self.assertTrue(lines[0].startswith("# DeepSeek-V4.1-Flash on 2× NVIDIA GB300 DGX Stations"))
         for unrelated in ("MiniMax", "GLM", "Qwen", "Hy3", "Ornith"):
             self.assertNotIn(unrelated, self.readme)

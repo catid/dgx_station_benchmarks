@@ -47,6 +47,17 @@ The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek
 
 *64K prompts with 1, 4, and 16 requests in flight. The two-stage vLLM pipeline needs more than one request to fill (its C1 bar is 81% of its C16 bar); the SGLang lanes and vLLM TP2 are flat across C1–C16.*
 
+| Configuration | 64K · C1 | 64K · C4 | 64K · C16 | 128K · C1 | 128K · C4 | 128K · C16 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| SGLang AR · stock RDMA† | 16,599 | 16,638 | 16,621 | 16,098 | 16,112 | 16,108 |
+| SGLang AR · Data Direct | 25,571 | 25,654 | 25,638 | 24,394 | 24,417 | 24,419 |
+| SGLang AR + SWA replay | 39,014 | 39,139 | 39,133 | 37,674 | 37,711 | 37,693 |
+| SGLang DSpark† | 25,357 | — | — | — | — | — |
+| vLLM PP2 · AR | **53,515** | **65,338** | **65,966** | **55,992** | **62,750** | **63,048** |
+| vLLM TP2 · AR | 34,270 | 34,682 | 34,695 | 32,672 | 32,992 | 33,010 |
+
+*Aggregate prompt tok/s; bold is the best accepted value per column, † a diagnostic lane, — outside the lane's grid. The 16K and 32K columns and every TTFT are in [notes/](notes/).*
+
 ## Time to first token
 
 ![DeepSeek-V4.1-Flash single-request TTFT versus prompt length](charts/prefill-ttft.png)
@@ -59,11 +70,27 @@ The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek
 
 *Aggregate output tok/s versus concurrency, AR and DSpark on both engines; 8,192-token input, 1,024 forced output tokens, temperature 0, `C` warm-ups then `5 × C` measured requests. vLLM TP2 trails PP2 at every concurrency; SGLang DSpark beats SGLang AR at every concurrency, including C64, and trails vLLM PP2 at C4 and from C16 upward (C8 is a near tie in DSpark's favour).*
 
+| Configuration | C1 | C4 | C16 | C32 | C64 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| SGLang AR · Data Direct | 104.2 | 352.4 | 906.8 | 1,410.3 | 2,236.7 |
+| SGLang DSpark | **169.2** | 416.6 | 946.2 | 1,418.3 | 2,392.3 |
+| vLLM PP2 · AR | 140.6 | **431.1** | **1,033.4** | **1,878.0** | **2,805.9** |
+| vLLM TP2 · AR | 101.9 | 343.5 | 803.7 | 1,272.0 | 1,964.5 |
+| vLLM TP2 · DSpark | {{VLLM_TP2_DSPARK_DECODE_C1}} | {{VLLM_TP2_DSPARK_DECODE_C4}} | {{VLLM_TP2_DSPARK_DECODE_C16}} | {{VLLM_TP2_DSPARK_DECODE_C32}} | {{VLLM_TP2_DSPARK_DECODE_C64}} |
+
 ## Per-user decode speed
 
 ![DeepSeek-V4.1-Flash per-user decode speed versus concurrency](charts/decode-per-user.png)
 
 *Median per-request output tok/s at each concurrency: DSpark leads at C1–C2 (2.80 accepted tokens per step at C1), vLLM PP2 from C4 upward; the accept length per cell is kept in [data/throughput.csv](data/throughput.csv).*
+
+| Configuration | C1 | C4 | C16 | C32 | C64 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| SGLang AR · Data Direct | 106.8 | 91.6 | 59.0 | 45.7 | 36.5 |
+| SGLang DSpark | **180.0** | 108.4 | 61.3 | 45.5 | 40.4 |
+| vLLM PP2 · AR | 141.3 | **122.2** | **72.8** | **60.2** | **43.9** |
+| vLLM TP2 · AR | 102.3 | 87.5 | 53.2 | 41.5 | 31.6 |
+| vLLM TP2 · DSpark | {{VLLM_TP2_DSPARK_USER_C1}} | {{VLLM_TP2_DSPARK_USER_C4}} | {{VLLM_TP2_DSPARK_USER_C16}} | {{VLLM_TP2_DSPARK_USER_C32}} | {{VLLM_TP2_DSPARK_USER_C64}} |
 
 ## SGLang prefill tuning ladder
 
