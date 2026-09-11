@@ -84,6 +84,49 @@ NCCL INFO NET/IB: Data Direct DMA Interface is detected for device mlx5_0
 (once per HCA, per rank) followed by `[send] via NET/IB/2/GDRDMA` channel
 lines. `launch_cluster.sh` greps for both after `/health` answers.
 
+### SGLang tuning ladder: what the three steps are
+
+The SGLang prefill numbers are published as a cumulative ladder on one
+TP2+EP2 server profile: step 1 is the image's stock container RDMA path (a
+diagnostic, never ranked), step 2 adds the host rdma-core overlay above so
+NCCL runs on the ConnectX-8 Data Direct DMA path (the numerically exact
+full-prefill reference, `swa_bounded_replay=false`), and step 3 adds SWA
+bounded replay on top of step 2. Steps 2 and 3 are both accepted, ranked
+lanes; the gains at each step and the kernel-time profiles behind them are in
+[`../notes/`](../notes/).
+
+### SWA bounded replay (SGLang): faster prefill, not bit-identical
+
+`SWA_BOUNDED_REPLAY=1` adds `--enable-decoder-swa-bounded-replay` and forces
+`--cuda-graph-backend-prefill disabled` (this build refuses the two together);
+everything else (Data Direct overlay, `CHUNKED_PREFILL_SIZE=16384`,
+`MEM_FRACTION_STATIC=0.80`, same image) stays identical to the replay-off
+profile. Bounded replay of the sliding-window-attention decoder is the
+deployment technique DeepSeek's V4.1 technical report describes for its own
+serving, and LMSYS validated it on this branch (AIME pass@1 unchanged,
+453/480), but its prefill is **not bit-identical** to full prefill. The
+replay-off lane therefore remains the numerically exact reference, the two are
+separate series on every chart and separate columns in every table, and no
+number from one is ever substituted for the other. The flag changes prefill
+only; decode was measured on the replay-off profile.
+
+### Speculative decoding (DSpark) configurations
+
+`MODE=low-latency` enables DSpark, the checkpoint's three-layer draft
+(`dspark_block_size` 5). SGLang: `--speculative-algorithm DSPARK
+--speculative-dspark-block-size 5` on the TP2+EP2 Data Direct server. vLLM:
+`--speculative-config '{"method":"dspark","num_speculative_tokens":5,
+"draft_sample_method":"probabilistic","rejection_sample_method":"block",
+"enable_adaptive_verification":true}'` on the TP2 server, and the same with
+`enable_adaptive_verification:false` on the PP2 server through the overlay
+below (vLLM's validator rejects adaptive verification under pipeline
+parallelism). Block rejection sampling at temperature 0 is lossless against
+the server's own target distribution; the accept length the server reports
+per cell (the mean number of tokens accepted per forward step, out of 5
+drafted plus the anchor) is retained in
+[`../data/throughput.csv`](../data/throughput.csv). `MODE=throughput` is the
+autoregressive server, the same profile without the speculative flags.
+
 ### vLLM pipeline parallel needs two local source patches
 
 The `deepseekv41-flash-0909` build cannot start DeepSeek-V4.1-Flash with

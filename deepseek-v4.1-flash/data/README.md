@@ -13,15 +13,17 @@ Every table is produced by [`build_data.py`](build_data.py) from the manifest
   `prompt_tokens_total` counter delta, token-count parity, rank-0 GPU
   utilisation/power, the run id, and the SHA-256 of the source JSONL. A lane is
   accepted only when its full 16K/32K/64K/128K × C1/C4/C16 grid completed with
-  zero request errors. Four lanes are accepted: the replay-off SGLang Data
+  zero request errors. Five lanes are accepted: the replay-off SGLang Data
   Direct lane (`swa_bounded_replay=false`, the numerically exact full-prefill
   reference), the SGLang SWA bounded replay lane (`swa_bounded_replay=true`,
   DeepSeek's documented deployment technique, faster and not bit-identical),
   the vLLM TP1 × PP2 lane (text-only, two local source patches; its GPU
   columns were sampled on node0 = pipeline stage 0), and the vLLM TP2 lane
   (same image and settings; launched with rank 0 on node1, so its GPU columns
-  describe TP rank 1). Both vLLM lanes take `server_prompt_tokens_delta` from
-  the `vllm:prompt_tokens_total` counter.
+  describe TP rank 1), and the vLLM PP2 DSpark lane (the PP2 server with
+  DSpark through the local five-file overlay; one output token, so the draft
+  never runs during prefill). All vLLM lanes take `server_prompt_tokens_delta`
+  from the `vllm:prompt_tokens_total` counter.
 - `diagnostic-prefill.csv` — the same columns plus `diagnostic_status`, for
   tuning-ladder steps and spot checks that are never ranked
   (`publication_status=diagnostic`, `rankable=false`) but are still drawn as

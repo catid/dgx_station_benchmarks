@@ -332,16 +332,18 @@
         "adaptive_verification": false
       },
       "prefill": {
-        "publication_status": "not_measured",
-        "rankable": false,
-        "jsonl": [],
-        "note": "Not measured: the prefill headline lanes are the AR profiles; the PP2 DSpark overlay server was used for decode only"
+        "publication_status": "accepted",
+        "rankable": true,
+        "jsonl": [
+          "results/prefill/20260910-230600-vllm-pp2-datadirect-dspark.jsonl"
+        ],
+        "note": "Accepted: run 20260910-230600 completed the full 16K-128K x C1/C4/C16 grid (12/12 points) with zero errors on the same PP2 + DSpark overlay server as the decode lane (TP1 x PP2, default 20/20 split, --language-model-only, Engram cpu_offload, --max-num-batched-tokens 16384, --speculative-config dspark with adaptive verification off, VLLM_PATCH_PP_DSPARK=1, rank 0 on node0). One output token per request, so the draft never runs during the measurement; the lane shows what the speculative server costs on prefill versus the PP2 AR lane. The client's cache-flush call (/reset_prefix_cache) returned HTTP 404 on this image as on the other vLLM lanes, but the vllm:request_prefill_kv_computed_tokens_sum counter delta equals the prompt-token total at every point, so no prefill work was skipped. GPU utilisation/power were sampled on node0 = pipeline stage 0."
       },
       "decode": {
         "publication_status": "accepted",
         "rankable": true,
         "run_dir": "results/decode/20260910-225453-vllm-pp2-datadirect-dspark",
-        "note": "Accepted: run 20260910-225453 completed C1, C2, C4, C8, C16, C32, C64 finite-request cells with zero errors and none underfilled on the PP2 server started with --speculative-config dspark (5 speculative tokens, block rejection sampling, adaptive verification off) through the local five-file overlay in recipes/patches/vllm-pp2-dspark/ (VLLM_PATCH_PP_DSPARK=1, async scheduling), same image, Data Direct overlay, default 20/20 split and text-only settings as the PP2 AR lane, rank 0 on node0; accept_length/accept_rate come from the server speculative-decoding counters; vLLM exposes no engine-step counter, so engine_steps_per_second is empty. The greedy token-for-token equivalence check against a PP2 AR reference is pending and recorded in notes/"
+        "note": "Accepted: run 20260910-225453 completed C1, C2, C4, C8, C16, C32, C64 finite-request cells with zero errors and none underfilled on the PP2 server started with --speculative-config dspark (5 speculative tokens, block rejection sampling, adaptive verification off) through the local five-file overlay in recipes/patches/vllm-pp2-dspark/ (VLLM_PATCH_PP_DSPARK=1, async scheduling), same image, Data Direct overlay, default 20/20 split and text-only settings as the PP2 AR lane, rank 0 on node0; accept_length/accept_rate come from the server speculative-decoding counters; vLLM exposes no engine-step counter, so engine_steps_per_second is empty. The greedy token-for-token diff against an unmodified PP2 AR server was not run (skipped by the operator); the evidence recorded in notes/ is the 256-token greedy comparison against the stock TP2 DSpark server (3 of 41 lines differ in wording, code block identical), the sanity runs, the quality probe and the speculative counters"
       }
     }
   },

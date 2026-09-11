@@ -6,8 +6,8 @@ and a column or row in the matching detailed table, accepted and diagnostic lane
 only stand for lanes that have no rows yet; numbers must round from the CSV tables; the accepted versus
 diagnostic distinction lives in publication_status/rankable and the lane ledger, never in what is drawn.
 
-README.md is a deck: headline bullets, one best-numbers table, the eight charts with a caption each, and
-three compact by-concurrency tables (prefill at 64K/128K, decode aggregate, decode per user) directly beneath
+README.md is a deck: a short "Best results" block (one bold number per bullet), one best-numbers table, the eight
+charts with a caption each, and three compact by-concurrency tables (prefill at 64K/128K, decode aggregate, decode per user) directly beneath
 the captions of their chart sections. The full per-chart tables live in notes/README.md under
 "## Detailed tables"; both files are bound to the CSVs.
 """
@@ -42,37 +42,27 @@ DASH = "—"
 LANE_TABLES = ("prefill.csv", "diagnostic-prefill.csv", "throughput.csv")
 HEADLINE_LANE = "sglang_tp2_ep2_ar"
 
-# Headline placeholder -> (lane, isl, concurrency, kind); accepted prefill rows only, as before.
+# Best-results placeholder -> (lane, isl, concurrency, kind); accepted prefill rows only. Only the numbers the deck still
+# quotes are bound here; every other prefill point is bound through the deck and notes tables.
 REPLAY_LANE = "sglang_tp2_ep2_ar_replay"  # accepted and ranked, but not bit-identical to the exact reference
 VLLM_PP2_LANE = "vllm_pp2_ar"  # the other engine: accepted, ranked, text-only, two local source patches
 VLLM_TP2_LANE = "vllm_tp2_ar"  # same vLLM image with tensor parallelism; the headline compares it with PP2
 VLLM_PP2_DSPARK_LANE = "vllm_pp2_dspark"  # PP2 + DSpark through the local five-file overlay; decode only
 HEADLINE_PREFILL = (
-    ("SGLANG_PREFILL_128K_C16", HEADLINE_LANE, 131072, 16, "rate"),
-    ("SGLANG_PREFILL_16K_C1", HEADLINE_LANE, 16384, 1, "rate"),
-    ("SGLANG_TTFT_16K_C1", HEADLINE_LANE, 16384, 1, "ttft"),
-    ("SGLANG_REPLAY_PREFILL_128K_C16", REPLAY_LANE, 131072, 16, "rate"),
-    ("SGLANG_REPLAY_PREFILL_16K_C1", REPLAY_LANE, 16384, 1, "rate"),
-    ("SGLANG_REPLAY_TTFT_16K_C1", REPLAY_LANE, 16384, 1, "ttft"),
-    ("SGLANG_REPLAY_TTFT_128K_C1", REPLAY_LANE, 131072, 1, "ttft"),
     ("VLLM_PP2_PREFILL_128K_C1", VLLM_PP2_LANE, 131072, 1, "rate"),
-    ("VLLM_PP2_TTFT_128K_C1", VLLM_PP2_LANE, 131072, 1, "ttft"),
     ("VLLM_PP2_PREFILL_64K_C16", VLLM_PP2_LANE, 65536, 16, "rate"),
-    ("VLLM_PP2_PREFILL_128K_C16", VLLM_PP2_LANE, 131072, 16, "rate"),
-    ("VLLM_TP2_PREFILL_128K_C1", VLLM_TP2_LANE, 131072, 1, "rate"),
-    ("VLLM_TP2_PREFILL_64K_C16", VLLM_TP2_LANE, 65536, 16, "rate"),
+    ("SGLANG_REPLAY_PREFILL_64K_C16", REPLAY_LANE, 65536, 16, "rate"),
+    ("SGLANG_REPLAY_PREFILL_128K_C1", REPLAY_LANE, 131072, 1, "rate"),
 )
-# Headline placeholder -> (lane, concurrency, kind); accepted decode rows only.
+# Best-results placeholder -> (lane, concurrency, kind); accepted decode rows only.
 HEADLINE_DECODE = (
-    ("SGLANG_DSPARK_USER_C1", "sglang_tp2_ep2_dspark", 1, "user"),
-    ("SGLANG_DSPARK_ACCEPT_C1", "sglang_tp2_ep2_dspark", 1, "accept"),
-    ("SGLANG_AR_USER_C1", HEADLINE_LANE, 1, "user"),
-    ("VLLM_PP2_USER_C1", VLLM_PP2_LANE, 1, "user"),
-    ("VLLM_TP2_DSPARK_USER_C1", "vllm_tp2_dspark", 1, "user"),
-    ("VLLM_TP2_DSPARK_ACCEPT_C1", "vllm_tp2_dspark", 1, "accept"),
     ("VLLM_PP2_DSPARK_USER_C1", VLLM_PP2_DSPARK_LANE, 1, "user"),
-    ("VLLM_PP2_DSPARK_ACCEPT_C1", VLLM_PP2_DSPARK_LANE, 1, "accept"),
 )
+# Numbers that left the deck when its headline became the short best-results block are bound in notes/README.md
+# prose instead: the C1 per-user rate and DSpark accept length of every decode lane, and the tuning-ladder gains.
+NOTES_DECODE_C1_LANES = (HEADLINE_LANE, "sglang_tp2_ep2_dspark", VLLM_PP2_LANE, VLLM_TP2_LANE, "vllm_tp2_dspark",
+                         VLLM_PP2_DSPARK_LANE)
+BEST_RESULTS_HEADING = "## Best results"
 # Repository overview row -> the (isl, concurrency) prefill points each lane contributes to it.
 OVERVIEW_PREFILL_POINTS = {
     HEADLINE_LANE: ((16384, 1), (131072, 16)),
@@ -191,6 +181,11 @@ def table_after_heading(text: str, heading: str) -> tuple[list[str], list[list[s
 
 def section_text(text: str, heading: str) -> str:
     return re.split(r"\n#{1,6} ", text.split(heading, 1)[1], maxsplit=1)[0]
+
+
+def chapter_text(text: str, heading: str) -> str:
+    """Everything under a '## ' heading up to the next '## ' heading, sub-sections included."""
+    return re.split(r"\n## ", text.split(heading, 1)[1], maxsplit=1)[0]
 
 
 def unstyle(cell: str) -> str:
@@ -598,7 +593,7 @@ class SectionContractTests(unittest.TestCase):
             self.assertEqual(unstyle(line[-1]), f"{float(row['avg_busbw_gbps']):.1f}")
 
     def test_headline_binds_accepted_rows(self) -> None:
-        headline = section_text(self.readme, "## Headline")
+        headline = section_text(self.readme, BEST_RESULTS_HEADING)
         prefill = accepted_prefill()
         decode = accepted_decode()
         for token, lane, isl, concurrency, kind in HEADLINE_PREFILL:
@@ -618,9 +613,11 @@ class SectionContractTests(unittest.TestCase):
                 self.assertIsNone(point, f"{token} placeholder hides accepted data")
             else:
                 self.assertIsNotNone(point, f"{token} was replaced but no accepted row exists")
-                expected = (f"{float(point['per_user_output_tokens_per_second_p50']):,.1f}" if kind == "user"
-                            else f"{float(point['accept_length']):.2f}")
+                expected = (f"**{float(point['per_user_output_tokens_per_second_p50']):,.1f} output tok/s per user**"
+                            if kind == "user" else f"{float(point['accept_length']):.2f}")
                 self.assertIn(expected, headline)
+        best_user = max((float(row["per_user_output_tokens_per_second_p50"]) for cells in decode.values()
+                         for row in cells.values()), default=None)
         best = max((float(row["aggregate_output_tokens_per_second"]) for cells in decode.values()
                     for row in cells.values()), default=None)
         if "{{BEST_DECODE_AGG}}" in headline:
@@ -628,21 +625,35 @@ class SectionContractTests(unittest.TestCase):
             self.assertIsNone(best)
         else:
             self.assertIsNotNone(best)
-            self.assertIn(f"**{best:,.1f} aggregate tok/s**", headline)
+            self.assertIn(f"**{best:,.1f} aggregate output tok/s**", headline)
+            self.assertIn(f"**{best_user:,.1f} output tok/s per user**", headline, "the best-results block quotes the fastest per-user lane")
+        bullets = [line for line in headline.splitlines() if line.startswith("- ")]
+        self.assertTrue(4 <= len(bullets) <= 5, "the best-results block is four or five one-line bullets")
+        for bullet in bullets:
+            self.assertEqual(bullet.count("**"), 2, f"exactly one bold number per best-results bullet: {bullet!r}")
+            self.assertNotIn("%", bullet, "percentages live in notes/, not in the best-results block")
+        # The numbers that left the deck stay bound in the notes prose.
+        for lane in NOTES_DECODE_C1_LANES:
+            point = decode.get(lane, {}).get(1)
+            if point is None:
+                continue
+            self.assertIn(f"{float(point['per_user_output_tokens_per_second_p50']):,.1f}", self.notes, f"{lane} C1 per-user rate")
+            if point["accept_length"]:
+                self.assertIn(f"{float(point['accept_length']):.2f} accepted tokens per step", self.notes, f"{lane} C1 accept length")
         _, bars = self.renderer.ladder_bars()
         steps = [bar for bar in bars if not bar["comparison"]]
-        if "{{LADDER_DATADIRECT_REF}}" in headline:
+        tuning = re.sub(r"\s+", " ", chapter_text(self.notes, "## Tuning story"))  # prose wraps lines
+        if "{{LADDER_DATADIRECT_REF}}" in tuning:
             self.assert_placeholder_listed("{{LADDER_DATADIRECT_REF}}")
             self.assertLess(len(steps), 2, "ladder placeholders hide measured steps")
         else:
             self.assertGreaterEqual(len(steps), 2)
-            self.assertIn(f"from **{steps[0]['value']:,.0f}** to **{steps[1]['value']:,.0f} prompt tok/s**", headline)
-            self.assertIn(f"({(steps[1]['value'] / steps[0]['value'] - 1) * 100:+.1f}%)", headline)
-        if len(steps) >= 3:  # every further step is quoted with its gain over step 1 and over the previous step
-            for previous, step in zip(steps[1:], steps[2:]):
-                self.assertIn(f"**{step['value']:,.0f}**", headline)
-                self.assertIn(f"{(step['value'] / steps[0]['value'] - 1) * 100:+.1f}% versus", headline)
-                self.assertIn(f"{(step['value'] / previous['value'] - 1) * 100:+.1f}% versus", headline)
+            self.assertIn(f"{steps[0]['value']:,.0f} → {steps[1]['value']:,.0f} aggregate prompt tok/s", tuning)
+            self.assertIn(f"+{(steps[1]['value'] / steps[0]['value'] - 1) * 100:.1f}% at 64K prompts, C16", tuning)
+        for previous, step in zip(steps[1:], steps[2:]):  # every further step is quoted with both gains
+            self.assertIn(f"**{step['value']:,.0f}** aggregate prompt tok/s", tuning)
+            self.assertIn(f"{(step['value'] / steps[0]['value'] - 1) * 100:+.1f}% vs", tuning)
+            self.assertIn(f"{(step['value'] / previous['value'] - 1) * 100:+.1f}% vs", tuning)
 
     def test_fabric_and_kernel_tables_round_from_csv(self) -> None:
         fabric: dict[str, dict[int, dict[str, str]]] = defaultdict(dict)
@@ -684,13 +695,15 @@ class SectionContractTests(unittest.TestCase):
             total = float(next(iter(categories.values()))["summed_kernel_ms"])
             self.assertEqual(unstyle(line[-1]), f"{total:,.0f} ms", (key, "Total"))
 
-        headline = section_text(self.readme, "## Headline")
-        for config, size in (("dual_rail_tuned_8ch", 2 << 30), ("single_rail_tuned", 2 << 30)):
-            self.assertIn(f"**{float(fabric[config][size]['busbw_gbps']):.1f} GB/s**", headline, config)
+        headline = section_text(self.readme, BEST_RESULTS_HEADING)
+        self.assertIn(f"**{float(fabric['dual_rail_tuned_8ch'][2 << 30]['busbw_gbps']):.1f} GB/s**", headline)
+        self.assertIn(f"{float(fabric['single_rail_tuned'][2 << 30]['busbw_gbps']):.1f} GB/s", self.notes, "single rail")
         nccl_shares = sorted(
             float(categories["nccl"]["category_pct"]) for (_, node), categories in profile.items() if node == "node0"
         )
-        self.assertIn(f"from **{nccl_shares[-1]:.1f}%** to **{nccl_shares[0]:.1f}%**", headline)
+        tuning = re.sub(r"\s+", " ", chapter_text(self.notes, "## Tuning story"))  # prose wraps lines
+        self.assertIn(f"{nccl_shares[-1]:.1f}% (node0)", tuning)
+        self.assertIn(f"{nccl_shares[0]:.1f}% (node0)", tuning)
 
     def test_repository_overview_row_binds_headline(self) -> None:
         overview = (REPOSITORY / "README.md").read_text(encoding="utf-8")
@@ -770,7 +783,7 @@ class SectionContractTests(unittest.TestCase):
         renderer = self.renderer
         lines = self.readme.splitlines()
         self.assertLessEqual(len(lines), DECK_MAX_LINES,
-                             "the README is a deck: headline, four tables, eight captioned charts")
+                             "the README is a deck: best results, four tables, eight captioned charts")
         self.assertEqual(sum(1 for line in lines if line.startswith("| ---")), len(DECK_TABLE_HEADINGS),
                          "the deck carries exactly four tables (best numbers + three by-concurrency tables); "
                          "the full per-chart tables live in notes/")
