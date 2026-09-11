@@ -1,0 +1,20 @@
+--- kv_cache_utils.py.orig	2026-09-10 13:38:46.740142968 -0700
++++ kv_cache_utils.py	2026-09-10 13:38:46.747704430 -0700
+@@ -1725,8 +1725,16 @@
+         group_spec = group.kv_cache_spec
+         layers_by_spec: defaultdict[KVCacheSpec, list[str]] = defaultdict(list)
+         if isinstance(group_spec, UniformTypeKVCacheSpecs):
++            # Only emit tensors for layers this worker owns. With pipeline
++            # parallelism, `_project_kv_cache_groups_to_worker` leaves the
++            # global (unfiltered) UniformTypeKVCacheSpecs on a group when a
++            # PP rank holds none of its layers, so `kv_cache_specs` can name
++            # layers that live on another rank; `allocate_kv_cache` would
++            # then fail to find a group for them (StopIteration).
++            group_layer_names = set(group.layer_names)
+             for layer_name, spec in group_spec.kv_cache_specs.items():
+-                layers_by_spec[spec].append(layer_name)
++                if layer_name in group_layer_names:
++                    layers_by_spec[spec].append(layer_name)
+         elif group.layer_names:
+             layers_by_spec[group_spec].extend(group.layer_names)
+ 

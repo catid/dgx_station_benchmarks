@@ -1,0 +1,462 @@
+{
+  "schema_version": 1,
+  "note": "Manifest for data/build_data.py. Every path is relative to --source-root (the private benchmark working directory, never committed). Keep this file free of hostnames, absolute paths, management addresses, and GPU UUIDs: rank hosts are mapped to node0/node1 from the artifacts themselves. Set a lane's publication_status to 'accepted' only after its full grid completed with zero errors; build_data.py refuses incomplete accepted lanes. Two SGLang prefill lanes are accepted: the replay-off Data Direct lane (numerically exact full prefill, the reference) and the SWA bounded replay lane (DeepSeek's documented deployment technique, faster, not bit-identical). The vLLM PP2 lane (TP1 x PP2, text-only, two local source patches) is accepted for prefill and AR decode; its GPU utilisation/power columns were sampled on node0, which under PP2 is pipeline stage 0. Lanes may also list prefill.diagnostic_jsonl: those files always land in diagnostic-prefill.csv (rankable=false) regardless of the lane status. Every lane carries a stable, human-readable lane_label and a series_order integer; both are copied into prefill.csv, diagnostic-prefill.csv and throughput.csv so charts and README tables share labels and ordering. Charts draw every lane that has complete, error-free rows (accepted or diagnostic); publication_status/rankable only decide ranking, tables and tests.",
+  "model_id": "deepseek-ai/DeepSeek-V4.1-Flash",
+  "model_revision": "dba1be0a40aa45a94ad051997016db3960a90277",
+  "runtimes": {
+    "sglang": {
+      "image": "lmsysorg/sglang:dev-dsv41",
+      "image_id": "sha256:3dbc313030a6ef2c5d7de8ecf48e9aece722694a82182cb618cc82b588816349",
+      "image_created": "2026-09-10T05:33Z",
+      "commit": "NOT_RECORDED",
+      "version": "0.0.0.dev0",
+      "upstream": "sgl-project/sglang PR #38798 (dsv4.1 branch)"
+    },
+    "vllm": {
+      "image": "vllm/vllm-openai:deepseekv41-flash-0909",
+      "image_id": "sha256:00d577a6a63281e15336029d5bcee4e9a2cf182214a4f20ba6111b1c8e79893d",
+      "commit": "179dd0fa9",
+      "version": "0.1.dev20904+g179dd0fa9",
+      "upstream": "vllm-project/vllm PR #56214 (dsv41-feat branch)",
+      "image_created": "NOT_RECORDED",
+      "local_patches": [
+        "deepseek_v4_nvidia_model.py",
+        "kv_cache_utils.py"
+      ]
+    }
+  },
+  "decode_client": {
+    "name": "llm-inference-bench",
+    "version": "0.4.29",
+    "commit": "0b4185b5b435e948b199c9077a00b084864aa963"
+  },
+  "prefill_contract": {
+    "isl_tokens": [
+      16384,
+      32768,
+      65536,
+      131072
+    ],
+    "concurrency": [
+      1,
+      4,
+      16
+    ],
+    "warmup_requests": 1,
+    "requests_rule": "max(4, 4 * concurrency)",
+    "flush_cache": true,
+    "output_tokens": 1,
+    "temperature": 0
+  },
+  "decode_contract": {
+    "input_tokens": 8192,
+    "target_output_tokens": 1024,
+    "temperature": 0,
+    "warmup_rule": "concurrency",
+    "requests_rule": "5 * concurrency"
+  },
+  "lanes": {
+    "sglang_tp2_ep2_ar": {
+      "lane_label": "SGLang TP2+EP2 · AR · Data Direct",
+      "series_order": 2,
+      "engine": "sglang",
+      "mode": "ar",
+      "topology": "cross_node_tp2_ep2",
+      "tensor_parallel_size": 2,
+      "pipeline_parallel_size": 1,
+      "expert_parallel_size": 2,
+      "profile": "sglang_tp2_ep2_datadirect_chunk16k_replay_off",
+      "server": {
+        "chunked_prefill_size": 16384,
+        "max_prefill_tokens": 32768,
+        "swa_bounded_replay": false,
+        "nccl_hcas": "mlx5_0,mlx5_1",
+        "host_rdma": true,
+        "kv_cache_dtype": "fp8_e4m3"
+      },
+      "prefill": {
+        "publication_status": "accepted",
+        "rankable": true,
+        "jsonl": [
+          "results/prefill/20260910-115658-sglang-tp2-datadirect.jsonl"
+        ],
+        "note": "Accepted: run 20260910-115658 completed the full 16K-128K x C1/C4/C16 grid (12/12 points) with zero errors. This replay-off profile is the numerically exact (full-prefill) reference; the faster sglang_tp2_ep2_ar_replay lane is accepted separately. An earlier full sweep lost its server after 32K/C4 and was set aside (see notes/). quick-datadirect.jsonl is the C1-only spot check that preceded it, published as a diagnostic.",
+        "diagnostic_jsonl": [
+          "results/prefill/quick-datadirect.jsonl"
+        ],
+        "diagnostic_status": "C1_SPOT_CHECK_BEFORE_FULL_SWEEP"
+      },
+      "decode": {
+        "publication_status": "accepted",
+        "rankable": true,
+        "run_dir": "results/decode/20260910-121116-sglang-tp2-datadirect-ar",
+        "note": "Accepted: C1, C2, C4, C8, C16, C32, C64 finite-request cells, zero errors, none underfilled"
+      }
+    },
+    "sglang_tp2_ep2_dspark": {
+      "lane_label": "SGLang TP2+EP2 · DSpark",
+      "series_order": 4,
+      "engine": "sglang",
+      "mode": "dspark",
+      "topology": "cross_node_tp2_ep2",
+      "tensor_parallel_size": 2,
+      "pipeline_parallel_size": 1,
+      "expert_parallel_size": 2,
+      "profile": "sglang_tp2_ep2_datadirect_dspark_block5",
+      "server": {
+        "chunked_prefill_size": 16384,
+        "max_prefill_tokens": 32768,
+        "swa_bounded_replay": false,
+        "nccl_hcas": "mlx5_0,mlx5_1",
+        "host_rdma": true,
+        "kv_cache_dtype": "fp8_e4m3"
+      },
+      "prefill": {
+        "publication_status": "diagnostic",
+        "rankable": false,
+        "jsonl": [
+          "results/prefill/sglang-dspark-prefill-check.jsonl"
+        ],
+        "diagnostic_status": "PARTIAL_GRID_SPOT_CHECK",
+        "note": "Diagnostic: 16K/64K C1 spot check (2 points, zero errors) taken on the DSpark server profile; not a full grid, never ranked. The prefill headline lane is the AR profile."
+      },
+      "decode": {
+        "publication_status": "accepted",
+        "rankable": true,
+        "run_dir": "results/decode/20260910-123559-sglang-tp2-datadirect-dspark",
+        "note": "Accepted: every requested cell C1, C2, C4, C8, C16, C32 completed with zero errors and none underfilled (C64 was not requested for the DSpark lane); accept_length/accept_rate come from the server speculative-decoding counters"
+      }
+    },
+    "sglang_tp2_ep2_ar_replay": {
+      "lane_label": "SGLang TP2+EP2 · AR + SWA replay",
+      "series_order": 3,
+      "engine": "sglang",
+      "mode": "ar",
+      "topology": "cross_node_tp2_ep2",
+      "tensor_parallel_size": 2,
+      "pipeline_parallel_size": 1,
+      "expert_parallel_size": 2,
+      "profile": "sglang_tp2_ep2_datadirect_chunk16k_replay_on",
+      "server": {
+        "chunked_prefill_size": 16384,
+        "max_prefill_tokens": 32768,
+        "swa_bounded_replay": true,
+        "nccl_hcas": "mlx5_0,mlx5_1",
+        "host_rdma": true,
+        "kv_cache_dtype": "fp8_e4m3"
+      },
+      "prefill": {
+        "publication_status": "accepted",
+        "rankable": true,
+        "jsonl": [
+          "results/prefill/20260910-125739-sglang-tp2-datadirect-replay.jsonl"
+        ],
+        "note": "Accepted: run 20260910-125739 completed the full 16K-128K x C1/C4/C16 grid (12/12 points) with zero errors on the same TP2+EP2 Data Direct server plus --enable-decoder-swa-bounded-replay. SWA bounded replay is the deployment technique DeepSeek's V4.1 tech report describes and LMSYS validated (AIME pass@1 unchanged, 453/480), but its prefill is not bit-identical to full prefill; the replay-off lane sglang_tp2_ep2_ar stays the numerically exact reference."
+      },
+      "decode": {
+        "publication_status": "not_measured",
+        "rankable": false,
+        "run_dir": null,
+        "note": "Not measured: the replay flag changes prefill only; decode was measured on the replay-off profile"
+      }
+    },
+    "sglang_tp2_ep2_stock_rdma": {
+      "lane_label": "SGLang TP2+EP2 · AR · stock RDMA",
+      "series_order": 1,
+      "engine": "sglang",
+      "mode": "ar",
+      "topology": "cross_node_tp2_ep2",
+      "tensor_parallel_size": 2,
+      "pipeline_parallel_size": 1,
+      "expert_parallel_size": 2,
+      "profile": "sglang_tp2_ep2_stockrdma_chunk16k_replay_off",
+      "server": {
+        "chunked_prefill_size": 16384,
+        "max_prefill_tokens": 32768,
+        "swa_bounded_replay": false,
+        "nccl_hcas": "mlx5_0,mlx5_1",
+        "host_rdma": false,
+        "kv_cache_dtype": "fp8_e4m3"
+      },
+      "prefill": {
+        "publication_status": "diagnostic",
+        "rankable": false,
+        "jsonl": [
+          "results/prefill/20260910-105805-baseline.jsonl"
+        ],
+        "diagnostic_status": "SUPERSEDED_TUNING_STEP",
+        "note": "Image rdma-core 50 cannot open the ConnectX-8 Data Direct DMA path; superseded by the host rdma-core overlay lane"
+      },
+      "decode": {
+        "publication_status": "not_measured",
+        "rankable": false,
+        "run_dir": null
+      }
+    },
+    "vllm_pp2_ar": {
+      "lane_label": "vLLM PP2 · AR",
+      "series_order": 5,
+      "engine": "vllm",
+      "mode": "ar",
+      "topology": "cross_node_pp2",
+      "tensor_parallel_size": 1,
+      "pipeline_parallel_size": 2,
+      "expert_parallel_size": 1,
+      "profile": "vllm_pp2_datadirect_chunk16k",
+      "server": {
+        "chunked_prefill_size": 16384,
+        "max_prefill_tokens": 16384,
+        "swa_bounded_replay": false,
+        "nccl_hcas": "mlx5_0,mlx5_1",
+        "host_rdma": true,
+        "kv_cache_dtype": "model_default",
+        "pp_layer_partition": "20,20 (vLLM default even split)",
+        "engram": "cpu_offload",
+        "language_model_only": true
+      },
+      "prefill": {
+        "publication_status": "accepted",
+        "rankable": true,
+        "jsonl": [
+          "results/prefill/20260910-164411-vllm-pp2-datadirect.jsonl"
+        ],
+        "note": "Accepted: run 20260910-164411 completed the full 16K-128K x C1/C4/C16 grid (12/12 points) with zero errors on vLLM TP1 x PP2 (default 20/20 layer split, --language-model-only, Engram cpu_offload, --max-num-batched-tokens 16384) with the two local source patches in recipes/patches/vllm/ bind-mounted over the image (VLLM_PATCH_PP=1). The client's cache-flush call (/reset_prefix_cache) returned HTTP 404 on this image, but the server's vllm:request_prefill_kv_computed_tokens_sum counter delta equals the prompt-token total at every point, so no prefill work was skipped. The server snapshot is empty because vLLM has no /get_server_info endpoint. GPU utilisation/power were sampled on node0 = pipeline stage 0 (the stage that holds both Engram layers)."
+      },
+      "decode": {
+        "publication_status": "accepted",
+        "rankable": true,
+        "run_dir": "results/decode/20260910-164955-vllm-pp2-datadirect-ar",
+        "note": "Accepted: C1, C2, C4, C8, C16, C32, C64 finite-request cells on the same PP2 server, zero errors, none underfilled; vLLM exposes no engine-step counter, so engine_steps_per_second is empty"
+      }
+    },
+    "vllm_tp2_ar": {
+      "lane_label": "vLLM TP2 · AR",
+      "series_order": 6,
+      "engine": "vllm",
+      "mode": "ar",
+      "topology": "cross_node_tp2",
+      "tensor_parallel_size": 2,
+      "pipeline_parallel_size": 1,
+      "expert_parallel_size": 1,
+      "profile": "vllm_tp2_datadirect_chunk16k",
+      "server": {
+        "chunked_prefill_size": 16384,
+        "max_prefill_tokens": 16384,
+        "swa_bounded_replay": false,
+        "nccl_hcas": "mlx5_0,mlx5_1",
+        "host_rdma": true,
+        "kv_cache_dtype": "model_default"
+      },
+      "prefill": {
+        "publication_status": "pending",
+        "rankable": true,
+        "jsonl": [
+          "results/prefill/*-vllm-tp2-ar*.jsonl"
+        ],
+        "note": "Pending: the TP2 sweep has not completed; its first attempt was queued with vLLM rank 0 moved to node1 (SWAP_RANKS=1) and did not launch"
+      },
+      "decode": {
+        "publication_status": "pending",
+        "rankable": true,
+        "run_dir": null,
+        "note": "Pending: same server as the TP2 prefill lane"
+      }
+    },
+    "vllm_tp2_dspark": {
+      "lane_label": "vLLM TP2 · DSpark",
+      "series_order": 7,
+      "engine": "vllm",
+      "mode": "dspark",
+      "topology": "cross_node_tp2",
+      "tensor_parallel_size": 2,
+      "pipeline_parallel_size": 1,
+      "expert_parallel_size": 1,
+      "profile": "vllm_tp2_datadirect_dspark_block5",
+      "server": {
+        "chunked_prefill_size": 16384,
+        "max_prefill_tokens": 16384,
+        "swa_bounded_replay": false,
+        "nccl_hcas": "mlx5_0,mlx5_1",
+        "host_rdma": true,
+        "kv_cache_dtype": "model_default"
+      },
+      "prefill": {
+        "publication_status": "not_measured",
+        "rankable": false,
+        "jsonl": []
+      },
+      "decode": {
+        "publication_status": "pending",
+        "rankable": true,
+        "run_dir": null,
+        "note": "vLLM DSpark rejects pipeline parallelism, so the DSpark lane is TP2 only"
+      }
+    }
+  },
+  "extra_qualification": [
+    {
+      "profile": "official_tp1_single_station",
+      "lane": "",
+      "engine": "",
+      "mode": "",
+      "runtime": "",
+      "topology": "not_run",
+      "status": "NOT_ATTEMPTED",
+      "rankable": false,
+      "evidence_run_id": "",
+      "note": "510286023000 checkpoint bytes exceed one GB300; no capacity run retained"
+    }
+  ],
+  "tuning_ladder": [
+    {
+      "step": 1,
+      "lane": "sglang_tp2_ep2_stock_rdma",
+      "label": "Stock container RDMA path"
+    },
+    {
+      "step": 2,
+      "lane": "sglang_tp2_ep2_ar",
+      "label": "Data Direct RDMA (host rdma-core overlay)"
+    },
+    {
+      "step": 3,
+      "lane": "sglang_tp2_ep2_ar_replay",
+      "label": "+ SWA bounded replay"
+    }
+  ],
+  "fabric": [
+    {
+      "config_id": "single_rail_tuned",
+      "label": "Single rail · tuned (8 ch, 4 QP)",
+      "rails": 1,
+      "nccl_hcas": "mlx5_0",
+      "nccl_tuning": "tuned",
+      "channels": 8,
+      "qps_per_connection": 4,
+      "log": "results/fabric/rail0-tuned.log"
+    },
+    {
+      "config_id": "dual_rail_tuned_8ch",
+      "label": "Dual rail · tuned (8 ch, 4 QP)",
+      "rails": 2,
+      "nccl_hcas": "mlx5_0,mlx5_1",
+      "nccl_tuning": "tuned",
+      "channels": 8,
+      "qps_per_connection": 4,
+      "log": "results/fabric/dual-tuned8.log"
+    },
+    {
+      "config_id": "dual_rail_tuned_16ch",
+      "label": "Dual rail · tuned (16 ch, 4 QP)",
+      "rails": 2,
+      "nccl_hcas": "mlx5_0,mlx5_1",
+      "nccl_tuning": "tuned",
+      "channels": 16,
+      "qps_per_connection": 4,
+      "log": "results/fabric/dual-tuned16.log"
+    },
+    {
+      "config_id": "dual_rail_auto",
+      "label": "Dual rail · NCCL auto",
+      "rails": 2,
+      "nccl_hcas": "mlx5_0,mlx5_1",
+      "nccl_tuning": "auto",
+      "channels": null,
+      "qps_per_connection": null,
+      "log": "results/fabric/dual-auto.log"
+    }
+  ],
+  "profiles": [
+    {
+      "profile_id": "stock_rdma_32k",
+      "label": "Stock RDMA path · 32K prefill",
+      "lane": "sglang_tp2_ep2_stock_rdma",
+      "isl_tokens": 32768,
+      "ranks": {
+        "0": "results/profile/baseline-rank0.txt",
+        "1": "results/profile/baseline-rank1.txt"
+      }
+    },
+    {
+      "profile_id": "datadirect_32k",
+      "label": "Data Direct RDMA · 32K prefill",
+      "lane": "sglang_tp2_ep2_ar",
+      "isl_tokens": 32768,
+      "ranks": {
+        "0": "results/profile/datadirect-rank0.txt",
+        "1": "results/profile/datadirect-rank1.txt"
+      },
+      "note": "ISL verified from the rank-0 server log: the profiled /generate request ran as two 16,384-token chunked-prefill batches (32,768 tokens) inside the start_profile/stop_profile window"
+    }
+  ],
+  "checkpoint": {
+    "schema_version": 1,
+    "model_id": "deepseek-ai/DeepSeek-V4.1-Flash",
+    "revision": "dba1be0a40aa45a94ad051997016db3960a90277",
+    "architecture": "DeepseekV41ForCausalLM",
+    "model_type": "deepseek_v41",
+    "reported_parameter_scale": {
+      "total": "NOT_AUDITED_HERE",
+      "active": "NOT_AUDITED_HERE"
+    },
+    "safetensors_files": 48,
+    "safetensors_bytes": 510296708312,
+    "index_total_size_bytes": 510286023000,
+    "index_tensor_entries": 96085,
+    "precision": {
+      "base_dtype": "bfloat16",
+      "quantization": "fp8",
+      "format": "e4m3",
+      "activation_scheme": "dynamic",
+      "weight_block_size": [
+        32,
+        32
+      ],
+      "scale_fmt": "ue8m0",
+      "expert_dtype": "fp4"
+    },
+    "shape": {
+      "hidden_size": 5120,
+      "num_hidden_layers": 40,
+      "num_attention_heads": 64,
+      "num_key_value_heads": 1,
+      "head_dim": 512,
+      "qk_rope_head_dim": 64,
+      "n_routed_experts": 384,
+      "n_shared_experts": 1,
+      "num_experts_per_tok": 6,
+      "scoring_func": "sqrtsoftplus",
+      "topk_method": "noaux_tc",
+      "moe_intermediate_size": 2304,
+      "vocab_size": 129280,
+      "max_position_embeddings": 1048576,
+      "rope_scaling": {
+        "rope_type": "yarn",
+        "factor": 16,
+        "original_max_position_embeddings": 65536
+      },
+      "sliding_window": 128,
+      "index_topk": 512,
+      "engram_layer_ids": [
+        1,
+        14
+      ],
+      "engram_num_embeddings": [
+        384006168,
+        384016682
+      ],
+      "num_nextn_predict_layers": 3,
+      "dspark_block_size": 5,
+      "dspark_target_layer_ids": [
+        37,
+        38,
+        39
+      ]
+    },
+    "vision_tower": {
+      "present": true,
+      "num_hidden_layers": 32,
+      "used_in_benchmark": false
+    }
+  }
+}

@@ -28,6 +28,7 @@ performance tuning, runtime quirks, benchmarking practice, and safe recovery.
 | [nanoGPT training](nanogpt-training/) | modded-nanogpt FineWeb time-to-loss plus classic GPT-2 124M; 1× and 2× GB300 | modded 2×: 225.081 s to loss 3.2764; classic 2×: 1.838M tok/s; 95.0% / 98.95% scaling efficiency |
 | [GDN2 vs Mamba-3 vs Transformer Engine](gdn2-mamba3-te-comparison/) | Matched full training at ~1B parameters and 2,048 tokens, plus a separate GDN2 operator control | TE delayed FP8: 413.3k / 817.3k tokens/s; GDN2 BF16: 147.5k / 288.2k; Mamba-3 SISO BF16: 85.5k / 169.1k |
 | [DeepSeek-V4-Flash-0731](deepseek-v4-flash-0731/) | 304B/13B-active native mixed FP4-expert/FP8-dense checkpoint | DSpark: 345.8 output tok/s at C1; C128 raw, capacity-limited: 6,511.1 aggregate output tok/s |
+| [DeepSeek-V4.1-Flash](deepseek-v4.1-flash/) | Official native FP8-dense/FP4-expert checkpoint; 2× DGX Station only: SGLang TP2+EP2 and vLLM PP2 over Data Direct RDMA (1× not attempted) | Prefill: vLLM PP2 55,992 prompt tok/s for one 128K request, 65,966 aggregate at 64K C16; SGLang +SWA replay 39,549 for one 16K request, 37,693 aggregate at 128K C16 (exact full prefill 26,316 / 24,419); decode: SGLang DSpark C1 180.0 output tok/s |
 | [Ornith-1.5-397B](ornith-1.5-397b/) | Official ModelOpt NVFP4 W4A4 checkpoint; 1× TP1 and 2× PP2/TP2+EP | 1× C1: 129.8 output tok/s; 2× PP2 stable, capacity-limited C128: 3,799.6 aggregate tok/s |
 | [GLM-5.2](glm-5.2/) | Official NVIDIA NVFP4 checkpoint; 2× TP2+EP (1× does not fit) | C1: 68.0 output tok/s; shared-prefix C128: 2,012.4 aggregate tok/s |
 | [GLM-5.3-Flash](glm-5.3-flash/) | Official native FP8/vLLM plus `LibertAIDAI/GLM-5.3-Flash-NVFP4`/SGLang on 1× and 2× GB300; DFlash2 speculative decoding uses that NVFP4 base; 4× RTX PRO 6000 reference data | 1×: DFlash2 187.1 tok/s C1, AR 1,005.1 C64; 2×: DFlash2 198.0 C1 and 1,738.6 C64, AR 2,100.4 C64 |
@@ -75,6 +76,16 @@ The throughput measurements use [`llm-inference-bench`](https://github.com/local
 - Aggregate output throughput = measured output tokens / benchmark wall time
 
 Quality was tested separately with EOS respected, experiment-specific natural or mixed prompts, canonical WikiText-2 perplexity, and automated repetition audits. See each experiment README before comparing numbers; prompt construction, cache precision, and model architecture differ.
+
+DeepSeek-V4.1-Flash prefill does not use `llm-inference-bench`. Its prefill
+tables come from that section's own `bench_prefill.py` client against each
+engine's native endpoint: unique random-token prompts of exactly 16K, 32K,
+64K, and 128K tokens, one generated token, temperature 0, a fixed 1, 4, or 16
+requests held in flight, a cache flush before every point, and aggregate
+prompt tokens divided by the wave's wall time. Those multi-request aggregate
+values are not interchangeable with the single-request cold-prefill cells of
+the `llm-inference-bench` sections. Its decode rows use the finite-request
+layer above with the same pinned client.
 
 MiniMax H3 uses a separate fixed-seed video-and-audio methodology: one full
 50-step warmup followed by three measured 1344×768, 124-frame requests. Its
@@ -138,6 +149,12 @@ and retains completion and scheduler-residency fields.
 │   ├── charts/
 │   ├── data/
 │   └── recipes/
+├── deepseek-v4.1-flash/
+│   ├── README.md
+│   ├── charts/
+│   ├── data/
+│   ├── notes/
+│   └── recipes/
 ├── ornith-1.5-397b/
 │   ├── README.md
 │   ├── charts/
@@ -180,4 +197,4 @@ and retains completion and scheduler-residency fields.
     └── recipes/
 ```
 
-Measured August 2026.
+Measured August–September 2026.

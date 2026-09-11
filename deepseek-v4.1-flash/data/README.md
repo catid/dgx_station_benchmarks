@@ -1,0 +1,55 @@
+# DeepSeek-V4.1-Flash data
+
+Every table is produced by [`build_data.py`](build_data.py) from the manifest
+[`sources.json`](sources.json); nothing is typed by hand. Rerun it with
+`--source-root` pointing at the private benchmark working directory, then
+`python3 data/build_data.py --check` to validate the committed files offline.
+
+- `prefill.csv` — accepted prefill rows only (`publication_status=accepted`,
+  `rankable=true`): one row per lane × prompt length × concurrency with the
+  lane's `lane_label`/`series_order` (the label and order every chart and
+  README table uses), wall
+  time, aggregate prompt tok/s, TTFT mean/p50/p99, the server
+  `prompt_tokens_total` counter delta, token-count parity, rank-0 GPU
+  utilisation/power, the run id, and the SHA-256 of the source JSONL. A lane is
+  accepted only when its full 16K/32K/64K/128K × C1/C4/C16 grid completed with
+  zero request errors. Two SGLang lanes are accepted: the replay-off Data
+  Direct lane (`swa_bounded_replay=false`, the numerically exact full-prefill
+  reference) and the SWA bounded replay lane (`swa_bounded_replay=true`,
+  DeepSeek's documented deployment technique, faster and not bit-identical).
+- `diagnostic-prefill.csv` — the same columns plus `diagnostic_status`, for
+  tuning-ladder steps and spot checks that are never ranked
+  (`publication_status=diagnostic`, `rankable=false`) but are still drawn as
+  their own chart series. Rows with request errors are dropped, not zeroed.
+- `throughput.csv` — accepted `llm-inference-bench` decode rows: 8,192-token
+  input, 1,024 forced output tokens, `5 × C` requests after `C` warm-ups, with
+  per-user p50 rate, TTFT, ITL, effective concurrency, and the DSpark accept
+  length/rate for speculative lanes (`mtp_accept_length` stays empty: V4.1
+  has no classic MTP head), plus `lane_label`/`series_order`. Accepted and
+  diagnostic decode lanes share this table; `publication_status` tells them apart.
+- `fabric.csv` — nccl-tests `all_reduce_perf` rows (out-of-place and in-place)
+  per rail configuration and message size, with the run average, the
+  out-of-bounds verdict, and whether NCCL logged the Data Direct DMA interface.
+- `profile.csv` — GPU kernel time by category from one torch-profiler trace
+  per node and profile (`tools/analyze_trace.py` summaries), with the summed
+  kernel time and kernel count of the capture.
+- `qualification.csv` — the lane ledger: one row per lane and metric with its
+  disposition (`PASS_RANKABLE_*`, `DIAGNOSTIC_UNRANKED_*`, `PENDING`,
+  `NOT_MEASURED`, `NOT_ATTEMPTED`) and the evidence run id. Only
+  `PASS_RANKABLE_*` rows are rankable.
+- `checkpoint.json` — audited model and checkpoint facts (`config.json`
+  shape, `model.safetensors.index.json` size and entry counts, on-disk shard
+  bytes, quantization block format).
+- `evidence/` (optional, written with `--copy-evidence`) — sanitized copies of
+  the source JSONL/JSON/log/txt artifacts (decode `c*.json` files under their
+  run-directory name) with a `SHA256SUMS` list; every copy must pass the same
+  redaction rules as the tables or the build fails.
+
+`engine` and `runtime` carry the same value; `runtime` is kept for schema
+parity with the other sections. GPU utilisation and power columns come from
+the benchmark client's 1 Hz `nvidia-smi` sampling of the rank-0 station only.
+Hostnames are published as `node0`/`node1`; private paths, management
+addresses, and GPU UUIDs are rejected by the converter.
+
+Missing measurements remain empty. Failed, unsupported, or invalid cells are
+never represented by zero and are not interpolated.
