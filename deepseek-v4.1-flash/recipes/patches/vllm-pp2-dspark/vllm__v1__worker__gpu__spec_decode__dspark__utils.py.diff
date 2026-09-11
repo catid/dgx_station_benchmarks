@@ -1,0 +1,53 @@
+--- a/vllm/v1/worker/gpu/spec_decode/dspark/utils.py
++++ b/vllm/v1/worker/gpu/spec_decode/dspark/utils.py
+@@ -76,8 +76,17 @@
+             vllm_config=draft_vllm_config, model_config=draft_model_config
+         )
+ 
+-    if get_pp_group().world_size != 1:
+-        raise NotImplementedError("DSpark does not support pipeline parallelism.")
++    # Local patch (PP + DSpark): the stock build rejected pipeline parallelism
++    # here. The drafter lives on the last PP stage (it consumes the target's
++    # aux hidden states, which only that stage produces); its proposals reach
++    # the earlier stages through PPHandler. What differs on the last stage is
++    # the input embedding: the target's embed_tokens is a PPMissingLayer there,
++    # so it must not be aliased (PPMissingLayer.forward returns the token ids
++    # unchanged). A draft that declares `loads_own_embed_tokens` keeps and
++    # loads its own table instead.
++    from vllm.model_executor.models.utils import PPMissingLayer
++
++    pp_world_size = get_pp_group().world_size
+ 
+     target_language_model = (
+         target_model.get_language_model()
+@@ -89,6 +98,10 @@
+     target_vocab_size = vllm_config.model_config.get_vocab_size()
+ 
+     target_embed = getattr(target_inner, "embed_tokens", None)
++    if isinstance(target_embed, PPMissingLayer):
++        # The embedding lives on the first PP stage; this stage only holds a
++        # placeholder.
++        target_embed = None
+     draft_embed = getattr(draft_inner, "embed_tokens", None)
+     if (
+         target_embed is not None
+@@ -100,6 +113,19 @@
+         if draft_embed is not None:
+             del draft_inner.embed_tokens
+         draft_inner.embed_tokens = target_embed
++    elif target_embed is None and pp_world_size > 1:
++        if draft_embed is None or not getattr(
++            draft_model, "loads_own_embed_tokens", False
++        ):
++            raise NotImplementedError(
++                "DSpark with pipeline parallelism needs a draft model that loads "
++                "its own input embedding on the last PP stage; "
++                f"{type(draft_model).__name__} does not."
++            )
++        logger.info(
++            "DSpark PP: the draft keeps its own input embedding on the last stage "
++            "(the target's lives on the first stage)."
++        )
+ 
+     target_lm_head = get_target_lm_head(target_model, target_language_model)
+     draft_lm_head = getattr(draft_model, "lm_head", None)

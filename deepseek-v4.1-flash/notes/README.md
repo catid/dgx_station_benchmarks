@@ -51,27 +51,27 @@ tables in [`../data/`](../data/), which the section tests enforce.
 
 ### Decode throughput
 
-*Aggregate output tok/s versus request concurrency (AR and DSpark, both engines); 8,192-token input, 1,024 forced output tokens, temperature 0, `C` warm-ups then `5 × C` measured requests. All five decode lanes are accepted. vLLM TP2 DSpark (`--speculative-config` dspark, 5 speculative tokens, block rejection sampling, adaptive verification) leads every lane at every concurrency: 201.7 aggregate tok/s at C1 and 3,401.6 at C64, +21.2% over vLLM PP2 AR and +73.2% over its own AR server at C64, with 2.23–2.56 accepted tokens per step across the sweep. vLLM TP2 AR trails PP2 AR at every concurrency (102.3 versus 141.3 tok/s per user at C1; 1,964.5 versus 2,805.9 aggregate tok/s at C64): under TP2 every decode step pays the cross-node all-reduce in each layer, while PP2 only hands activations between stages once per step. The SGLang DSpark C64 cell comes from a follow-up run on the same server profile and contract; at C64 DSpark (2,392.3) beats SGLang AR (2,236.7, +7.0%) with 2.54 accepted tokens per step but trails vLLM PP2 AR (2,805.9, −14.7%). The C2 and C8 cells and every TTFT, ITL, and accept length are in [`throughput.csv`](../data/throughput.csv).*
+*Aggregate output tok/s versus request concurrency (AR and DSpark, both engines); 8,192-token input, 1,024 forced output tokens, temperature 0, `C` warm-ups then `5 × C` measured requests. All six decode lanes are accepted. vLLM PP2 DSpark (the PP2 server with `--speculative-config` dspark through the local five-file overlay: 5 speculative tokens, block rejection sampling, adaptive verification off) leads every lane at C1 and from C4 to C32: 248.5 aggregate tok/s at C1 and 2,346.4 at C32, +23.2% and +10.8% over vLLM TP2 DSpark, +76.7% and +24.9% over vLLM PP2 AR, with 2.53–2.61 accepted tokens per step across the sweep. vLLM TP2 DSpark (`--speculative-config` dspark, adaptive verification on) leads at C2 (328.5 versus 320.9) and at C64 (3,401.6 versus 3,257.9, +4.4%), where it is also +21.2% over vLLM PP2 AR and +73.2% over its own AR server, with 2.23–2.56 accepted tokens per step. vLLM TP2 AR trails PP2 AR at every concurrency (102.3 versus 141.3 tok/s per user at C1; 1,964.5 versus 2,805.9 aggregate tok/s at C64): under TP2 every decode step pays the cross-node all-reduce in each layer, while PP2 only hands activations between stages once per step. The SGLang DSpark C64 cell comes from a follow-up run on the same server profile and contract; at C64 DSpark (2,392.3) beats SGLang AR (2,236.7, +7.0%) with 2.54 accepted tokens per step but trails vLLM PP2 AR (2,805.9, −14.7%). The C2 and C8 cells and every TTFT, ITL, and accept length are in [`throughput.csv`](../data/throughput.csv).*
 
-| C | SGLang AR · Data Direct | SGLang DSpark | vLLM PP2 · AR | vLLM TP2 · AR | vLLM TP2 · DSpark |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 104.2 | 169.2 | 140.6 | 101.9 | **201.7** |
-| 4 | 352.4 | 416.6 | 431.1 | 343.5 | **525.3** |
-| 16 | 906.8 | 946.2 | 1,033.4 | 803.7 | **1,275.5** |
-| 32 | 1,410.3 | 1,418.3 | 1,878.0 | 1,272.0 | **2,116.8** |
-| 64 | 2,236.7 | 2,392.3 | 2,805.9 | 1,964.5 | **3,401.6** |
+| C | SGLang AR · Data Direct | SGLang DSpark | vLLM PP2 · AR | vLLM TP2 · AR | vLLM TP2 · DSpark | vLLM PP2 · DSpark |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 104.2 | 169.2 | 140.6 | 101.9 | 201.7 | **248.5** |
+| 4 | 352.4 | 416.6 | 431.1 | 343.5 | 525.3 | **612.6** |
+| 16 | 906.8 | 946.2 | 1,033.4 | 803.7 | 1,275.5 | **1,677.7** |
+| 32 | 1,410.3 | 1,418.3 | 1,878.0 | 1,272.0 | 2,116.8 | **2,346.4** |
+| 64 | 2,236.7 | 2,392.3 | 2,805.9 | 1,964.5 | **3,401.6** | 3,257.9 |
 
 ### Per-user decode speed
 
 *Median per-request output tok/s at each concurrency; the per-cell DSpark accept length is retained in [`throughput.csv`](../data/throughput.csv).*
 
-| C | SGLang AR · Data Direct | SGLang DSpark | vLLM PP2 · AR | vLLM TP2 · AR | vLLM TP2 · DSpark |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 106.8 | 180.0 | 141.3 | 102.3 | **201.0** |
-| 4 | 91.6 | 108.4 | 122.2 | 87.5 | **134.9** |
-| 16 | 59.0 | 61.3 | 72.8 | 53.2 | **82.0** |
-| 32 | 45.7 | 45.5 | 60.2 | 41.5 | **68.6** |
-| 64 | 36.5 | 40.4 | 43.9 | 31.6 | **55.3** |
+| C | SGLang AR · Data Direct | SGLang DSpark | vLLM PP2 · AR | vLLM TP2 · AR | vLLM TP2 · DSpark | vLLM PP2 · DSpark |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 106.8 | 180.0 | 141.3 | 102.3 | 201.0 | **252.9** |
+| 4 | 91.6 | 108.4 | 122.2 | 87.5 | 134.9 | **156.6** |
+| 16 | 59.0 | 61.3 | 72.8 | 53.2 | 82.0 | **108.9** |
+| 32 | 45.7 | 45.5 | 60.2 | 41.5 | 68.6 | **76.2** |
+| 64 | 36.5 | 40.4 | 43.9 | 31.6 | **55.3** | 52.6 |
 
 ### SGLang prefill tuning ladder
 
@@ -117,12 +117,15 @@ tables in [`../data/`](../data/), which the section tests enforce.
 | vLLM `deepseekv41-flash-0909` | TP1 × PP2 | AR · text-only, two local patches | accepted (12/12 points, 0 errors) | accepted (C1–C64, 0 errors) |
 | vLLM `deepseekv41-flash-0909` | TP2 | AR · text-only | accepted (12/12 points, 0 errors); rank 0 on node1 | accepted (C1–C64, 0 errors); rank 0 on node1 |
 | vLLM `deepseekv41-flash-0909` | TP2 | DSpark | not measured | accepted (C1–C64, 0 errors); rank 0 on node1 |
+| vLLM `deepseekv41-flash-0909` | TP1 × PP2 | DSpark · five-file overlay (experiment) | not measured | accepted (C1–C64, 0 errors); greedy-equivalence check against the PP2 AR reference pending |
 | — | 1× GB300 | — | not attempted | not attempted |
 
 Pending, failed, unsupported, and unmeasured cells never appear as numeric
 zeroes; diagnostic lanes (†) are drawn on every chart but are never ranked.
-vLLM's DSpark runner rejects pipeline parallelism, so there is no PP2 DSpark
-lane. One station was not attempted: 510,286,023,000 checkpoint bytes exceed
+Stock vLLM's DSpark runner rejects pipeline parallelism; the PP2 DSpark lane
+runs through the local five-file overlay described under the vLLM narrative
+below (its greedy-equivalence check against the PP2 AR reference is pending).
+One station was not attempted: 510,286,023,000 checkpoint bytes exceed
 one GB300. The lane ledger is [`qualification.csv`](../data/qualification.csv).
 
 ## Tuning story
@@ -215,8 +218,10 @@ one GB300. The lane ledger is [`qualification.csv`](../data/qualification.csv).
   prefill buffers. The stock-path baseline (ladder step 1) ran at 0.85.
 - `--context-length 262144` so 128K prompts plus one output token fit.
 - vLLM: PP2 default (both Engram layers on stage 0, no cross-node traffic for
-  them); TP2 run for parity; DSpark requires TP (PP is rejected by the
-  DSpark runner). FlashInfer autotune off, custom all-reduce off. PP2 needs
+  them); TP2 run for parity; stock DSpark requires TP (PP is rejected by the
+  DSpark runner), and the PP2 DSpark lane lifts that with a local overlay
+  (`VLLM_PATCH_PP_DSPARK=1`, `recipes/patches/vllm-pp2-dspark/`, see below).
+  FlashInfer autotune off, custom all-reduce off. PP2 needs
   the two local source patches described under Incidents
   (`VLLM_PATCH_PP=1`, `recipes/patches/vllm/`).
 
@@ -290,8 +295,32 @@ one GB300. The lane ledger is [`qualification.csv`](../data/qualification.csv).
   and +73.2% aggregate at C64; against vLLM PP2 AR, +42.3% and +21.2%; against
   SGLang DSpark, +11.7% per user at C1 and +42.2% aggregate at C64. ITL p50
   fell from 9.78 ms (TP2 AR) to 4.97 ms at C1 and from 31.68 ms to 18.07 ms at
-  C64. vLLM's DSpark runner rejects pipeline parallelism, so the speculative
-  lane is TP2 only; prefill was not measured on this server profile.
+  C64. Stock vLLM's DSpark runner rejects pipeline parallelism, so this is
+  the only speculative vLLM lane the image supports as shipped; prefill was
+  not measured on this server profile.
+- **PP2 DSpark through a local overlay** (lane `vllm_pp2_dspark`, the TP1 × PP2
+  server of the PP2 AR lane restarted with `--speculative-config` dspark: 5
+  speculative tokens, block rejection sampling, adaptive verification **off**;
+  `VLLM_PATCH_PP_DSPARK=1`, rank 0 on node0). Stock vLLM refuses DSpark under
+  pipeline parallelism in three places (the model runner's aux-hidden-state
+  guard, the draft loader, and config validation of the draft's parallel
+  config), and even with those gates lifted the last stage never relayed the
+  draft block it proposed to the first stage, so stage 0 would have embedded
+  token id 0 at every draft position. The five-file overlay in
+  `recipes/patches/vllm-pp2-dspark/` (each file beside its `.orig` and
+  `.diff`, `PLAN.md` with the file-and-line analysis) relays the draft block
+  from the last stage to the first over the existing PP sampled-token side
+  channel, pads the sampled-token broadcast to a fixed `K + 1` width so a
+  batch without drafts cannot mismatch the receiver, lets the draft load its
+  own `embed.weight` on the last stage instead of aliasing the target's
+  placeholder embedding there, and gives the draft a PP1 parallel config so
+  validation accepts it. It requires async scheduling (the recipe default) and
+  runs with adaptive verification off, because vLLM's validator rejects it
+  under PP (confidences and cost curves exist only on the last stage), so this
+  profile is fixed-K=5 DSpark where the TP2 DSpark lane ran adaptive
+  verification on. It is an experiment on top of the two PP2 patches,
+  GPU-tested only on this pair with this image and checkpoint; its CPU-only
+  self-check in the image passes (36 checks). Decode (run 20260910-225453, C1–C64, 0 errors, none underfilled, the PP2 AR lane's server settings otherwise unchanged): 248.5 / 612.6 / 1,677.7 / 2,346.4 / 3,257.9 aggregate tok/s and 252.9 / 156.6 / 108.9 / 76.2 / 52.6 tok/s per user at C1 / C4 / C16 / C32 / C64, with 2.57 accepted tokens per step at C1 and 2.53–2.61 across the sweep (accept rate 0.31 of the 5 drafted tokens at every cell; the spec-decode counters reported 5 completed requests, 5 measured and 1 warm-up, at C1). It is the fastest lane of the section at C1 and from C4 to C32: +25.8% per user at C1 over vLLM TP2 DSpark and +79.0% over its own AR server (PP2 AR 141.3), +10.8% aggregate at C32 over TP2 DSpark; TP2 DSpark stays ahead at C2 (328.5 versus 320.9 aggregate) and at C64 (3,401.6 versus 3,257.9, -4.2%), so the peak-throughput headline keeps the TP2 lane. ITL p50 fell from 7.08 ms (PP2 AR) to 3.96 ms at C1 and from 22.77 ms to 18.99 ms at C64 (TP2 DSpark: 4.97 ms and 18.07 ms). vLLM exposes no engine-step counter, so `engine_steps_per_second` is empty. Sanity checks on the same server, all passed before the sweep: a greedy 256-token probe (the Fibonacci prompt, temperature 0, 256 completion tokens, 0 reasoning tokens), four concurrent chats (Hamlet summaries of 40–160 words, all coherent), a 24,019-token prompt that crossed the 16,384-token chunked-prefill boundary (a non-final chunk posts no relay) and answered correctly, an abort two seconds into a 3,000-word essay followed by an immediate `OK` on the next request (the freed-row path of the slot ring), spec-decode counters (`vllm:spec_decode_num_accepted_tokens_total` / `num_draft_tokens_total`) advancing on every cell, and the section's quality probe (17 × 19 arithmetic, the 3:40 pm to 6:05 pm reasoning question with thinking on, the Fibonacci code, a needle retrieved from a ~35K-token document at 23,838 prompt tokens, and a JSON array), all PASS. **Pending:** the token-for-token greedy diff of the 256-token probe against a PP2 autoregressive reference on the same image (block rejection sampling at temperature 0 is lossless, so any divergence would point at wrong drafts reaching the first stage or a wrong embedding); until that lands the lane is published on the strength of the sanity runs and the accept-rate counters only.
 
 ## Profiles
 
@@ -446,6 +475,12 @@ one GB300. The lane ledger is [`qualification.csv`](../data/qualification.csv).
 - One station was not attempted: 510,286,023,000 checkpoint bytes exceed one
   GB300 and no capacity run was retained.
 - Fabric numbers are host-side nccl-tests, not in-container measurements.
+- The vLLM PP2 DSpark lane runs through a local five-file overlay that stock
+  vLLM does not support: an experiment on top of the two PP2 patches, tested
+  on GPUs only on this pair with this image and checkpoint, async scheduling
+  only, adaptive verification off. Its equivalence evidence is the greedy
+  256-token diff against a PP2 autoregressive server and the sanity runs
+  listed under the vLLM narrative, not a quality benchmark.
 
 ## Open items
 
@@ -461,7 +496,8 @@ one GB300. The lane ledger is [`qualification.csv`](../data/qualification.csv).
   workaround and `SWAP_RANKS=1` are in the recipe; the vendor question is
   open.
 - Every vLLM lane is accepted (PP2 AR prefill and decode, TP2 AR prefill and
-  decode, TP2 DSpark decode); no placeholders remain. vLLM's stock DSpark
-  runner rejects pipeline parallelism, so there is no PP2 DSpark lane; a
-  PP2 + DSpark overlay experiment is in progress and nothing from it is
-  published here.
+  decode, TP2 DSpark decode, PP2 DSpark decode through the overlay); no
+  placeholders remain. Still open for the PP2 DSpark overlay lane: the greedy
+  token-for-token diff against the PP2 AR reference, a prefill sweep on the
+  same server, and adaptive verification under PP (it would need the
+  confidence probabilities and cost curves broadcast to the first stage).

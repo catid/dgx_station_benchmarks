@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "note": "Manifest for data/build_data.py. Every path is relative to --source-root (the private benchmark working directory, never committed). Keep this file free of hostnames, absolute paths, management addresses, and GPU UUIDs: rank hosts are mapped to node0/node1 from the artifacts themselves. A decode block names one run_dir or a run_dirs list whose cells are merged into the same lane (duplicate concurrencies are refused). Set a lane's publication_status to 'accepted' only after its full grid completed with zero errors; build_data.py refuses incomplete accepted lanes. Two SGLang prefill lanes are accepted: the replay-off Data Direct lane (numerically exact full prefill, the reference) and the SWA bounded replay lane (DeepSeek's documented deployment technique, faster, not bit-identical). The vLLM PP2 lane (TP1 x PP2, text-only, two local source patches) and the vLLM TP2 lane are accepted for prefill and AR decode, and the vLLM TP2 DSpark lane for decode; the PP2 lane's GPU utilisation/power columns were sampled on node0, which under PP2 is pipeline stage 0. Lanes may also list prefill.diagnostic_jsonl: those files always land in diagnostic-prefill.csv (rankable=false) regardless of the lane status. Every lane carries a stable, human-readable lane_label and a series_order integer; both are copied into prefill.csv, diagnostic-prefill.csv and throughput.csv so charts and README tables share labels and ordering. Charts draw every lane that has complete, error-free rows (accepted or diagnostic); publication_status/rankable only decide ranking, tables and tests.",
+  "note": "Manifest for data/build_data.py. Every path is relative to --source-root (the private benchmark working directory, never committed). Keep this file free of hostnames, absolute paths, management addresses, and GPU UUIDs: rank hosts are mapped to node0/node1 from the artifacts themselves. A decode block names one run_dir or a run_dirs list whose cells are merged into the same lane (duplicate concurrencies are refused). Set a lane's publication_status to 'accepted' only after its full grid completed with zero errors; build_data.py refuses incomplete accepted lanes. Two SGLang prefill lanes are accepted: the replay-off Data Direct lane (numerically exact full prefill, the reference) and the SWA bounded replay lane (DeepSeek's documented deployment technique, faster, not bit-identical). The vLLM PP2 lane (TP1 x PP2, text-only, two local source patches) and the vLLM TP2 lane are accepted for prefill and AR decode, and the vLLM TP2 DSpark lane for decode; the vLLM PP2 DSpark lane (TP1 x PP2 with the local five-file overlay in recipes/patches/vllm-pp2-dspark/ that stock vLLM does not support: async scheduling, adaptive verification off) is a decode-only lane; the PP2 lane's GPU utilisation/power columns were sampled on node0, which under PP2 is pipeline stage 0. Lanes may also list prefill.diagnostic_jsonl: those files always land in diagnostic-prefill.csv (rankable=false) regardless of the lane status. Every lane carries a stable, human-readable lane_label and a series_order integer; both are copied into prefill.csv, diagnostic-prefill.csv and throughput.csv so charts and README tables share labels and ordering. Charts draw every lane that has complete, error-free rows (accepted or diagnostic); publication_status/rankable only decide ranking, tables and tests.",
   "model_id": "deepseek-ai/DeepSeek-V4.1-Flash",
   "model_revision": "dba1be0a40aa45a94ad051997016db3960a90277",
   "runtimes": {
@@ -22,6 +22,13 @@
       "local_patches": [
         "deepseek_v4_nvidia_model.py",
         "kv_cache_utils.py"
+      ],
+      "local_overlay_pp2_dspark": [
+        "vllm__v1__worker__gpu__pp_utils.py",
+        "vllm__v1__worker__gpu__model_runner.py",
+        "vllm__v1__worker__gpu__spec_decode__dspark__utils.py",
+        "vllm__models__deepseek_v4_1__nvidia__dspark.py",
+        "vllm__config__speculative.py"
       ]
     }
   },
@@ -298,6 +305,43 @@
         "rankable": true,
         "run_dir": "results/decode/20260910-221511-vllm-tp2-datadirect-dspark",
         "note": "Accepted: run 20260910-221511 completed C1, C2, C4, C8, C16, C32, C64 finite-request cells with zero errors and none underfilled on the TP2 server started with --speculative-config dspark (5 speculative tokens, block rejection sampling, adaptive verification on), same image, Data Direct overlay and text-only settings as the TP2 AR lane, rank 0 on node1 (SWAP_RANKS=1); accept_length/accept_rate come from the server speculative-decoding counters; vLLM exposes no engine-step counter, so engine_steps_per_second is empty"
+      }
+    },
+    "vllm_pp2_dspark": {
+      "lane_label": "vLLM PP2 · DSpark",
+      "series_order": 8,
+      "engine": "vllm",
+      "mode": "dspark",
+      "topology": "cross_node_pp2",
+      "tensor_parallel_size": 1,
+      "pipeline_parallel_size": 2,
+      "expert_parallel_size": 1,
+      "profile": "vllm_pp2_datadirect_dspark_block5_overlay",
+      "server": {
+        "chunked_prefill_size": 16384,
+        "max_prefill_tokens": 16384,
+        "swa_bounded_replay": false,
+        "nccl_hcas": "mlx5_0,mlx5_1",
+        "host_rdma": true,
+        "kv_cache_dtype": "model_default",
+        "pp_layer_partition": "20,20 (vLLM default even split)",
+        "engram": "cpu_offload",
+        "language_model_only": true,
+        "pp2_dspark_overlay": "recipes/patches/vllm-pp2-dspark (five patched files on top of the two PP2 patches)",
+        "async_scheduling": true,
+        "adaptive_verification": false
+      },
+      "prefill": {
+        "publication_status": "not_measured",
+        "rankable": false,
+        "jsonl": [],
+        "note": "Not measured: the prefill headline lanes are the AR profiles; the PP2 DSpark overlay server was used for decode only"
+      },
+      "decode": {
+        "publication_status": "accepted",
+        "rankable": true,
+        "run_dir": "results/decode/20260910-225453-vllm-pp2-datadirect-dspark",
+        "note": "Accepted: run 20260910-225453 completed C1, C2, C4, C8, C16, C32, C64 finite-request cells with zero errors and none underfilled on the PP2 server started with --speculative-config dspark (5 speculative tokens, block rejection sampling, adaptive verification off) through the local five-file overlay in recipes/patches/vllm-pp2-dspark/ (VLLM_PATCH_PP_DSPARK=1, async scheduling), same image, Data Direct overlay, default 20/20 split and text-only settings as the PP2 AR lane, rank 0 on node0; accept_length/accept_rate come from the server speculative-decoding counters; vLLM exposes no engine-step counter, so engine_steps_per_second is empty. The greedy token-for-token equivalence check against a PP2 AR reference is pending and recorded in notes/"
       }
     }
   },

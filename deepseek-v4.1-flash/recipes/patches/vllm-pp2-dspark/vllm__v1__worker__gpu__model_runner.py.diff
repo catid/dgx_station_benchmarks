@@ -1,0 +1,55 @@
+--- a/vllm/v1/worker/gpu/model_runner.py
++++ b/vllm/v1/worker/gpu/model_runner.py
+@@ -269,11 +269,24 @@
+             ):
+                 # Drafting may require auxiliary hidden states from target model outputs
+                 self.use_aux_hidden_state_outputs = True
+-                if self.use_pp:
++                # Local patch (PP + DSpark): the target already gates aux hidden
++                # state capture per stage, the drafter runs on the last stage, and
++                # PPHandler relays its proposals to the earlier stages. Other
++                # aux-hidden-state drafters keep the stock rejection.
++                if self.use_pp and self.speculative_config.method != "dspark":
+                     raise ValueError(
+                         f"{self.speculative_config.method} with pipeline parallel "
+                         "is not supported."
+                     )
++                if self.use_pp and not self.scheduler_config.async_scheduling:
++                    # The relay relies on the async scheduler's PP cadence
++                    # (`next_decode_eligible_step`) and spec-token placeholders;
++                    # synchronous scheduling would need the scheduler to carry
++                    # draft ids, which this patch does not implement.
++                    raise ValueError(
++                        "DSpark with pipeline parallelism requires async "
++                        "scheduling (drop --no-async-scheduling)."
++                    )
+ 
+         # Draft tokens propagation - for spec-dec + struct outputs.
+         self.draft_tokens_handler = DraftTokensHandler(self.device)
+@@ -1019,7 +1032,11 @@
+         # For non-last PP ranks, update decode requests with sampler output from
+         # the prior step in which they were scheduled (pp_size steps ago).
+         if self.pp_handler is not None:
+-            outputs = self.pp_handler.get_prev_sampled_outputs()
++            # Local patch: also lands the draft block the last rank proposed
++            # for these requests into req_states.draft_tokens (non-last ranks).
++            outputs = self.pp_handler.get_prev_sampled_outputs(
++                self.req_states.draft_tokens
++            )
+             if outputs is not None:
+                 self.postprocess_sampled(**outputs)
+ 
+@@ -1973,6 +1990,13 @@
+                     mm_inputs=mm_inputs,
+                 )
+             self.req_states.draft_tokens[input_batch.idx_mapping] = draft_tokens
++            if self.pp_handler is not None:
++                # Local patch: the earlier PP stages have no drafter but must
++                # embed these proposals on the request's next step. Paired with
++                # the receive PPHandler.receive posted right after the samples.
++                self.pp_handler.broadcast_drafts(
++                    self.req_states.draft_tokens, input_batch
++                )
+             if self.adaptive_verification is not None:
+                 self.adaptive_verification.record_confidences(
+                     self.speculator.draft_token_confidence_probs, input_batch

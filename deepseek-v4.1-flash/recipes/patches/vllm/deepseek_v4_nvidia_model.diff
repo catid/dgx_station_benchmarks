@@ -1,0 +1,18 @@
+--- deepseek_v4_nvidia_model.py.orig	2026-09-10 13:30:14.203608345 -0700
++++ deepseek_v4_nvidia_model.py	2026-09-10 13:30:14.202721519 -0700
+@@ -1023,7 +1023,14 @@
+         # getattr for test doubles that fake the gate module.
+         bias_vl = getattr(self.gate, "bias_vl", None)
+         if bias_vl is not None and input_ids is None:
+-            raise ValueError("DeepSeek V4 vision MoE routing requires input_ids.")
++            # Local patch (text-only pipeline parallel): vLLM hands non-first PP ranks no
++            # input_ids (and none during the profile/dummy run), which this build treated as
++            # fatal even though the ids are only used to detect image-span tokens for the
++            # vision routing bias. Under --language-model-only there are no image tokens, so
++            # route every token as text.
++            input_ids = torch.zeros(
++                hidden_states.shape[0], dtype=torch.int64, device=hidden_states.device
++            )
+ 
+         if not self.use_mega_moe:
+             return self._forward_fused_moe(hidden_states, input_ids)

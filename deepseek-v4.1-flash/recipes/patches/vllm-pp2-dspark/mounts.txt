@@ -1,0 +1,7 @@
+--volume $RECIPE_DIR/patches/vllm/deepseek_v4_nvidia_model.py:/usr/local/lib/python3.12/dist-packages/vllm/models/deepseek_v4/nvidia/model.py:ro
+--volume $RECIPE_DIR/patches/vllm/kv_cache_utils.py:/usr/local/lib/python3.12/dist-packages/vllm/v1/core/kv_cache_utils.py:ro
+--volume $RECIPE_DIR/patches/vllm-pp2-dspark/vllm__v1__worker__gpu__pp_utils.py:/usr/local/lib/python3.12/dist-packages/vllm/v1/worker/gpu/pp_utils.py:ro
+--volume $RECIPE_DIR/patches/vllm-pp2-dspark/vllm__v1__worker__gpu__model_runner.py:/usr/local/lib/python3.12/dist-packages/vllm/v1/worker/gpu/model_runner.py:ro
+--volume $RECIPE_DIR/patches/vllm-pp2-dspark/vllm__v1__worker__gpu__spec_decode__dspark__utils.py:/usr/local/lib/python3.12/dist-packages/vllm/v1/worker/gpu/spec_decode/dspark/utils.py:ro
+--volume $RECIPE_DIR/patches/vllm-pp2-dspark/vllm__models__deepseek_v4_1__nvidia__dspark.py:/usr/local/lib/python3.12/dist-packages/vllm/models/deepseek_v4_1/nvidia/dspark.py:ro
+--volume $RECIPE_DIR/patches/vllm-pp2-dspark/vllm__config__speculative.py:/usr/local/lib/python3.12/dist-packages/vllm/config/speculative.py:ro

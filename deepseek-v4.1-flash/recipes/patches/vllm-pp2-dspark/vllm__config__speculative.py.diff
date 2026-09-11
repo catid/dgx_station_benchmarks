@@ -1,0 +1,39 @@
+--- a/vllm/config/speculative.py
++++ b/vllm/config/speculative.py
+@@ -1528,7 +1528,9 @@
+ 
+                 self.draft_parallel_config = (
+                     SpeculativeConfig.create_draft_parallel_config(
+-                        self.target_parallel_config, self.draft_tensor_parallel_size
++                        self.target_parallel_config,
++                        self.draft_tensor_parallel_size,
++                        self.method,
+                     )
+                 )
+ 
+@@ -1718,13 +1720,23 @@
+     def create_draft_parallel_config(
+         target_parallel_config: ParallelConfig,
+         speculative_draft_tensor_parallel_size: int,
++        method: SpeculativeMethod | None = None,
+     ) -> ParallelConfig:
+         """Create a parallel config for use by the draft worker.
+ 
+         This is mostly a copy of the target parallel config, except the tp_size.
+-        """
++
++        Local patch (PP + DSpark): a DSpark drafter is local to the target's
++        last pipeline stage (it is built from that stage's aux hidden states
++        and never partitioned), so its own config is PP1. Without this,
++        ``ModelConfig.verify_with_parallel_config`` rejects the draft
++        architecture under PP>1 because it does not implement ``SupportsPP``.
++        """
++        draft_pipeline_parallel_size = target_parallel_config.pipeline_parallel_size
++        if method == "dspark" and draft_pipeline_parallel_size > 1:
++            draft_pipeline_parallel_size = 1
+         draft_parallel_config = ParallelConfig(
+-            pipeline_parallel_size=target_parallel_config.pipeline_parallel_size,
++            pipeline_parallel_size=draft_pipeline_parallel_size,
+             tensor_parallel_size=speculative_draft_tensor_parallel_size,
+             distributed_executor_backend=target_parallel_config.distributed_executor_backend,
+             max_parallel_loading_workers=target_parallel_config.max_parallel_loading_workers,

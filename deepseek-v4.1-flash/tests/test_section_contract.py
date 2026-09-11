@@ -46,6 +46,7 @@ HEADLINE_LANE = "sglang_tp2_ep2_ar"
 REPLAY_LANE = "sglang_tp2_ep2_ar_replay"  # accepted and ranked, but not bit-identical to the exact reference
 VLLM_PP2_LANE = "vllm_pp2_ar"  # the other engine: accepted, ranked, text-only, two local source patches
 VLLM_TP2_LANE = "vllm_tp2_ar"  # same vLLM image with tensor parallelism; the headline compares it with PP2
+VLLM_PP2_DSPARK_LANE = "vllm_pp2_dspark"  # PP2 + DSpark through the local five-file overlay; decode only
 HEADLINE_PREFILL = (
     ("SGLANG_PREFILL_128K_C16", HEADLINE_LANE, 131072, 16, "rate"),
     ("SGLANG_PREFILL_16K_C1", HEADLINE_LANE, 16384, 1, "rate"),
@@ -69,6 +70,8 @@ HEADLINE_DECODE = (
     ("VLLM_PP2_USER_C1", VLLM_PP2_LANE, 1, "user"),
     ("VLLM_TP2_DSPARK_USER_C1", "vllm_tp2_dspark", 1, "user"),
     ("VLLM_TP2_DSPARK_ACCEPT_C1", "vllm_tp2_dspark", 1, "accept"),
+    ("VLLM_PP2_DSPARK_USER_C1", VLLM_PP2_DSPARK_LANE, 1, "user"),
+    ("VLLM_PP2_DSPARK_ACCEPT_C1", VLLM_PP2_DSPARK_LANE, 1, "accept"),
 )
 # Repository overview row -> the (isl, concurrency) prefill points each lane contributes to it.
 OVERVIEW_PREFILL_POINTS = {

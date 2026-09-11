@@ -67,6 +67,7 @@ LANE_STYLES = {
     "vllm_pp2_ar": ("#F6BD16", "--", "D"),
     "vllm_tp2_ar": ("#9F7BEA", "--", "D"),
     "vllm_tp2_dspark": ("#E86452", "--", "^"),
+    "vllm_pp2_dspark": ("#78D3F8", "--", "v"),
 }
 # README tables shorten the chart labels with exactly this rule so both stay in step.
 SHORT_LABEL_PREFIXES = (("SGLang TP2+EP2 · ", "SGLang "),)

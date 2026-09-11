@@ -78,6 +78,20 @@ if [[ "$VLLM_PATCH_PP" == 1 ]]; then
   [[ -s "$script_dir/patches/vllm/kv_cache_utils.py" ]] || { echo "missing patches/vllm/kv_cache_utils.py" >&2; exit 1; }
   extra_mounts+=(--volume "$script_dir/patches/vllm/kv_cache_utils.py:/usr/local/lib/python3.12/dist-packages/vllm/v1/core/kv_cache_utils.py:ro")
 fi
+# PP2 + DSpark overlay (patches/vllm-pp2-dspark/README.md, PLAN.md). mounts.txt lists its files relative to $RECIPE_DIR (this
+# directory) and also names the two VLLM_PATCH_PP files; targets already mounted above are skipped.
+if [[ "${VLLM_PATCH_PP_DSPARK:-0}" == 1 ]]; then
+  mounts_file="$script_dir/patches/vllm-pp2-dspark/mounts.txt"
+  [[ -s "$mounts_file" ]] || { echo "missing $mounts_file" >&2; exit 1; }
+  while read -r flag spec; do
+    [[ "$flag" == --volume && -n "$spec" ]] || continue
+    spec="${spec//\$RECIPE_DIR/$script_dir}"
+    src="${spec%%:*}"; target="${spec#*:}"; target="${target%%:*}"
+    [[ " ${extra_mounts[*]} " == *":$target:"* ]] && continue
+    [[ -s "$src" ]] || { echo "missing $src" >&2; exit 1; }
+    extra_mounts+=(--volume "$spec")
+  done < "$mounts_file"
+fi
 
 args=(
   serve /model
@@ -106,8 +120,15 @@ args=(
 case "$MODE" in
   throughput) ;;
   low-latency)
-    [[ "$VLLM_PARALLEL" == tp ]] || { echo "vLLM DSpark does not support pipeline parallelism; use VLLM_PARALLEL=tp with MODE=low-latency" >&2; exit 2; }
-    args+=(--speculative-config '{"method":"dspark","num_speculative_tokens":5,"draft_sample_method":"probabilistic","rejection_sample_method":"block","enable_adaptive_verification":true}') ;;
+    adaptive=true
+    if [[ "$VLLM_PARALLEL" == pp ]]; then
+      # Stock vLLM rejects DSpark under PP; the overlay in patches/vllm-pp2-dspark/ lifts that for async scheduling only.
+      [[ "${VLLM_PATCH_PP_DSPARK:-0}" == 1 ]] || { echo "vLLM DSpark with pipeline parallelism needs VLLM_PATCH_PP_DSPARK=1 (patches/vllm-pp2-dspark/README.md)" >&2; exit 2; }
+      [[ "$VLLM_ASYNC_SCHEDULING" == 0 ]] && { echo "the PP2+DSpark overlay requires async scheduling (VLLM_ASYNC_SCHEDULING=1)" >&2; exit 2; }
+      # Confidences and cost curves exist only on the last PP stage (vllm/config/vllm.py _validate_adaptive_verification rejects PP>1).
+      adaptive=false
+    fi
+    args+=(--speculative-config "{\"method\":\"dspark\",\"num_speculative_tokens\":5,\"draft_sample_method\":\"probabilistic\",\"rejection_sample_method\":\"block\",\"enable_adaptive_verification\":$adaptive}") ;;
   *) echo "MODE must be throughput or low-latency" >&2; exit 2 ;;
 esac
 # shellcheck disable=SC2206

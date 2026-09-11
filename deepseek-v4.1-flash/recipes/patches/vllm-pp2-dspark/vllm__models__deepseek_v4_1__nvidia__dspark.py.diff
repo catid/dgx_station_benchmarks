@@ -1,0 +1,52 @@
+--- a/vllm/models/deepseek_v4_1/nvidia/dspark.py
++++ b/vllm/models/deepseek_v4_1/nvidia/dspark.py
+@@ -19,6 +19,7 @@
+ import vllm.envs as envs
+ from vllm.config import VllmConfig, get_current_vllm_config
+ from vllm.distributed import (
++    get_pp_group,
+     get_tensor_model_parallel_rank,
+     get_tensor_model_parallel_world_size,
+ )
+@@ -319,6 +320,12 @@
+         self.model = DSparkDeepseekV4Model(
+             vllm_config=vllm_config, prefix=maybe_prefix(prefix, "model")
+         )
++        # Local patch (PP): the target's input embedding lives on the first PP
++        # stage while this draft runs on the last one, so the speculator's load
++        # utility cannot alias it there. Keep our own table and fill it from
++        # the checkpoint's ``embed.weight`` (bf16) in load_weights instead.
++        # Single-stage runs keep the stock aliasing.
++        self.loads_own_embed_tokens = not get_pp_group().is_first_rank
+         # Shared with the target (aliased by the speculator's load utility).
+         self.lm_head = ParallelLMHead(
+             self.config.vocab_size,
+@@ -434,7 +441,16 @@
+         head_start = n_local_head * tp_rank
+         head_end = n_local_head * (tp_rank + 1)
+ 
++        embed_param_name = "model.embed_tokens.weight"
+         for name, loaded_weight in weights:
++            if name == "embed.weight" and self.loads_own_embed_tokens:
++                # Local patch (PP): see __init__. The target maps this same
++                # tensor to its own embed_tokens on the first stage.
++                param = params_dict[embed_param_name]
++                weight_loader = getattr(param, "weight_loader", default_weight_loader)
++                weight_loader(param, loaded_weight)
++                loaded_params.add(embed_param_name)
++                continue
+             mapped = self._remap_dspark_name(name)
+             if mapped is None:
+                 continue
+@@ -511,6 +527,11 @@
+ 
+         if self.model.confidence_head is not None and not loaded_confidence_head:
+             self.model.confidence_head = None
++        if self.loads_own_embed_tokens and embed_param_name not in loaded_params:
++            raise ValueError(
++                "DSpark PP: the checkpoint has no `embed.weight` to fill the "
++                "draft's input embedding on the last PP stage."
++            )
+         self.process_weights_after_loading()
+         logger.info_once("DSpark draft model loaded: %d params", len(loaded_params))
+         return loaded_params

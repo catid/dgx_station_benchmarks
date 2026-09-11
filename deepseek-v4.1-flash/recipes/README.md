@@ -36,8 +36,10 @@ and that id must match the pin above before a row is accepted.
   vLLM runs TP1 × PP2 by default (`VLLM_PARALLEL=pp`; the measured lane used
   vLLM's default even 20/20 layer split, `--language-model-only`, and the Engram
   tables in host memory via `--engram-config '{"cpu_offload": true}'`) or
-  TP2 × PP1 (`VLLM_PARALLEL=tp`, required for DSpark: vLLM's DSpark runner
-  rejects pipeline parallelism).
+  TP2 × PP1 (`VLLM_PARALLEL=tp`). Stock vLLM's DSpark runner rejects pipeline
+  parallelism, so `MODE=low-latency` needs `VLLM_PARALLEL=tp`, or
+  `VLLM_PARALLEL=pp` with the local five-file overlay
+  (`VLLM_PATCH_PP_DSPARK=1`, [`patches/vllm-pp2-dspark/`](patches/vllm-pp2-dspark/)).
 - Rank 0 (the API host) runs on node0 unless `SWAP_RANKS=1`, which starts
   rank 0 on node1 and rank 1 on node0 and swaps rail addresses, checkpoint
   paths, and the API bind address (clients then use `API_URL`, which every
@@ -116,6 +118,26 @@ describes both. Without pipeline parallelism neither patch changes anything.
    `8,32`); the default even 20/20 split is the only balanced valid split,
    because layers 21–39 must stay with kv-source layer 20.
 
+### vLLM PP2 + DSpark needs a five-file overlay on top of those patches
+
+Stock vLLM rejects DSpark speculative decoding under pipeline parallelism, so
+the TP2 DSpark lane is the only speculative vLLM lane the image supports as
+shipped. `VLLM_PATCH_PP_DSPARK=1` additionally bind-mounts the five patched
+files in [`patches/vllm-pp2-dspark/`](patches/vllm-pp2-dspark/) (each beside
+its `.orig` and `.diff`; `mounts.txt` lists all seven `--volume` lines relative
+to the recipe directory; `selfcheck.sh` is a CPU-only import and relay-helper
+check inside the image). The overlay relays the draft block from the last
+pipeline stage to the first over the existing PP sampled-token side channel,
+pads the sample broadcast to a fixed width, lets the draft load its own input
+embedding on the last stage, and gives the draft a PP1 parallel config so
+config validation accepts it. It requires async scheduling
+(`VLLM_ASYNC_SCHEDULING=1`) and runs with adaptive verification off (vLLM's
+validator rejects it under PP), so the profile is fixed-K=5 DSpark. It is an
+experiment on top of the two PP2 patches, GPU-tested only on this pair;
+[`patches/vllm-pp2-dspark/README.md`](patches/vllm-pp2-dspark/README.md) and
+[`PLAN.md`](patches/vllm-pp2-dspark/PLAN.md) describe it, and the section's
+[`../notes/`](../notes/) record the equivalence check and sanity runs.
+
 ## Launch
 
 1. On both nodes: pull/build the image, place the checkpoint, run
@@ -131,9 +153,10 @@ describes both. Without pipeline parallelism neither patch changes anything.
    rank, and waits for `$API_URL/health` (`http://127.0.0.1:30000` unless
    `SWAP_RANKS=1`). `MODE=low-latency` adds DSpark
    (`--speculative-algorithm DSPARK --speculative-dspark-block-size 5`;
-   vLLM: `--speculative-config '{"method":"dspark","num_speculative_tokens":5,…}'`).
-   `ENGINE=vllm` selects `serve_vllm_node.sh`; `ENGINE=vllm SWAP_RANKS=1` puts
-   vLLM rank 0 on node1.
+   vLLM: `--speculative-config '{"method":"dspark","num_speculative_tokens":5,…}'`;
+   under `VLLM_PARALLEL=pp` only with `VLLM_PATCH_PP_DSPARK=1`, which forces
+   `enable_adaptive_verification:false`). `ENGINE=vllm` selects
+   `serve_vllm_node.sh`; `ENGINE=vllm SWAP_RANKS=1` puts vLLM rank 0 on node1.
 5. `./status.sh`, `./logs.sh 0 -f`, `./chat.sh "prompt"` to inspect.
 6. `./bench_prefill.sh <label> --tag-env "<description>"` and
    `./bench_decode.sh <label>` (see the contract below);

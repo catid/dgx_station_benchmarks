@@ -30,7 +30,7 @@ Every table is produced by [`build_data.py`](build_data.py) from the manifest
   input, 1,024 forced output tokens, `5 × C` requests after `C` warm-ups (a
   lane may merge several run directories, such as the SGLang DSpark C64 cell
   measured after its C1–C32 sweep; `run_id` names the run behind each row and
-  `qualification.csv` lists every run behind an accepted lane, `;`-separated), with
+  `qualification.csv` lists every run behind an accepted lane, `;`-separated; six decode lanes are accepted, including the vLLM PP2 DSpark lane measured through the local five-file overlay in `recipes/patches/vllm-pp2-dspark/`), with
   per-user p50 rate, TTFT, ITL, effective concurrency, and the DSpark accept
   length/rate for speculative lanes (`mtp_accept_length` stays empty: V4.1
   has no classic MTP head), plus `lane_label`/`series_order`.
