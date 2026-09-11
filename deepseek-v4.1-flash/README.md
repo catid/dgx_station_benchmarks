@@ -17,7 +17,7 @@ The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek
 - SGLang TP2+EP2 with SWA bounded replay (the deployment technique DeepSeek's V4.1 report describes; faster than full prefill but not bit-identical to it): **39,549 tok/s** for a single 16K request (TTFT **0.415s**; a 128K prompt in **3.480s**) and **37,693 prompt tok/s** at 128K / C16 — the fastest single 16K request of any lane.
 - Exact full prefill (SGLang, replay off, the numerically exact reference): **24,419 prompt tok/s** at 128K / C16 and **26,316 tok/s** for a single 16K request (TTFT **0.623s**).
 - Per-user decode at C1: SGLang DSpark **180.0 tok/s per user at C1** (2.80 accepted tokens per step) versus **106.8 tok/s** SGLang autoregressive; vLLM PP2 autoregressive **141.3 tok/s**, ahead of SGLang autoregressive at every concurrency and of DSpark from C4 upward.
-- Peak decode: **2,805.9 aggregate tok/s** (vLLM PP2 · AR, C64) versus **2,236.7** for SGLang AR · Data Direct at C64 (+25.4%).
+- Peak decode: **2,805.9 aggregate tok/s** (vLLM PP2 · AR, C64) versus **2,392.3** for SGLang DSpark and **2,236.7** for SGLang AR · Data Direct at C64 (+17.3% / +25.4%); DSpark still beats SGLang AR at C64 (+7.0%) with 2.54 accepted tokens per step.
 - Data Direct RDMA lifted the same SGLang server from **16,621** to **25,638 prompt tok/s** (+54.2%) at 64K prompts, C16, and SWA bounded replay took it to **39,133** (+135.4% versus stock, +52.6% versus Data Direct alone); vLLM PP2 reaches **65,966** at that point (+296.9% versus stock, +68.6% versus the best SGLang step); NCCL fell from **54.8%** to **29.2%** of GPU kernel time in a 32K prefill.
 - Dual-rail NCCL all-reduce: **93.7 GB/s** bus bandwidth at 2 GiB versus **48.7 GB/s** on one rail.
 
@@ -28,7 +28,7 @@ The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek
 | SGLang AR · stock RDMA† | 16,098 | 16,621 | — | — |
 | SGLang AR · Data Direct | 24,394 | 25,638 | 106.8 | 2,236.7 |
 | SGLang AR + SWA replay | 37,674 | 39,133 | — | — |
-| SGLang DSpark† | — | — | **180.0** | — |
+| SGLang DSpark† | — | — | **180.0** | 2,392.3 |
 | vLLM PP2 · AR | **55,992** | **65,966** | 141.3 | **2,805.9** |
 | vLLM TP2 · AR | 32,672 | 34,695 | 102.3 | 1,964.5 |
 | vLLM TP2 · DSpark | — | — | {{VLLM_TP2_DSPARK_USER_C1}} | {{VLLM_TP2_DSPARK_DECODE_C64}} |
@@ -57,7 +57,7 @@ The official [`deepseek-ai/DeepSeek-V4.1-Flash`](https://huggingface.co/deepseek
 
 ![DeepSeek-V4.1-Flash aggregate decode throughput versus concurrency](charts/decode-throughput.png)
 
-*Aggregate output tok/s versus concurrency, AR and DSpark on both engines; 8,192-token input, 1,024 forced output tokens, temperature 0, `C` warm-ups then `5 × C` measured requests. vLLM TP2 trails PP2 at every concurrency; DSpark was requested at C1–C32.*
+*Aggregate output tok/s versus concurrency, AR and DSpark on both engines; 8,192-token input, 1,024 forced output tokens, temperature 0, `C` warm-ups then `5 × C` measured requests. vLLM TP2 trails PP2 at every concurrency; SGLang DSpark beats SGLang AR at every concurrency, including C64, and trails vLLM PP2 at C4 and from C16 upward (C8 is a near tie in DSpark's favour).*
 
 ## Per-user decode speed
 

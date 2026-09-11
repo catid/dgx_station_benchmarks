@@ -397,6 +397,16 @@ def decode_rows_from_dir(run_dir: Path, base: dict[str, str], status: str, ranka
     return rows, notes
 
 
+def decode_run_dirs(block: dict) -> list[str]:
+    """A decode block names one ``run_dir`` or a ``run_dirs`` list (a later run that adds cells, such as a C64
+    point measured after the C1-C32 sweep, is merged into the same lane; duplicate concurrencies are refused)."""
+    if block.get("run_dirs"):
+        if block.get("run_dir"):
+            raise BuildError("decode block lists both run_dir and run_dirs")
+        return list(block["run_dirs"])
+    return [block["run_dir"]] if block.get("run_dir") else []
+
+
 def check_decode_rows(rows: list[dict[str, str]], lane_id: str) -> None:
     seen = set()
     for row in rows:
@@ -626,21 +636,25 @@ def build(args: argparse.Namespace) -> int:
 
         block = lane["decode"]
         status = block["publication_status"]
-        run_dir = root / block["run_dir"] if block.get("run_dir") else None
+        run_dirs = [root / entry for entry in decode_run_dirs(block)]
         if status in ROW_STATUSES:
-            if run_dir is None or not run_dir.is_dir():
-                raise BuildError(f"lane {lane_id}: decode status {status!r} but run_dir is missing")
+            missing = [entry.name for entry in run_dirs if not entry.is_dir()]
+            if not run_dirs or missing:
+                raise BuildError(f"lane {lane_id}: decode status {status!r} but run_dir is missing {missing or ''}")
             base = lane_columns(lane_id, lane, sources, "decode")
-            rows, dropped = decode_rows_from_dir(
-                run_dir, base, status, status == "accepted" and bool(block.get("rankable")),
-                sources["decode_client"], strict=(status == "accepted"))
-            notes.extend(dropped)
+            rows: list[dict[str, str]] = []
+            for run_dir in run_dirs:
+                found, dropped = decode_rows_from_dir(
+                    run_dir, base, status, status == "accepted" and bool(block.get("rankable")),
+                    sources["decode_client"], strict=(status == "accepted"))
+                rows.extend(found)
+                notes.extend(dropped)
+                evidence_files.extend((path, f"{run_dir.name}/{path.name}") for path in sorted(run_dir.glob("c*.json")))
             if status == "accepted":
                 check_decode_rows(rows, lane_id)
             decode.extend(rows)
-            evidence[(lane_id, "decode")] = run_dir.name
-            evidence_files.extend((path, f"{run_dir.name}/{path.name}") for path in sorted(run_dir.glob("c*.json")))
-        elif run_dir is not None and run_dir.is_dir():
+            evidence[(lane_id, "decode")] = ";".join(run_dir.name for run_dir in run_dirs)
+        elif any(entry.is_dir() for entry in run_dirs):
             notes.append(f"lane {lane_id}: decode run_dir exists but status is {status!r}; no rows written")
 
     fabric: list[dict[str, str]] = []

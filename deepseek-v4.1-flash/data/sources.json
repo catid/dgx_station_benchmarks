@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "note": "Manifest for data/build_data.py. Every path is relative to --source-root (the private benchmark working directory, never committed). Keep this file free of hostnames, absolute paths, management addresses, and GPU UUIDs: rank hosts are mapped to node0/node1 from the artifacts themselves. Set a lane's publication_status to 'accepted' only after its full grid completed with zero errors; build_data.py refuses incomplete accepted lanes. Two SGLang prefill lanes are accepted: the replay-off Data Direct lane (numerically exact full prefill, the reference) and the SWA bounded replay lane (DeepSeek's documented deployment technique, faster, not bit-identical). The vLLM PP2 lane (TP1 x PP2, text-only, two local source patches) and the vLLM TP2 lane are accepted for prefill and AR decode; the PP2 lane's GPU utilisation/power columns were sampled on node0, which under PP2 is pipeline stage 0. Lanes may also list prefill.diagnostic_jsonl: those files always land in diagnostic-prefill.csv (rankable=false) regardless of the lane status. Every lane carries a stable, human-readable lane_label and a series_order integer; both are copied into prefill.csv, diagnostic-prefill.csv and throughput.csv so charts and README tables share labels and ordering. Charts draw every lane that has complete, error-free rows (accepted or diagnostic); publication_status/rankable only decide ranking, tables and tests.",
+  "note": "Manifest for data/build_data.py. Every path is relative to --source-root (the private benchmark working directory, never committed). Keep this file free of hostnames, absolute paths, management addresses, and GPU UUIDs: rank hosts are mapped to node0/node1 from the artifacts themselves. A decode block names one run_dir or a run_dirs list whose cells are merged into the same lane (duplicate concurrencies are refused). Set a lane's publication_status to 'accepted' only after its full grid completed with zero errors; build_data.py refuses incomplete accepted lanes. Two SGLang prefill lanes are accepted: the replay-off Data Direct lane (numerically exact full prefill, the reference) and the SWA bounded replay lane (DeepSeek's documented deployment technique, faster, not bit-identical). The vLLM PP2 lane (TP1 x PP2, text-only, two local source patches) and the vLLM TP2 lane are accepted for prefill and AR decode; the PP2 lane's GPU utilisation/power columns were sampled on node0, which under PP2 is pipeline stage 0. Lanes may also list prefill.diagnostic_jsonl: those files always land in diagnostic-prefill.csv (rankable=false) regardless of the lane status. Every lane carries a stable, human-readable lane_label and a series_order integer; both are copied into prefill.csv, diagnostic-prefill.csv and throughput.csv so charts and README tables share labels and ordering. Charts draw every lane that has complete, error-free rows (accepted or diagnostic); publication_status/rankable only decide ranking, tables and tests.",
   "model_id": "deepseek-ai/DeepSeek-V4.1-Flash",
   "model_revision": "dba1be0a40aa45a94ad051997016db3960a90277",
   "runtimes": {
@@ -57,7 +57,7 @@
   },
   "lanes": {
     "sglang_tp2_ep2_ar": {
-      "lane_label": "SGLang TP2+EP2 \u00b7 AR \u00b7 Data Direct",
+      "lane_label": "SGLang TP2+EP2 · AR · Data Direct",
       "series_order": 2,
       "engine": "sglang",
       "mode": "ar",
@@ -94,7 +94,7 @@
       }
     },
     "sglang_tp2_ep2_dspark": {
-      "lane_label": "SGLang TP2+EP2 \u00b7 DSpark",
+      "lane_label": "SGLang TP2+EP2 · DSpark",
       "series_order": 4,
       "engine": "sglang",
       "mode": "dspark",
@@ -123,12 +123,15 @@
       "decode": {
         "publication_status": "accepted",
         "rankable": true,
-        "run_dir": "results/decode/20260910-123559-sglang-tp2-datadirect-dspark",
-        "note": "Accepted: every requested cell C1, C2, C4, C8, C16, C32 completed with zero errors and none underfilled (C64 was not requested for the DSpark lane); accept_length/accept_rate come from the server speculative-decoding counters"
+        "run_dirs": [
+          "results/decode/20260910-123559-sglang-tp2-datadirect-dspark",
+          "results/decode/20260910-215528-sglang-tp2-datadirect-dspark-c64"
+        ],
+        "note": "Accepted: run 20260910-123559 completed C1, C2, C4, C8, C16, C32 and the follow-up run 20260910-215528 added the C64 cell on the same DSpark server profile and contract; every cell finished with zero errors and none underfilled; accept_length/accept_rate come from the server speculative-decoding counters"
       }
     },
     "sglang_tp2_ep2_ar_replay": {
-      "lane_label": "SGLang TP2+EP2 \u00b7 AR + SWA replay",
+      "lane_label": "SGLang TP2+EP2 · AR + SWA replay",
       "series_order": 3,
       "engine": "sglang",
       "mode": "ar",
@@ -161,7 +164,7 @@
       }
     },
     "sglang_tp2_ep2_stock_rdma": {
-      "lane_label": "SGLang TP2+EP2 \u00b7 AR \u00b7 stock RDMA",
+      "lane_label": "SGLang TP2+EP2 · AR · stock RDMA",
       "series_order": 1,
       "engine": "sglang",
       "mode": "ar",
@@ -194,7 +197,7 @@
       }
     },
     "vllm_pp2_ar": {
-      "lane_label": "vLLM PP2 \u00b7 AR",
+      "lane_label": "vLLM PP2 · AR",
       "series_order": 5,
       "engine": "vllm",
       "mode": "ar",
@@ -230,7 +233,7 @@
       }
     },
     "vllm_tp2_ar": {
-      "lane_label": "vLLM TP2 \u00b7 AR",
+      "lane_label": "vLLM TP2 · AR",
       "series_order": 6,
       "engine": "vllm",
       "mode": "ar",
@@ -265,7 +268,7 @@
       }
     },
     "vllm_tp2_dspark": {
-      "lane_label": "vLLM TP2 \u00b7 DSpark",
+      "lane_label": "vLLM TP2 · DSpark",
       "series_order": 7,
       "engine": "vllm",
       "mode": "dspark",
@@ -329,7 +332,7 @@
   "fabric": [
     {
       "config_id": "single_rail_tuned",
-      "label": "Single rail \u00b7 tuned (8 ch, 4 QP)",
+      "label": "Single rail · tuned (8 ch, 4 QP)",
       "rails": 1,
       "nccl_hcas": "mlx5_0",
       "nccl_tuning": "tuned",
@@ -339,7 +342,7 @@
     },
     {
       "config_id": "dual_rail_tuned_8ch",
-      "label": "Dual rail \u00b7 tuned (8 ch, 4 QP)",
+      "label": "Dual rail · tuned (8 ch, 4 QP)",
       "rails": 2,
       "nccl_hcas": "mlx5_0,mlx5_1",
       "nccl_tuning": "tuned",
@@ -349,7 +352,7 @@
     },
     {
       "config_id": "dual_rail_tuned_16ch",
-      "label": "Dual rail \u00b7 tuned (16 ch, 4 QP)",
+      "label": "Dual rail · tuned (16 ch, 4 QP)",
       "rails": 2,
       "nccl_hcas": "mlx5_0,mlx5_1",
       "nccl_tuning": "tuned",
@@ -359,7 +362,7 @@
     },
     {
       "config_id": "dual_rail_auto",
-      "label": "Dual rail \u00b7 NCCL auto",
+      "label": "Dual rail · NCCL auto",
       "rails": 2,
       "nccl_hcas": "mlx5_0,mlx5_1",
       "nccl_tuning": "auto",
@@ -371,7 +374,7 @@
   "profiles": [
     {
       "profile_id": "stock_rdma_32k",
-      "label": "Stock RDMA path \u00b7 32K prefill",
+      "label": "Stock RDMA path · 32K prefill",
       "lane": "sglang_tp2_ep2_stock_rdma",
       "isl_tokens": 32768,
       "ranks": {
@@ -381,7 +384,7 @@
     },
     {
       "profile_id": "datadirect_32k",
-      "label": "Data Direct RDMA \u00b7 32K prefill",
+      "label": "Data Direct RDMA · 32K prefill",
       "lane": "sglang_tp2_ep2_ar",
       "isl_tokens": 32768,
       "ranks": {
