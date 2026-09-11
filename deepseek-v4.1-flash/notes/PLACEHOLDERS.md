@@ -9,16 +9,5 @@ placeholder for a pending run.
 
 | Token | Files | Source and format |
 | --- | --- | --- |
-| `{{STATUS_VLLM_TP2_DSPARK_DECODE}}` | notes/README.md | lane disposition wording for the 'What was measured' table (accepted / pending / diagnostic only / failed: reason) |
-| `{{VLLM_TP2_DSPARK_DECODE_C16}}` | README.md, notes/README.md | throughput.csv aggregate_output_tokens_per_second, vLLM TP2 DSpark, f'{v:,.1f}' |
-| `{{VLLM_TP2_DSPARK_DECODE_C1}}` | README.md, notes/README.md | throughput.csv aggregate_output_tokens_per_second, vLLM TP2 DSpark, f'{v:,.1f}' |
-| `{{VLLM_TP2_DSPARK_DECODE_C32}}` | README.md, notes/README.md | throughput.csv aggregate_output_tokens_per_second, vLLM TP2 DSpark, f'{v:,.1f}' |
-| `{{VLLM_TP2_DSPARK_DECODE_C4}}` | README.md, notes/README.md | throughput.csv aggregate_output_tokens_per_second, vLLM TP2 DSpark, f'{v:,.1f}' |
-| `{{VLLM_TP2_DSPARK_DECODE_C64}}` | README.md, notes/README.md | throughput.csv aggregate_output_tokens_per_second, vLLM TP2 DSpark, f'{v:,.1f}' |
-| `{{VLLM_TP2_DSPARK_USER_C16}}` | README.md, notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 DSpark, f'{v:,.1f}' |
-| `{{VLLM_TP2_DSPARK_USER_C1}}` | README.md, notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 DSpark, f'{v:,.1f}' |
-| `{{VLLM_TP2_DSPARK_USER_C32}}` | README.md, notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 DSpark, f'{v:,.1f}' |
-| `{{VLLM_TP2_DSPARK_USER_C4}}` | README.md, notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 DSpark, f'{v:,.1f}' |
-| `{{VLLM_TP2_DSPARK_USER_C64}}` | README.md, notes/README.md | throughput.csv per_user_output_tokens_per_second_p50, vLLM TP2 DSpark, f'{v:,.1f}' |
 
-11 placeholders.
+0 placeholders.

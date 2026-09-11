@@ -67,6 +67,8 @@ HEADLINE_DECODE = (
     ("SGLANG_DSPARK_ACCEPT_C1", "sglang_tp2_ep2_dspark", 1, "accept"),
     ("SGLANG_AR_USER_C1", HEADLINE_LANE, 1, "user"),
     ("VLLM_PP2_USER_C1", VLLM_PP2_LANE, 1, "user"),
+    ("VLLM_TP2_DSPARK_USER_C1", "vllm_tp2_dspark", 1, "user"),
+    ("VLLM_TP2_DSPARK_ACCEPT_C1", "vllm_tp2_dspark", 1, "accept"),
 )
 # Repository overview row -> the (isl, concurrency) prefill points each lane contributes to it.
 OVERVIEW_PREFILL_POINTS = {
